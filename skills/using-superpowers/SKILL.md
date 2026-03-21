@@ -110,9 +110,11 @@ When asking the user to choose between actions, prefer numbered options instead 
 
 - Put the recommended option in slot `1`
 - Prefer 2-4 options
-- Use a final free-text fallback only when the choice cannot be fully enumerated
+- For non-dangerous, enumerable choices in Codex, prefer calling `request_user_input` so the user gets a tool-backed choice UI instead of a prose-only "reply `1`/`2`/`3`" prompt
+- Keep a final free-text fallback when the scenario allows additional input beyond the listed choices
 - Do not use open-ended prompts like "Which approach?" when concrete choices are already known
-- Keep typed confirmations for dangerous or destructive actions
+- For dangerous or destructive enumerable choices, prefer two-stage confirmation: a numbered choice first, then a lettered confirmation step
+- If a dangerous action still requires typed text, show the exact text and present it as copyable text
 
 ## Governance Routing
 

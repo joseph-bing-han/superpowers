@@ -66,9 +66,14 @@ Skills are discovered automatically. Codex activates them when:
 
 ## Choice-Based Interaction
 
-Superpowers skill prompts now prefer numbered options for user-choice moments so Codex users can respond with short numeric replies instead of typing approval phrases.
+Superpowers skill prompts now prefer a tool-backed choice UI, not just numbered prose, for user-choice moments when Codex can render structured input.
 
-This does not mean Superpowers can force raw single-key submit inside Codex CLI. True "press one key and continue immediately" behavior depends on the Codex input layer, not the skill documents.
+- For non-dangerous, enumerable choices, use `request_user_input` so Codex users get a tool-backed choice UI instead of only being told to reply with a number.
+- Keep a final free-text fallback when the scenario allows additional input beyond the listed choices.
+- For dangerous or destructive enumerable choices, use two-stage confirmation: a numeric choice first, then a lettered confirmation step.
+- If a dangerous action still requires typed text, show the exact text as copyable text.
+
+This does not mean Superpowers can force raw single-key submit inside Codex CLI. True "press one key and continue immediately" behavior still depends on the Codex input layer, not the skill documents.
 
 ### Personal Skills
 
