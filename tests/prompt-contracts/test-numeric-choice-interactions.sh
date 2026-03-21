@@ -115,7 +115,7 @@ assert_section_not_contains() {
 }
 
 assert_section_contains "skills/using-superpowers/SKILL.md" "## User Choice Formatting" "use structured numbered choices by default" "global rule defaults to structured numbered choices" '^## '
-assert_contains "skills/using-superpowers/SKILL.md" "recommended.*1|option 1" "global rule reserves slot 1 for the recommendation"
+assert_section_contains "skills/using-superpowers/SKILL.md" "## User Choice Formatting" 'Put the recommended option in slot `1`' "global rule reserves slot 1 for the recommendation" '^## '
 assert_section_contains "skills/using-superpowers/SKILL.md" "## User Choice Formatting" 'use `request_user_input` by default when available' "global rule defaults non-dangerous enumerable choices to request_user_input" '^## '
 assert_section_contains "skills/using-superpowers/SKILL.md" "## User Choice Formatting" 'tool-backed choice UI instead of a prose-only numbered reply prompt' "global rule rejects prose-only numbered replies when tool-backed UI is available" '^## '
 assert_section_contains "skills/using-superpowers/SKILL.md" "## User Choice Formatting" 'Keep a final free-text fallback when the scenario allows additional input beyond the listed choices\.?' "global rule keeps a free-text fallback when allowed" '^## '
