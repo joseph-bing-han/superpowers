@@ -68,6 +68,8 @@ Skills are discovered automatically. Codex activates them when:
 
 Superpowers skill prompts use structured numbered choices by default for user-choice moments instead of requiring natural-language approval phrases.
 
+- Put the recommended option in slot `1`.
+- Prefer 2-4 options.
 - For non-dangerous, enumerable choices, use `request_user_input` by default when available so the user gets a tool-backed choice UI instead of a prose-only numbered reply prompt.
 - Keep a final free-text fallback when the scenario allows additional input beyond the listed choices.
 - For dangerous or destructive enumerable choices, use two-stage confirmation by default: a numbered choice first, then a lettered confirmation step.

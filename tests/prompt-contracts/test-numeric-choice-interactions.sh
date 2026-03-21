@@ -132,6 +132,8 @@ assert_not_contains "skills/finishing-a-development-branch/SKILL.md" "Which opti
 assert_not_contains "skills/using-superpowers/SKILL.md" "only when the choice cannot be fully enumerated" "global rule drops the old restrictive free-text wording"
 assert_not_contains "skills/using-superpowers/SKILL.md" "Keep typed confirmations for dangerous or destructive actions" "global rule drops the old typed-confirmation wording"
 assert_section_not_contains "skills/using-superpowers/SKILL.md" "## User Choice Formatting" 'optional|plain text is fine|avoid two-stage|when convenient' "global rule section does not weaken the contract" '^## '
+assert_section_contains "docs/README.codex.md" "## Choice-Based Interaction" 'Put the recommended option in slot `1`' "Codex docs reserve slot 1 for the recommendation"
+assert_section_contains "docs/README.codex.md" "## Choice-Based Interaction" 'Prefer 2-4 options' "Codex docs prefer 2-4 options"
 assert_section_contains "docs/README.codex.md" "## Choice-Based Interaction" 'use `request_user_input` by default when available' "Codex docs default non-dangerous enumerable choices to request_user_input"
 assert_section_contains "docs/README.codex.md" "## Choice-Based Interaction" 'tool-backed choice UI instead of a prose-only numbered reply prompt' "Codex docs reject prose-only numbered replies when tool-backed UI is available"
 assert_section_contains "docs/README.codex.md" "## Choice-Based Interaction" 'Keep a final free-text fallback when the scenario allows additional input beyond the listed choices\.?' "Codex docs keep a free-text fallback when allowed"
