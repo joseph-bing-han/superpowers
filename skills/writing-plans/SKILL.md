@@ -159,6 +159,10 @@ Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Choose the ex
 3. Input other requirements
 ```
 
+When `request_user_input` is available, use it for this execution handoff because the choices are known and enumerable.
+Keep a final free-text path only for requirements that do not fit the listed execution choices.
+Do not ask for a prose-only `reply 1/2/3` response in this handoff when `request_user_input` is available.
+
 **If Subagent-Driven chosen:**
 - **REQUIRED SUB-SKILL:** Use superpowers:subagent-driven-development
 - Fresh subagent per task + two-stage review

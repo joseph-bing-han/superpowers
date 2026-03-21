@@ -25,10 +25,10 @@ You MUST create a task for each of these items and complete them in order:
 2. **Offer visual companion** (if topic will involve visual questions) — this is its own message, not combined with a clarifying question. See the Visual Companion section below.
 3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria; prefer numbered options when the choices are already known
 4. **Propose 2-3 approaches** — with trade-offs and your recommendation
-5. **Present design** — in sections scaled to their complexity, get user approval after each section using numbered choices instead of typed approval words
+5. **Present design** — in sections scaled to their complexity, get user approval after each section using `request_user_input` when available for enumerable choices instead of typed approval words or a prose-only numbered reply prompt
 6. **Write design artifacts** — in a Superpowers-only lane, save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit; in an OpenSpec-governed lane, update the relevant OpenSpec change artifacts and commit without creating a duplicate Superpowers spec file
 7. **Design artifact review loop** — dispatch spec-document-reviewer subagent with precisely crafted review context (never your session history); review the written design artifacts, fix issues, and re-dispatch until approved (max 3 iterations, then surface to human)
-8. **User reviews written design artifacts** — ask user to review the written design artifact paths before proceeding
+8. **User reviews written design artifacts** — ask user to review the written design artifact paths before proceeding, using `request_user_input` when available for the known review choices
 9. **Transition to implementation** — invoke writing-plans skill to create implementation plan
 
 ## Process Flow
@@ -86,11 +86,13 @@ digraph brainstorming {
 - Present options conversationally with your recommendation and reasoning
 - Lead with your recommended option and explain why
 
-**Presenting the design:**
+## Presenting the design:
 
 - Once you believe you understand what you're building, present the design
 - Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
 - Ask after each section whether it looks right so far, using numbered approvals instead of requiring typed approval words
+- When `request_user_input` is available and the approval choices are enumerable, use it instead of asking for a prose-only `reply 1/2/3` response.
+- Keep a final free-text path only for new feedback that does not fit the listed approval choices.
 - Cover: architecture, components, data flow, error handling, testing
 - Be ready to go back and clarify if something doesn't make sense
 
@@ -103,6 +105,7 @@ For approval gates, prefer patterns like:
 ```
 
 Avoid requiring the user to type approval words like "agree", "approved", or "go ahead".
+Do not accept a prose-only `reply 1/2/3` prompt for these enumerable approval gates when `request_user_input` is available.
 
 **Design for isolation and clarity:**
 
@@ -138,13 +141,15 @@ After writing the design artifact(s):
 2. If Issues Found: fix, re-dispatch, repeat until Approved
 3. If loop exceeds 3 iterations, surface to human for guidance
 
-**User Review Gate:**
+## User Review Gate:
 After the design artifact review loop passes, ask the user to review the written design artifacts before proceeding:
 
 > "Design artifacts written and committed to `<path-or-paths>`. Choose the next step:
 > 1. Agree and continue
 > 2. Request changes
 > 3. Input other feedback or requirements"
+
+When `request_user_input` is available and the next steps are enumerable, use it for this review gate instead of a prose-only numbered reply prompt.
 
 Wait for the user's response. If they request changes, make them and re-run the design artifact review loop. Only proceed once the user approves.
 

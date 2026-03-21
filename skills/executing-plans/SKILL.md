@@ -19,7 +19,8 @@ Load plan, review critically, execute all tasks, report when complete.
 1. Read plan file
 2. Review critically - identify any questions or concerns about the plan
 3. If concerns: Raise them with your human partner before starting, using numbered options instead of an open-ended prompt whenever the next actions are already known
-4. If no concerns: Create TodoWrite and proceed
+4. If concerns need human input and the next actions are already known, use `request_user_input` when available instead of a prose-only numbered reply prompt.
+5. If no concerns: Create TodoWrite and proceed
 
 ### Step 2: Execute Tasks
 
@@ -47,6 +48,9 @@ After all tasks complete and verified:
 **Ask for clarification rather than guessing.**
 
 If concerns or blockers need human input, present numbered options instead of open-ended questions.
+If concerns, blockers, or known next actions need human input and the choices are enumerable, use `request_user_input` when available.
+Keep a final free-text path only for guidance that does not fit the listed options.
+Do not ask for a prose-only `reply 1/2/3` response in these flows when `request_user_input` is available.
 
 Example:
 1. Clarify the missing instruction
