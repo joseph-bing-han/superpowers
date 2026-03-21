@@ -9,11 +9,7 @@ description: Use when implementation is complete, all tests pass, and you need t
 
 Guide completion of development work by presenting clear options and handling chosen workflow.
 
-<<<<<<< HEAD
-**Core principle:** Verify tests → Detect environment → Present options → Execute choice → Clean up.
-=======
-**Core principle:** Verify tests → Present options → Execute choice → Clean up → Handoff follow-up workflow when needed.
->>>>>>> 3a0c969 (Superpowers中, 引入OpenSpec)
+**Core principle:** Verify tests → Detect environment → Present options → Execute choice → Clean up → Handoff follow-up workflow when needed.
 
 **Announce at start:** "I'm using the finishing-a-development-branch skill to complete this work."
 
@@ -71,8 +67,10 @@ Or ask: "This branch split from main - is that correct?"
 
 **Normal repo and named-branch worktree — present exactly these 4 options:**
 
+When `request_user_input` is available and the choices are enumerable, use it for the main menu and both destructive confirmation stages instead of a prose-only reply prompt.
+
 ```
-Implementation complete. Reply with the number of the next step:
+Implementation complete. Choose the next step:
 
 1. Merge back to <base-branch> locally
 2. Push and create a Pull Request
@@ -80,7 +78,7 @@ Implementation complete. Reply with the number of the next step:
 4. Discard this work
 
 Reply with `1`, `2`, or `3`.
-For option 4, type `discard`.
+Reply with `4` to enter the discard confirmation flow.
 ```
 
 **Detached HEAD — present exactly these 3 options:**
@@ -96,8 +94,9 @@ Which option?
 ```
 
 **Don't add explanation** - keep options concise.
-**Option 4 still requires the user to type `discard` to confirm.**
-**Do not add a single-key shortcut or numbered shortcut for destructive actions.**
+**Keep Options 1, 2, and 3 as the non-destructive choices.**
+**Option 4 must enter the dedicated destructive confirmation flow below.**
+**Only show copyable exact text when a downstream tool truly requires a unique text token.**
 
 ### Step 5: Execute Choice
 
@@ -142,11 +141,7 @@ EOF
 )"
 ```
 
-<<<<<<< HEAD
-**Do NOT clean up worktree** — user needs it alive to iterate on PR feedback.
-=======
-Then: Keep worktree for follow-up review / fixes.
->>>>>>> 3a0c969 (Superpowers中, 引入OpenSpec)
+**Do NOT clean up worktree** — keep it alive for PR follow-up review/fixes.
 
 #### Option 3: Keep As-Is
 
@@ -156,19 +151,53 @@ Report: "Keeping branch <name>. Worktree preserved at <path>."
 
 #### Option 4: Discard
 
-**Confirm first:**
-```
+Use a two-stage destructive confirmation state machine: both stages use numbered choices.
+
+Show the destructive impact before the user chooses either confirmation stage:
+```text
 This will permanently delete:
 - Branch <name>
 - All commits: <commit-list>
 - Worktree at <path>
-
-Type 'discard' to confirm.
 ```
 
-Wait for exact confirmation.
+##### Stage 1: Enter or Leave the Destructive Subflow
 
-If confirmed:
+Present exactly these choices:
+
+```text
+1. Continue toward the final discard confirmation step
+2. Cancel
+3. Input other feedback or requirements
+```
+
+Text fallback for Stage 1: Reply with `1`, `2`, or `3`.
+
+##### Stage 2: Final Confirmation
+
+Present exactly these choices:
+
+```text
+1. Cancel and return to the previous step
+2. Confirm discard now
+3. Input other feedback or requirements
+```
+
+Text fallback for Stage 2: Reply with `1`, `2`, or `3`.
+
+State transitions:
+
+- Choosing Stage 1 `1` moves to Stage 2.
+- Choosing Stage 1 `2` returns to the parent flow; if there is no parent flow, it safely ends the destructive subflow without making changes.
+- Choosing Stage 2 `1` returns to Stage 1.
+- Choosing Stage 1 `3` or Stage 2 `3` treats the input as additional feedback or a help request, then returns to the same step without executing or canceling anything.
+- If the user enters an invalid token or submits empty input in the text fallback, stay on the current step, show the valid tokens again, and do not execute or cancel anything.
+- Only valid tokens move the state machine forward.
+- Keep the final destructive confirmation in slot `2` of Stage 2 so the user must pass through one more safe choice boundary before execution.
+
+Only if a downstream system truly requires a unique text token, show the exact text as copyable text. Do not add a default typed keyword for this skill.
+
+If Stage 2 `2` is chosen:
 ```bash
 MAIN_ROOT=$(git -C "$(git rev-parse --git-common-dir)/.." rev-parse --show-toplevel)
 cd "$MAIN_ROOT"
@@ -183,12 +212,9 @@ git branch -D <feature-branch>
 
 **Only runs for Options 1 and 4.** Options 2 and 3 always preserve the worktree.
 
-<<<<<<< HEAD
-=======
 **For Options 1 and 4:**
 
 Check if in worktree:
->>>>>>> 3a0c969 (Superpowers中, 引入OpenSpec)
 ```bash
 GIT_DIR=$(cd "$(git rev-parse --git-dir)" 2>/dev/null && pwd -P)
 GIT_COMMON=$(cd "$(git rev-parse --git-common-dir)" 2>/dev/null && pwd -P)
@@ -206,12 +232,9 @@ git worktree remove "$WORKTREE_PATH"
 git worktree prune  # Self-healing: clean up any stale registrations
 ```
 
-<<<<<<< HEAD
 **Otherwise:** The host environment (harness) owns this workspace. Do NOT remove it. If your platform provides a workspace-exit tool, use it. Otherwise, leave the workspace in place.
-=======
-**For Options 2 and 3:** Keep worktree.
 
-### Step 6: OpenSpec Archive Handoff
+### Step 7: OpenSpec Archive Handoff
 
 If the current work clearly belongs to an OpenSpec-governed lane, consider whether the branch outcome is actually compatible with archive follow-up.
 
@@ -262,7 +285,6 @@ openspec-archive-change <change-name>
 ```
 
 Keep change selection, artifact checks, task checks, spec sync decisions, and archive confirmation inside `openspec-archive-change`.
->>>>>>> 3a0c969 (Superpowers中, 引入OpenSpec)
 
 ## Quick Reference
 
@@ -299,13 +321,21 @@ Keep change selection, artifact checks, task checks, spec sync decisions, and ar
 - **Problem:** Removing a worktree the harness created causes phantom state
 - **Fix:** Only clean up worktrees under `.worktrees/`, `worktrees/`, or `~/.config/superpowers/worktrees/`
 
-**No confirmation for discard**
-- **Problem:** Accidentally delete work
-- **Fix:** Require typed "discard" confirmation
+**Collapsing discard into one step**
+- **Problem:** The user can delete work without passing through both destructive confirmation layers
+- **Fix:** Keep both destructive stages as `1/2/3`
 
-**Shortcutting destructive actions**
-- **Problem:** Replacing typed confirmation with a one-key shortcut makes accidental deletion easier
-- **Fix:** Keep Option 4 as a numbered menu entry, but still require the exact typed word `discard`
+**Putting the final destructive confirmation in slot 1**
+- **Problem:** A rushed second-step selection can execute the destructive action too easily
+- **Fix:** Keep Stage 2 slot `1` as the safe return path and slot `2` as the final confirmation
+
+**Treating free input as confirmation**
+- **Problem:** A note, question, or help request accidentally executes or cancels the destructive flow
+- **Fix:** Keep slot `3` as feedback-only and always return to the same step afterward
+
+**Advancing on invalid fallback input**
+- **Problem:** Typos or empty submits accidentally execute, cancel, or exit the destructive flow
+- **Fix:** Stay on the current step until the user provides a valid token
 
 ## Red Flags
 
@@ -322,12 +352,10 @@ Keep change selection, artifact checks, task checks, spec sync decisions, and ar
 - Verify tests before offering options
 - Detect environment before presenting menu
 - Present exactly 4 options (or 3 for detached HEAD)
-- Get typed confirmation for Option 4
+- Run the two-stage destructive confirmation flow for Option 4
 - Clean up worktree for Options 1 & 4 only
-<<<<<<< HEAD
 - `cd` to main repo root before worktree removal
 - Run `git worktree prune` after removal
-=======
 - Use OpenSpec archive handoff only when the context clearly indicates an OpenSpec change and the branch outcome is compatible with completion
 
 ## Integration
@@ -339,4 +367,3 @@ Keep change selection, artifact checks, task checks, spec sync decisions, and ar
 **Pairs with:**
 - **using-git-worktrees** - Cleans up worktree created by that skill
 - **openspec-archive-change** - Optional next step after branch completion for OpenSpec-governed work
->>>>>>> 3a0c969 (Superpowers中, 引入OpenSpec)
