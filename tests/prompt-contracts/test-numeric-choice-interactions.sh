@@ -124,7 +124,7 @@ assert_section_contains "skills/using-superpowers/SKILL.md" "## User Choice Form
 assert_contains "skills/brainstorming/SKILL.md" "1\\. Agree and continue|1\\. Approve and continue" "brainstorming approval uses numbered choice"
 assert_contains "skills/brainstorming/SKILL.md" "Input other feedback|Input other requirements" "brainstorming keeps a free-text fallback"
 assert_contains "skills/writing-plans/SKILL.md" "1\\. Subagent-Driven" "plan execution handoff stays numbered"
-assert_contains "skills/executing-plans/SKILL.md" "numbered options|structured options" "executor guidance mentions numbered options"
+assert_section_contains "skills/executing-plans/SKILL.md" "## When to Stop and Ask for Help" "If concerns or blockers need human input, present numbered options instead of open-ended questions\\." "executor guidance uses a section-scoped numbered-options contract"
 assert_contains "skills/finishing-a-development-branch/SKILL.md" 'Reply with `1`, `2`, or `3`\.' "finishing flow uses explicit numeric replies for non-destructive options"
 assert_contains "skills/finishing-a-development-branch/SKILL.md" "Type 'discard' to confirm\\." "dangerous actions still require typed confirmation"
 assert_not_contains "skills/finishing-a-development-branch/SKILL.md" "What would you like to do\\?" "finishing flow no longer uses open-ended completion prompt"
