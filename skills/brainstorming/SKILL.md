@@ -23,9 +23,9 @@ You MUST create a task for each of these items and complete them in order:
 
 1. **Explore project context** — check files, docs, recent commits
 2. **Offer visual companion** (if topic will involve visual questions) — this is its own message, not combined with a clarifying question. See the Visual Companion section below.
-3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
+3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria; prefer numbered options when the choices are already known
 4. **Propose 2-3 approaches** — with trade-offs and your recommendation
-5. **Present design** — in sections scaled to their complexity, get user approval after each section
+5. **Present design** — in sections scaled to their complexity, get user approval after each section using numbered choices instead of typed approval words
 6. **Write design artifacts** — in a Superpowers-only lane, save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit; in an OpenSpec-governed lane, update the relevant OpenSpec change artifacts and commit without creating a duplicate Superpowers spec file
 7. **Design artifact review loop** — dispatch spec-document-reviewer subagent with precisely crafted review context (never your session history); review the written design artifacts, fix issues, and re-dispatch until approved (max 3 iterations, then surface to human)
 8. **User reviews written design artifacts** — ask user to review the written design artifact paths before proceeding
@@ -76,7 +76,7 @@ digraph brainstorming {
 - Before asking detailed questions, assess scope: if the request describes multiple independent subsystems (e.g., "build a platform with chat, file storage, billing, and analytics"), flag this immediately. Don't spend questions refining details of a project that needs to be decomposed first.
 - If the project is too large for a single spec, help the user decompose into sub-projects: what are the independent pieces, how do they relate, what order should they be built? Then brainstorm the first sub-project through the normal design flow. Each sub-project gets its own spec → plan → implementation cycle.
 - For appropriately-scoped projects, ask questions one at a time to refine the idea
-- Prefer multiple choice questions when possible, but open-ended is fine too
+- Prefer numbered options when asking clarifying questions with known choices
 - Only one question per message - if a topic needs more exploration, break it into multiple questions
 - Focus on understanding: purpose, constraints, success criteria
 
@@ -90,9 +90,19 @@ digraph brainstorming {
 
 - Once you believe you understand what you're building, present the design
 - Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
-- Ask after each section whether it looks right so far
+- Ask after each section whether it looks right so far, using numbered approvals instead of requiring typed approval words
 - Cover: architecture, components, data flow, error handling, testing
 - Be ready to go back and clarify if something doesn't make sense
+
+For approval gates, prefer patterns like:
+
+```text
+1. Agree and continue
+2. Request changes
+3. Input other feedback or requirements
+```
+
+Avoid requiring the user to type approval words like "agree", "approved", or "go ahead".
 
 **Design for isolation and clarity:**
 
@@ -131,7 +141,10 @@ After writing the design artifact(s):
 **User Review Gate:**
 After the design artifact review loop passes, ask the user to review the written design artifacts before proceeding:
 
-> "Design artifacts written and committed to `<path-or-paths>`. Please review them and let me know if you want to make any changes before we start writing out the implementation plan."
+> "Design artifacts written and committed to `<path-or-paths>`. Choose the next step:
+> 1. Agree and continue
+> 2. Request changes
+> 3. Input other feedback or requirements"
 
 Wait for the user's response. If they request changes, make them and re-run the design artifact review loop. Only proceed once the user approves.
 
@@ -143,7 +156,7 @@ Wait for the user's response. If they request changes, make them and re-run the 
 ## Key Principles
 
 - **One question at a time** - Don't overwhelm with multiple questions
-- **Multiple choice preferred** - Easier to answer than open-ended when possible
+- **Numbered choices preferred** - Easier to answer than open-ended when concrete choices are known
 - **YAGNI ruthlessly** - Remove unnecessary features from all designs
 - **Explore alternatives** - Always propose 2-3 approaches before settling
 - **Incremental validation** - Present design, get approval before moving on

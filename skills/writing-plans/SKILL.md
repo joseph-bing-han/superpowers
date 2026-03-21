@@ -151,13 +151,13 @@ After writing the complete plan:
 
 After saving the plan, offer execution choice:
 
-**"Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Two execution options:**
+```text
+Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Choose the execution path:
 
-**1. Subagent-Driven (recommended)** - I dispatch a fresh subagent per task, review between tasks, fast iteration
-
-**2. Inline Execution** - Execute tasks in this session using executing-plans, batch execution with checkpoints
-
-**Which approach?"**
+1. Subagent-Driven (recommended)
+2. Inline Execution
+3. Input other requirements
+```
 
 **If Subagent-Driven chosen:**
 - **REQUIRED SUB-SKILL:** Use superpowers:subagent-driven-development

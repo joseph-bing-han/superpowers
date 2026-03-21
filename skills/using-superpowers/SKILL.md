@@ -104,6 +104,16 @@ When multiple skills could apply, use this order:
 "Let's build X" → if the request is a new feature, cross-module change, multi-stage effort, or needs durable history, invoke `spec-governed-development` first. Otherwise, use brainstorming first, then implementation skills.
 "Fix this bug" → debugging first, then domain-specific skills.
 
+## User Choice Formatting
+
+When asking the user to choose between actions, prefer numbered options instead of requiring natural-language replies.
+
+- Put the recommended option in slot `1`
+- Prefer 2-4 options
+- Use a final free-text fallback only when the choice cannot be fully enumerated
+- Do not use open-ended prompts like "Which approach?" when concrete choices are already known
+- Keep typed confirmations for dangerous or destructive actions
+
 ## Governance Routing
 
 Before entering design or implementation for feature work, check whether the work needs a governed change lane.

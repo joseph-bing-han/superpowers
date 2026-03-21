@@ -95,6 +95,8 @@ Which option?
 ```
 
 **Don't add explanation** - keep options concise.
+**Option 4 still requires the user to type `discard` to confirm.**
+**Do not add a single-key shortcut or numbered shortcut for destructive actions.**
 
 ### Step 5: Execute Choice
 
@@ -299,6 +301,10 @@ Keep change selection, artifact checks, task checks, spec sync decisions, and ar
 **No confirmation for discard**
 - **Problem:** Accidentally delete work
 - **Fix:** Require typed "discard" confirmation
+
+**Shortcutting destructive actions**
+- **Problem:** Replacing typed confirmation with a one-key shortcut makes accidental deletion easier
+- **Fix:** Keep Option 4 as a numbered menu entry, but still require the exact typed word `discard`
 
 ## Red Flags
 
