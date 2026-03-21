@@ -31,6 +31,14 @@ cd tests/claude-code
 
 **Note:** Integration tests can take 10-30 minutes as they execute real implementation plans with multiple subagents.
 
+### Prompt Contract Tests
+
+Prompt contract tests validate expected wording and interaction boundaries in skill and Codex-facing documentation:
+
+```bash
+bash tests/prompt-contracts/test-numeric-choice-interactions.sh
+```
+
 ### Requirements
 
 - Must run from the **superpowers plugin directory** (not from temp directories)
