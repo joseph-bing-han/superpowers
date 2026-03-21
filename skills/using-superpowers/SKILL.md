@@ -101,8 +101,22 @@ When multiple skills could apply, use this order:
 1. **Process skills first** (brainstorming, debugging) - these determine HOW to approach the task
 2. **Implementation skills second** (frontend-design, mcp-builder) - these guide execution
 
-"Let's build X" → brainstorming first, then implementation skills.
+"Let's build X" → if the request is a new feature, cross-module change, multi-stage effort, or needs durable history, invoke `spec-governed-development` first. Otherwise, use brainstorming first, then implementation skills.
 "Fix this bug" → debugging first, then domain-specific skills.
+
+## Governance Routing
+
+Before entering design or implementation for feature work, check whether the work needs a governed change lane.
+
+Invoke `spec-governed-development` first when the request involves:
+
+- a new feature or new capability
+- a cross-module or cross-team change
+- a multi-stage implementation
+- long-lived scope/design tracking
+- explicit OpenSpec usage or change archival requirements
+
+If none of those apply, continue with the normal Superpowers flow.
 
 ## Skill Types
 

@@ -9,7 +9,11 @@ description: Use when implementation is complete, all tests pass, and you need t
 
 Guide completion of development work by presenting clear options and handling chosen workflow.
 
+<<<<<<< HEAD
 **Core principle:** Verify tests → Detect environment → Present options → Execute choice → Clean up.
+=======
+**Core principle:** Verify tests → Present options → Execute choice → Clean up → Handoff follow-up workflow when needed.
+>>>>>>> 3a0c969 (Superpowers中, 引入OpenSpec)
 
 **Announce at start:** "I'm using the finishing-a-development-branch skill to complete this work."
 
@@ -135,7 +139,11 @@ EOF
 )"
 ```
 
+<<<<<<< HEAD
 **Do NOT clean up worktree** — user needs it alive to iterate on PR feedback.
+=======
+Then: Keep worktree for follow-up review / fixes.
+>>>>>>> 3a0c969 (Superpowers中, 引入OpenSpec)
 
 #### Option 3: Keep As-Is
 
@@ -172,6 +180,12 @@ git branch -D <feature-branch>
 
 **Only runs for Options 1 and 4.** Options 2 and 3 always preserve the worktree.
 
+<<<<<<< HEAD
+=======
+**For Options 1 and 4:**
+
+Check if in worktree:
+>>>>>>> 3a0c969 (Superpowers中, 引入OpenSpec)
 ```bash
 GIT_DIR=$(cd "$(git rev-parse --git-dir)" 2>/dev/null && pwd -P)
 GIT_COMMON=$(cd "$(git rev-parse --git-common-dir)" 2>/dev/null && pwd -P)
@@ -189,7 +203,63 @@ git worktree remove "$WORKTREE_PATH"
 git worktree prune  # Self-healing: clean up any stale registrations
 ```
 
+<<<<<<< HEAD
 **Otherwise:** The host environment (harness) owns this workspace. Do NOT remove it. If your platform provides a workspace-exit tool, use it. Otherwise, leave the workspace in place.
+=======
+**For Options 2 and 3:** Keep worktree.
+
+### Step 6: OpenSpec Archive Handoff
+
+If the current work clearly belongs to an OpenSpec-governed lane, consider whether the branch outcome is actually compatible with archive follow-up.
+
+Trigger this handoff only when the context explicitly indicates one of the following:
+
+- the work is in an OpenSpec lane
+- the current plan or context names an OpenSpec change
+- the user has explicitly said this work belongs to an OpenSpec change
+
+If none of the above is true, do nothing extra.
+
+**Do not guess. Do not auto-archive.**
+
+The handoff should be brief and should make it clear that archive is the next recommended step, not something already completed.
+
+**Outcome rules:**
+
+- **After Option 1 (Merge locally):** If the merged result represents a completed OpenSpec change, recommend `openspec-archive-change` now.
+- **After Option 2 (Push and create PR):** Do NOT recommend immediate archive. Instead, note that archive should happen only after the PR is merged and the change is confirmed complete.
+- **After Option 3 (Keep as-is):** Do not mention archive.
+- **After Option 4 (Discard):** Do not mention archive.
+
+**If the change name is known and Option 1 completed:**
+
+```text
+Branch workflow complete.
+
+If this work belongs to OpenSpec change <change-name>, the next recommended step is:
+openspec-archive-change <change-name>
+```
+
+**If the change name is not known and Option 1 completed:**
+
+```text
+Branch workflow complete.
+
+If this work belongs to an OpenSpec change, the next recommended step is:
+openspec-archive-change
+```
+
+**If Option 2 completed and the change name is known:**
+
+```text
+Branch workflow complete.
+
+If this PR is the final integration point for OpenSpec change <change-name>, archive only after the PR is merged and the change is confirmed complete:
+openspec-archive-change <change-name>
+```
+
+Keep change selection, artifact checks, task checks, spec sync decisions, and archive confirmation inside `openspec-archive-change`.
+>>>>>>> 3a0c969 (Superpowers中, 引入OpenSpec)
 
 ## Quick Reference
 
@@ -247,5 +317,19 @@ git worktree prune  # Self-healing: clean up any stale registrations
 - Present exactly 4 options (or 3 for detached HEAD)
 - Get typed confirmation for Option 4
 - Clean up worktree for Options 1 & 4 only
+<<<<<<< HEAD
 - `cd` to main repo root before worktree removal
 - Run `git worktree prune` after removal
+=======
+- Use OpenSpec archive handoff only when the context clearly indicates an OpenSpec change and the branch outcome is compatible with completion
+
+## Integration
+
+**Called by:**
+- **subagent-driven-development** (Step 7) - After all tasks complete
+- **executing-plans** (Step 5) - After all batches complete
+
+**Pairs with:**
+- **using-git-worktrees** - Cleans up worktree created by that skill
+- **openspec-archive-change** - Optional next step after branch completion for OpenSpec-governed work
+>>>>>>> 3a0c969 (Superpowers中, 引入OpenSpec)
