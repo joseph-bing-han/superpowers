@@ -15,6 +15,8 @@ tests/
 │   ├── test-subagent-driven-development-integration.sh
 │   ├── analyze-token-usage.py             # Token analysis tool
 │   └── run-skill-tests.sh                 # Test runner (if exists)
+└── prompt-contracts/
+    └── test-numeric-choice-interactions.sh
 ```
 
 ## Running Tests
@@ -31,6 +33,12 @@ cd tests/claude-code
 
 **Note:** Integration tests can take 10-30 minutes as they execute real implementation plans with multiple subagents.
 
+### Integration Test Requirements
+
+- Must run from the **superpowers plugin directory** (not from temp directories)
+- Claude Code must be installed and available as `claude` command
+- Local dev marketplace must be enabled: `"superpowers@superpowers-dev": true` in `~/.claude/settings.json`
+
 ### Prompt Contract Tests
 
 Prompt contract tests validate expected wording and interaction boundaries in skill and Codex-facing documentation:
@@ -39,11 +47,11 @@ Prompt contract tests validate expected wording and interaction boundaries in sk
 bash tests/prompt-contracts/test-numeric-choice-interactions.sh
 ```
 
-### Requirements
+### Prompt Contract Test Requirements
 
-- Must run from the **superpowers plugin directory** (not from temp directories)
-- Claude Code must be installed and available as `claude` command
-- Local dev marketplace must be enabled: `"superpowers@superpowers-dev": true` in `~/.claude/settings.json`
+- Run from the repository root so the script can resolve documented paths correctly
+- Bash must be available
+- `rg` (ripgrep) must be installed and available on `PATH`
 
 ## Integration Test: subagent-driven-development
 
