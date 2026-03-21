@@ -106,15 +106,15 @@ When multiple skills could apply, use this order:
 
 ## User Choice Formatting
 
-When asking the user to choose between actions, prefer numbered options instead of requiring natural-language replies.
+When asking the user to choose between actions, use structured numbered choices by default instead of requiring natural-language replies.
 
 - Put the recommended option in slot `1`
 - Prefer 2-4 options
-- For non-dangerous, enumerable choices in Codex, prefer calling `request_user_input` so the user gets a tool-backed choice UI instead of a prose-only "reply `1`/`2`/`3`" prompt
+- For non-dangerous, enumerable choices, use `request_user_input` by default when available so the user gets a tool-backed choice UI instead of a prose-only numbered reply prompt
 - Keep a final free-text fallback when the scenario allows additional input beyond the listed choices
 - Do not use open-ended prompts like "Which approach?" when concrete choices are already known
-- For dangerous or destructive enumerable choices, prefer two-stage confirmation: a numbered choice first, then a lettered confirmation step
-- If a dangerous action still requires typed text, show the exact text and present it as copyable text
+- For dangerous or destructive enumerable choices, use two-stage confirmation by default: a numbered choice first, then a lettered confirmation step
+- If a dangerous action still requires typed text, show the exact text as copyable text
 
 ## Governance Routing
 
