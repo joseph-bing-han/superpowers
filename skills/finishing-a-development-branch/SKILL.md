@@ -72,14 +72,15 @@ Or ask: "This branch split from main - is that correct?"
 **Normal repo and named-branch worktree — present exactly these 4 options:**
 
 ```
-Implementation complete. What would you like to do?
+Implementation complete. Reply with the number of the next step:
 
 1. Merge back to <base-branch> locally
 2. Push and create a Pull Request
 3. Keep the branch as-is (I'll handle it later)
 4. Discard this work
 
-Which option?
+Reply with `1`, `2`, or `3`.
+For option 4, type `discard`.
 ```
 
 **Detached HEAD — present exactly these 3 options:**
