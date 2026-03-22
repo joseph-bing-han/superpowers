@@ -113,7 +113,8 @@ When asking the user to choose between actions, use structured numbered choices 
 - For non-dangerous, enumerable choices, use `request_user_input` by default when available so the user gets a tool-backed choice UI instead of a prose-only numbered reply prompt
 - Keep a final free-text fallback when the scenario allows additional input beyond the listed choices
 - Do not use open-ended prompts like "Which approach?" when concrete choices are already known
-- For dangerous or destructive enumerable choices, use two-stage confirmation by default: a numbered choice first, then a lettered confirmation step
+- For dangerous or destructive enumerable choices, use two-stage confirmation by default: a numbered choice first, then a second numbered confirmation step
+- In the second destructive step, put the safe exit in slot `1` and put the final destructive confirmation in slot `2` of the second step
 - If a dangerous action still requires typed text, show the exact text as copyable text
 
 ## Governance Routing

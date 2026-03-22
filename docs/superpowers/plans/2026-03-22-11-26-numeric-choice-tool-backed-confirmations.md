@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make non-dangerous enumerable choices trigger `request_user_input` by default, replace destructive typed confirmations with two-stage enumerated confirmation, and add durable prompt-contract plus smoke-test coverage.
+**Goal:** Make non-dangerous enumerable choices trigger `request_user_input` by default, replace destructive typed confirmations with a two-stage numeric confirmation flow, and add durable prompt-contract plus smoke-test coverage.
 
-**Architecture:** The change stays in the skill-and-doc lane. First encode the new contract in prompt-contract tests, then update the global guidance and the workflow skills that ask for user choices, then replace the destructive branch-discard flow with a two-stage confirmation model, and finally document and execute the smoke-test protocol that proves the last step really triggers `request_user_input`.
+**Architecture:** The change stays in the skill-and-doc lane. First encode the new contract in prompt-contract tests, then update the global guidance and the workflow skills that ask for user choices, then replace the destructive branch-discard flow with a two-stage numeric confirmation model where the final destructive action lives in slot `2` of Stage 2, and finally document and execute the smoke-test protocol that proves the last step really triggers `request_user_input`.
 
 **Tech Stack:** Markdown skill docs, Bash prompt-contract tests, Codex `request_user_input` interaction flow
 
@@ -144,13 +144,13 @@ git commit -m "docs: require tool-backed choice UI in workflow skills"
 Update the prompt-contract script with checks such as:
 
 ```bash
-assert_contains "skills/finishing-a-development-branch/SKILL.md" "two-stage|two stage|second confirmation" "finishing flow documents two-stage destructive confirmation"
-assert_contains "skills/finishing-a-development-branch/SKILL.md" "a\\.|b\\.|c\\." "finishing flow includes lettered second confirmation"
+assert_contains "skills/finishing-a-development-branch/SKILL.md" "both stages use numbered choices|second numbered confirmation step" "finishing flow documents two-stage numeric destructive confirmation"
+assert_contains "skills/finishing-a-development-branch/SKILL.md" "slot `2`|slot 2" "finishing flow keeps the final destructive action behind Stage 2 slot 2"
 assert_not_contains "skills/finishing-a-development-branch/SKILL.md" "Type 'discard' to confirm\\.|type `discard`" "finishing flow no longer requires discard typing by default"
-assert_contains "skills/finishing-a-development-branch/SKILL.md" "review impact.*Danger Step 1|查看影响范围.*重新" "impact review returns to the correct confirmation step"
+assert_contains "skills/finishing-a-development-branch/SKILL.md" "feedback or a help request|补充反馈|求助" "free-input path returns to the same confirmation step"
 assert_contains "skills/finishing-a-development-branch/SKILL.md" "invalid token|empty input|stay on the same step" "invalid fallback input does not advance destructive state"
-assert_contains "skills/finishing-a-development-branch/SKILL.md" "go back.*parent flow|返回.*父流程" "go back returns to the parent flow or exits safely"
-assert_contains "skills/finishing-a-development-branch/SKILL.md" "cancel.*parent flow|取消.*父流程" "cancel returns to the parent flow or exits safely"
+assert_contains "skills/finishing-a-development-branch/SKILL.md" "Stage 1 `2` returns to the parent flow|第.*2.*父流程" "Stage 1 cancel returns to the parent flow or exits safely"
+assert_contains "skills/finishing-a-development-branch/SKILL.md" "Stage 2 `1` returns to Stage 1|第.*1.*返回.*第一步" "Stage 2 slot 1 returns to the previous confirmation step"
 assert_contains "skills/finishing-a-development-branch/SKILL.md" "only valid token|只有.*合法 token" "only valid tokens can advance the destructive state"
 assert_contains "skills/finishing-a-development-branch/SKILL.md" "no parent.*end the destructive subflow|若无父流程.*结束.*不执行" "no-parent branches end safely without executing changes"
 ```
@@ -166,24 +166,25 @@ Change the destructive option flow so it explicitly uses:
 
 ```text
 Step 1:
-1. Enter discard flow
-2. Go back
-3. Review impact
+1. Confirm and continue
+2. Cancel
+3. Input other feedback or requirements
 
 Step 2:
-a. Confirm discard
-b. Review impact again
-c. Cancel
+1. Cancel and return to the previous step
+2. Confirm discard
+3. Input other feedback or requirements
 ```
 
 The updated skill must also say:
 
 ```markdown
 - The first and second confirmation steps should use `request_user_input` when available.
-- If the tool is unavailable, preserve the same two-step semantics with typed `1/2/3` then `a/b/c`.
+- If the tool is unavailable, preserve the same two-step semantics with typed `1/2/3` in both stages.
+- Put the final destructive confirmation in slot `2` of Stage 2, and keep slot `1` as the safe return path.
 - If a unique confirmation token is still required, show the exact token in the prompt so it can be copied.
-- Review-impact branches must return to the same confirmation layer they came from.
-- Go-back and cancel branches must return to the parent flow or end the destructive subflow without executing.
+- Free-input branches must return to the same confirmation layer they came from.
+- Stage 1 cancel must return to the parent flow or end the destructive subflow without executing, and Stage 2 slot `1` must return to Stage 1.
 - Invalid fallback input must stay on the current step, re-show legal options, and never auto-cancel or auto-execute.
 ```
 
@@ -192,9 +193,9 @@ The updated skill must also say:
 Add prose equivalent to:
 
 ```markdown
-If the user chooses "review impact" from the first step, show impact and re-ask the first step.
-If the user chooses "review impact again" from the second step, show impact and re-ask the second step.
-If the user chooses "go back" or "cancel", return to the parent flow when it still exists; otherwise end the destructive subflow without making changes.
+If the user chooses the free-input path from either step, treat it as feedback or a help request and then re-ask the same step.
+If the user chooses Stage 1 cancel, return to the parent flow when it still exists; otherwise end the destructive subflow without making changes.
+If the user chooses Stage 2 slot `1`, return to Stage 1.
 In text fallback mode, only valid tokens move the state forward; invalid or empty input re-shows the current step.
 ```
 
@@ -245,7 +246,7 @@ Update `docs/testing.md` with a dedicated section for numeric-choice verificatio
 ```markdown
 1. One non-dangerous final-step prompt that must call `request_user_input`
 2. One multi-question prompt that must keep the choice UI across multiple questions
-3. One dangerous two-stage confirmation prompt that must use numbers first and letters second
+3. One dangerous two-stage confirmation prompt that must use numbers in both stages and place the final confirmation in Stage 2 slot `2`
 
 Required evidence:
 - Tool call record or transcript showing `request_user_input`
@@ -298,7 +299,7 @@ Use `request_user_input` to run these exact interaction categories:
 ```text
 Smoke Test A: One non-dangerous "next step" choice
 Smoke Test B: One multi-question numbered-choice interaction
-Smoke Test C: One dangerous two-stage confirmation with numeric first step and lettered second step
+Smoke Test C: One dangerous two-stage confirmation with numeric first step and numeric second step, with the final confirmation in Stage 2 slot `2`
 ```
 
 Capture the `request_user_input` tool events from the current Codex interactive session as the required evidence. After each smoke test, append the transcript or tool-record location to the `Latest Numeric Choice Smoke Evidence` section in `docs/testing.md`. If possible, also append a screenshot path or operator note.

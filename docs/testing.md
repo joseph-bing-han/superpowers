@@ -63,7 +63,7 @@ Smoke Test A: A non-dangerous final-step or next-step prompt must trigger `reque
 
 Smoke Test B: A multi-question interaction must keep the choice UI across consecutive questions and must not degrade into plain text prompts.
 
-Smoke Test C: A dangerous two-stage confirmation must use a numeric first stage and a lettered second stage. Stage 1 records the numeric choice, and Stage 2 records the lettered confirmation.
+Smoke Test C: A dangerous two-stage confirmation must use numbered choices in both stages, with the final confirmation in slot `2` of Stage 2. Stage 1 records the initial numeric choice, and Stage 2 records the final numeric confirmation.
 
 ### Required Evidence
 
@@ -91,14 +91,14 @@ Screenshot / operator notes are optional evidence when they help explain UI stat
 | --- | --- | --- |
 | A | Transcript / tool call record showing the final-step or next-step `request_user_input` call | 2026-03-22 Codex interactive session (this conversation). `request_user_input` used for a single non-dangerous next-step question. Selected option: `继续验证 (Recommended)`. |
 | B | Transcript / tool call record showing consecutive choice UI questions without plain-text degradation | 2026-03-22 Codex interactive session (this conversation). One `request_user_input` call carried three consecutive questions. Selected options: `完整三题 (Recommended)`, `记录工具调用 (Recommended)`, `保持选择 UI (Recommended)`. |
-| C | Transcript / tool call record showing numeric Stage 1 and lettered Stage 2 confirmation | 2026-03-22 Codex interactive session (this conversation). Stage 1 used `request_user_input` and selected `1. 进入第二段确认 (Recommended)`. Stage 2 first captured operator note `按 a/b/c键都没有反应`, then Stage 2 was re-run with the same lettered labels and the choice UI selected `a. 确认执行 (Recommended)`. |
+| C | Transcript / tool call record showing numeric Stage 1 and numeric Stage 2 confirmation | 2026-03-22 Codex interactive session (this conversation). Stage 1 used `request_user_input` and selected `1. 继续进入第二段 (Recommended)`. Stage 2 used `request_user_input` and selected `2. 最终确认 (Recommended)`. |
 
 Operator note from the latest smoke run:
 
-- Stage 2 did render as a real `request_user_input` choice UI with lettered labels.
-- In this Codex session, raw `a` / `b` / `c` keypresses did not activate that UI.
-- Re-running the same Stage 2 prompt and selecting the first choice through the choice UI succeeded.
-- Inference: Superpowers can require tool-backed Stage 2 confirmation and lettered labels, but raw hotkey mapping still depends on the Codex input layer rather than the skill documents.
+- The updated destructive flow rendered as a real `request_user_input` choice UI in both stages.
+- Stage 2 now keeps the safe return path in slot `1` and the final destructive confirmation in slot `2`, matching the new anti-misclick design.
+- The earlier lettered Stage 2 experiment exposed an `a` / `b` / `c` hotkey boundary in this Codex session, so the current design no longer depends on alphabetic hotkeys.
+- Tool-backed rendering still depends on the assistant actually calling `request_user_input`, and any raw hotkey behavior still depends on the Codex input layer rather than the skill documents.
 
 ## Integration Test: subagent-driven-development
 
