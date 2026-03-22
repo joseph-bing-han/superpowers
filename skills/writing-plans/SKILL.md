@@ -164,6 +164,10 @@ Before ending this handoff, classify the handoff as `auto-continue`, `needs-user
   1. 结束
   2. 继续
   3. 自由输入
+- When this handoff reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
+- Do not produce a plain final-answer-style closeout before the terminal-choice popup.
+- A settled recommendation, final draft, or final summary is still not permission to end directly.
+- Do not call `task_complete` while the terminal-choice popup is still pending.
 
 When a real execution choice is still needed after saving the plan, offer execution choice:
 

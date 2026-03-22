@@ -53,6 +53,10 @@ Before ending a reviewed task boundary, classify the reviewed task boundary as `
   1. 结束
   2. 继续
   3. 自由输入
+- When this reviewed-task boundary reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
+- Do not produce a plain final-answer-style closeout before the terminal-choice popup.
+- A settled recommendation, final draft, or final summary is still not permission to end directly.
+- Do not call `task_complete` while the terminal-choice popup is still pending.
 Do not end a reviewed task update with prose-only follow-up text like `if you want me to continue`.
 Do not end a reviewed task update with a declarative prose-only next-task proposal like `the next task is for me to implement X` or `the next best step is task 3`.
 This also includes judgment-framed, comparative, or recommendation-framed reviewed-task endings, including Chinese variants such as `如果按我的判断，下一步应该先……`, `下一步最值得做的不是 A，而是 B`, `接下来更值得做的是……`, or `我建议先……`

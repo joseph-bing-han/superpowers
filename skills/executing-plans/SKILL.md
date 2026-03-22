@@ -27,6 +27,10 @@ Before ending a routine batch boundary, classify the batch boundary as `auto-con
   1. 结束
   2. 继续
   3. 自由输入
+- When this routine boundary reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
+- Do not produce a plain final-answer-style closeout before the terminal-choice popup.
+- A settled recommendation, final draft, or final summary is still not permission to end directly.
+- Do not call `task_complete` while the terminal-choice popup is still pending.
 Do not stop with prose-only follow-up text like `if you want me to continue` after a routine summary or checkpoint.
 Do not stop with a declarative prose-only next-step proposal like `the next best step is to continue with task 2` or `next I would continue with task 2` after a routine summary or checkpoint.
 This also includes judgment-framed, comparative, or recommendation-framed checkpoint endings, including Chinese variants such as `如果按我的判断，下一步应该先……`, `下一步最值得做的不是 A，而是 B`, `接下来更值得做的是……`, or `我建议先……`

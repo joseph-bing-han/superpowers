@@ -103,6 +103,10 @@ digraph brainstorming {
   1. 结束
   2. 继续
   3. 自由输入
+- When brainstorming reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
+- Do not produce a plain final-answer-style closeout before the terminal-choice popup, including endings framed like `当前我建议的定稿`, `就按这条落地`, or `最终建议一句话版`.
+- A settled recommendation, final draft, current recommendation, or final summary is still not permission to end directly.
+- Do not call `task_complete` from brainstorming while the terminal-choice popup is still pending.
 - Ask after each section whether it looks right so far, using numbered approvals instead of requiring typed approval words
 - When `request_user_input` is available and the approval choices are enumerable, use it instead of asking for a prose-only `reply 1/2/3` response.
 - Keep a final free-text path only for new feedback that does not fit the listed approval choices.
