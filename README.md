@@ -95,10 +95,21 @@ Superpowers is available via the [official Codex plugin marketplace](https://git
   ```
 
 - Install the plugin:
-
   ```bash
   droid plugin install superpowers@superpowers
   ```
+
+### Codex (Team Fork Source Install)
+
+For the team-maintained `openspec` branch, tell Codex:
+
+```
+Fetch and follow instructions from https://raw.githubusercontent.com/joseph-bing-han/superpowers/refs/heads/openspec/.codex/INSTALL.md
+```
+
+This Codex path installs the team-maintained `openspec` branch.
+
+**Detailed docs:** [docs/README.codex.md](docs/README.codex.md)
 
 ### Gemini CLI
 

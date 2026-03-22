@@ -7,8 +7,10 @@ Guide for using Superpowers with OpenAI Codex via native skill discovery.
 Tell Codex:
 
 ```
-Fetch and follow instructions from https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.codex/INSTALL.md
+Fetch and follow instructions from https://raw.githubusercontent.com/joseph-bing-han/superpowers/refs/heads/openspec/.codex/INSTALL.md
 ```
+
+This is the team-maintained Codex installation path. Unless you have a special reason not to, install the `openspec` branch from the team fork.
 
 ## Manual Installation
 
@@ -21,7 +23,7 @@ Fetch and follow instructions from https://raw.githubusercontent.com/obra/superp
 
 1. Clone the repo:
    ```bash
-   git clone https://github.com/obra/superpowers.git ~/.codex/superpowers
+   git clone --branch openspec --single-branch https://github.com/joseph-bing-han/superpowers.git ~/.codex/superpowers
    ```
 
 2. Create the skills symlink:
@@ -104,7 +106,7 @@ The `description` field is how Codex decides when to activate a skill automatica
 ## Updating
 
 ```bash
-cd ~/.codex/superpowers && git pull
+cd ~/.codex/superpowers && git pull origin openspec
 ```
 
 Skills update instantly through the symlink.
@@ -136,5 +138,5 @@ Junctions normally work without special permissions. If creation fails, try runn
 
 ## Getting Help
 
-- Report issues: https://github.com/obra/superpowers/issues
-- Main documentation: https://github.com/obra/superpowers
+- Report issues: https://github.com/joseph-bing-han/superpowers/issues
+- Main documentation: https://github.com/joseph-bing-han/superpowers
