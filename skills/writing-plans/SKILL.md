@@ -154,6 +154,15 @@ After writing the complete plan:
 
 If the execution path is already clear, continue automatically. If the user asked for end-to-end completion and the path is already implied by consent state, tool availability, or the surrounding workflow, do not pause after saving the plan just to ask whether to continue. Saving the plan is not a reason by itself to stop.
 
+Before ending this handoff, classify the handoff as `auto-continue`, `needs-user-decision`, or `terminal-choice`.
+
+- `auto-continue`: the execution path is already implied and safe; proceed immediately
+- `needs-user-decision`: a real execution choice remains; use `request_user_input`
+- `terminal-choice`: the requested work truly ends at planning, but do not end directly; use `request_user_input` with:
+  1. 结束
+  2. 继续
+  3. 自由输入
+
 When a real execution choice is still needed after saving the plan, offer execution choice:
 
 ```text
@@ -167,8 +176,10 @@ Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Choose the ex
 When `request_user_input` is available, use it for this execution handoff because the choices are known and enumerable.
 Keep a final free-text path only for requirements that do not fit the listed execution choices.
 Do not ask for a prose-only `reply 1/2/3` response in this handoff when `request_user_input` is available.
+If the only remaining real decision is continue vs stop, ask that through `request_user_input`; otherwise ask the more specific execution-path choice instead of collapsing it into a generic continue/stop prompt.
 Do not end this handoff with prose-only follow-up text like `if you want me to execute next`.
 Do not end this handoff with a declarative prose-only next-step proposal like `the next step is for me to execute task 1` or `the next best step is to execute inline`.
+This also includes judgment-framed, comparative, or recommendation-framed execution endings, including Chinese variants such as `如果按我的判断，下一步应该先……`, `下一步最值得做的不是 A，而是 B`, `接下来更值得做的是……`, or `我建议先……`
 If you can already describe the next safe execution step concretely, do it instead of narrating it and stopping.
 Either continue automatically on the already-implied execution path or use `request_user_input` when a real execution choice remains.
 Choosing `Subagent-Driven` counts as explicit session-scoped consent to use implementation subagents for the rest of the session.

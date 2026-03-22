@@ -42,10 +42,19 @@ digraph when_to_use {
 ## The Process
 
 Task reviews are internal quality gates, not human approval gates. After a task passes review, move directly to the next task. Task summaries are progress updates, not requests for permission to continue. Do not stop after a reviewed task summary if more tasks remain.
+Before ending a reviewed task boundary, classify the reviewed task boundary as `auto-continue`, `needs-user-decision`, or `terminal-choice`.
+- `auto-continue`: the next reviewed task is already clear and safe; move to it immediately
+- `needs-user-decision`: the workflow cannot safely continue until the user chooses among concrete options; use `request_user_input`
+- `terminal-choice`: the requested execution work is complete, but do not end directly; use `request_user_input` with:
+  1. 结束
+  2. 继续
+  3. 自由输入
 Do not end a reviewed task update with prose-only follow-up text like `if you want me to continue`.
 Do not end a reviewed task update with a declarative prose-only next-task proposal like `the next task is for me to implement X` or `the next best step is task 3`.
+This also includes judgment-framed, comparative, or recommendation-framed reviewed-task endings, including Chinese variants such as `如果按我的判断，下一步应该先……`, `下一步最值得做的不是 A，而是 B`, `接下来更值得做的是……`, or `我建议先……`
 If the next reviewed task is already clear and safe, move to it instead of narrating it and stopping.
 Either move directly to the next task or use `request_user_input` when a real user decision remains.
+If the only remaining real decision is continue vs stop, ask that through `request_user_input`; otherwise ask the more specific next-task choice instead of collapsing it into a generic continue/stop prompt.
 
 ```dot
 digraph process {

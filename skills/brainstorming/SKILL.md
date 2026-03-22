@@ -93,13 +93,23 @@ digraph brainstorming {
 
 - Once you believe you understand what you're building, present the design
 - Scale each section to its complexity: a few sentences if straightforward, up to 200-300 words if nuanced
+- Before ending a design checkpoint, classify the checkpoint as `auto-continue`, `needs-user-decision`, or `terminal-choice`
+- `auto-continue`: the next safe design or artifact step is already implied; take it now
+- `needs-user-decision`: a real review or tradeoff decision remains; use `request_user_input`
+- `terminal-choice`: the requested brainstorming work is genuinely complete, but do not end directly; use `request_user_input` with:
+  1. 结束
+  2. 继续
+  3. 自由输入
 - Ask after each section whether it looks right so far, using numbered approvals instead of requiring typed approval words
 - When `request_user_input` is available and the approval choices are enumerable, use it instead of asking for a prose-only `reply 1/2/3` response.
 - Keep a final free-text path only for new feedback that does not fit the listed approval choices.
 - If the user already asked for end-to-end execution and the design is straightforward, present a concise design checkpoint and continue without waiting for a separate continue prompt.
 - Stop and ask for approval only when there are material tradeoffs, unresolved risk, or the user explicitly wants to review the design before implementation.
+- If the only remaining real choice is continue vs stop, ask that through `request_user_input`; otherwise ask the more specific review or next-artifact choice instead of collapsing it into a generic continue/stop prompt.
 - Do not end a design checkpoint with prose-only follow-up text like `if you agree`, `if this direction looks good`, or `I can implement this next if you want`.
 - Do not stop with a declarative prose-only next-step proposal like `the next best step is X`, `next I would do X`, or `I can directly prepare X next`.
+- This also includes judgment-framed, comparative, or recommendation-framed next-step proposals, including Chinese variants such as `如果按我的判断，下一步应该先……`, `下一步最值得做的不是 A，而是 B`, `接下来更值得做的是……`, or `我建议先……`
+- A non-terminal checkpoint must never end with `task_complete` after only a summary, recommendation, judgment, comparison, or suggestion about the next artifact step
 - Either continue automatically into the next workflow step or use `request_user_input` for a real review gate.
 - Do not end with prose-only next-step invitations like `if you want, I can turn this into a field-by-field table next`.
 - If you can already name the next safe artifact step concretely, take it instead of narrating it and stopping.

@@ -120,12 +120,22 @@ When asking the user to choose between actions, use structured numbered choices 
 
 ## Autonomous Continuation
 
-If the user asked for end-to-end completion and no clarification is needed and no confirmation is needed, continue automatically through the workflow.
+If the user asked for end-to-end completion and no clarification is needed, keep advancing the workflow according to the turn-end gate below.
 
+- Before ending any workflow turn, classify the turn as `auto-continue`, `needs-user-decision`, or `terminal-choice`
+- `auto-continue`: the next safe step is already implied; execute it now
+- `needs-user-decision`: the workflow cannot safely continue until the user chooses among concrete options; use `request_user_input`
+- `terminal-choice`: the requested work appears complete, but do not end directly; use `request_user_input` with:
+  1. 结束
+  2. 继续
+  3. 自由输入
 - Do not stop after summaries, checkpoints, or phase boundaries just to ask whether to continue
 - Summaries are progress updates, not approval gates
 - If the next action is already implied by the user's request and is safe to take, do it
+- If the only remaining real decision is continue vs stop, ask that through `request_user_input`; otherwise ask the more specific next-step choice instead of collapsing it into a generic continue/stop prompt
 - Non-terminal workflow stages must not end with a prose-only follow-up or a declarative prose-only next-step proposal such as `if you agree`, `if this direction looks good`, `the next best step is X`, `next I would do X`, or `I can directly prepare X next`
+- This also includes judgment-framed, comparative, or recommendation-framed declarative next-step proposals, including Chinese variants such as `如果按我的判断，下一步应该先……`, `下一步最值得做的不是 A，而是 B`, `接下来更值得做的是……`, or `我建议先……`
+- A non-terminal turn must never end with `task_complete` after only a summary, recommendation, judgment, comparison, or suggestion about what to do next
 - If you can already describe the next safe step concretely, do it instead of narrating it and stopping
 - Either continue automatically into the next workflow step or use `request_user_input` when a real decision remains and the choices are enumerable
 - Only ask when missing information would change the work, a destructive or external action needs confirmation, or a material tradeoff still needs the user's decision

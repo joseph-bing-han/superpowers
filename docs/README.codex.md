@@ -84,12 +84,22 @@ The automatic numbering prefix shown inside a `request_user_input` popup belongs
 
 ## Autonomous Continuation
 
-If the user asked for end-to-end completion, Superpowers should continue automatically when no clarification or confirmation is needed.
+If the user asked for end-to-end completion, Superpowers should keep advancing the workflow according to the turn-end gate below whenever no clarification is needed.
 
+- Before ending a workflow turn, classify the turn as `auto-continue`, `needs-user-decision`, or `terminal-choice`.
+- `auto-continue`: the next safe step is already implied; execute it immediately.
+- `needs-user-decision`: the workflow cannot safely continue until the user chooses among concrete options; use `request_user_input`.
+- `terminal-choice`: the requested work appears complete, but do not end directly; use `request_user_input` with:
+  1. 结束
+  2. 继续
+  3. 自由输入
 - Do not stop after summaries, checkpoints, or phase completions just to ask whether to continue.
 - Summaries, checkpoints, and phase completions are progress updates, not automatic stop points.
 - If the next action is already implied and safe, take it.
+- If the only remaining real decision is continue vs stop, ask that through `request_user_input`; otherwise ask the more specific next-step choice instead of collapsing it into a generic continue/stop prompt.
 - Non-terminal workflow stages must not end with a prose-only follow-up or declarative prose-only next-step proposal such as `if you agree`, `if this direction looks good`, `the next best step is X`, or `I can directly prepare X next`.
+- This also includes judgment-framed, comparative, or recommendation-framed next-step proposals, including Chinese variants such as `如果按我的判断，下一步应该先……`, `下一步最值得做的不是 A，而是 B`, `接下来更值得做的是……`, or `我建议先……`.
+- A non-terminal turn must not end with `task_complete` after only a summary, recommendation, judgment, comparison, or suggestion about what to do next.
 - If the assistant can already describe the next safe step concretely, it should do it rather than narrating and stopping.
 - Either continue automatically or use `request_user_input` when a real decision remains and the choices are enumerable.
 - Pause only when missing information would change the work, a destructive or external action needs confirmation, or a material tradeoff still needs the user's decision.

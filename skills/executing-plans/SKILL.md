@@ -16,8 +16,16 @@ Load plan, review critically, execute all tasks, report when complete.
 ## The Process
 
 Routine summaries, checkpoints, and batch boundaries are internal progress markers, not human approval gates. Do not stop at routine summaries, checkpoints, or batch boundaries just to ask whether to continue.
+Before ending a routine batch boundary, classify the batch boundary as `auto-continue`, `needs-user-decision`, or `terminal-choice`.
+- `auto-continue`: the next task is already clear and safe; execute it immediately
+- `needs-user-decision`: the workflow cannot safely continue until the user chooses among concrete options; use `request_user_input`
+- `terminal-choice`: the requested execution work is complete, but do not end directly; use `request_user_input` with:
+  1. 结束
+  2. 继续
+  3. 自由输入
 Do not stop with prose-only follow-up text like `if you want me to continue` after a routine summary or checkpoint.
 Do not stop with a declarative prose-only next-step proposal like `the next best step is to continue with task 2` or `next I would continue with task 2` after a routine summary or checkpoint.
+This also includes judgment-framed, comparative, or recommendation-framed checkpoint endings, including Chinese variants such as `如果按我的判断，下一步应该先……`, `下一步最值得做的不是 A，而是 B`, `接下来更值得做的是……`, or `我建议先……`
 If the next task is already clear and safe, execute it rather than narrating the step and stopping.
 If the path is clear, keep executing automatically.
 
@@ -57,6 +65,7 @@ After all tasks complete and verified:
 If concerns or blockers need human input, present numbered options instead of open-ended questions.
 If concerns, blockers, or known next actions need human input and the choices are enumerable, use `request_user_input` when available.
 If a real blocker requires input and the choices are enumerable, use `request_user_input`; otherwise continue automatically once the path is clear.
+If the only remaining real decision is continue vs stop, ask that through `request_user_input`; otherwise ask the more specific blocker-resolution choice instead of collapsing it into a generic continue/stop prompt.
 Keep a final free-text path only for guidance that does not fit the listed options.
 Do not ask for a prose-only `reply 1/2/3` response in these flows when `request_user_input` is available.
 
