@@ -165,5 +165,19 @@ assert_section_contains "docs/README.codex.md" "## Choice-Based Interaction" 'us
 assert_section_contains "docs/README.codex.md" "## Choice-Based Interaction" 'show the exact text as copyable text' "Codex docs require exact copyable typed confirmation text"
 assert_section_not_contains "docs/README.codex.md" "## Choice-Based Interaction" 'optional|plain text is fine|avoid two-stage|when convenient' "Codex docs section does not weaken the contract"
 assert_section_contains "docs/README.codex.md" "## Choice-Based Interaction" "raw single-key submit.*depends on the Codex input layer|depends on the Codex input layer.*raw single-key submit" "Codex docs mention the raw single-key input boundary"
+assert_section_contains "docs/testing.md" "## Numeric Choice Smoke Tests" 'These smoke tests must be run in a real session because the choice UI only appears when the assistant actually calls `request_user_input`\.' "testing docs require real request_user_input-backed smoke sessions" '^## '
+assert_section_contains "docs/testing.md" "## Numeric Choice Smoke Tests" 'Smoke Test A: A non-dangerous final-step or next-step prompt must trigger `request_user_input` for real instead of falling back to a prose-only numbered reply\.' "testing docs cover the non-dangerous request_user_input smoke test" '^## '
+assert_section_contains "docs/testing.md" "## Numeric Choice Smoke Tests" 'Smoke Test B: A multi-question interaction must keep the choice UI across consecutive questions and must not degrade into plain text prompts\.' "testing docs cover the multi-question choice UI smoke test" '^## '
+assert_section_contains "docs/testing.md" "## Numeric Choice Smoke Tests" 'Smoke Test C: A dangerous two-stage confirmation must use a numeric first stage and a lettered second stage\.' "testing docs cover the dangerous two-stage confirmation smoke test" '^## '
+assert_section_contains "docs/testing.md" "### Required Evidence" 'Transcript / tool call record is required evidence for every numeric-choice smoke test run\.' "testing docs require transcript or tool call record evidence" '^(##|###) '
+assert_section_contains "docs/testing.md" "### Optional Evidence" 'Screenshot / operator notes are optional evidence when they help explain UI state or operator observations\.' "testing docs describe optional screenshot and operator notes evidence" '^(##|###) '
+assert_section_contains "docs/testing.md" "### Acceptance Mapping" 'skills/using-superpowers/SKILL\.md' "testing docs map using-superpowers into numeric-choice smoke coverage" '^(##|###) '
+assert_section_contains "docs/testing.md" "### Acceptance Mapping" 'skills/brainstorming/SKILL\.md' "testing docs map brainstorming into numeric-choice smoke coverage" '^(##|###) '
+assert_section_contains "docs/testing.md" "### Acceptance Mapping" 'skills/writing-plans/SKILL\.md' "testing docs map writing-plans into numeric-choice smoke coverage" '^(##|###) '
+assert_section_contains "docs/testing.md" "### Acceptance Mapping" 'skills/executing-plans/SKILL\.md' "testing docs map executing-plans into numeric-choice smoke coverage" '^(##|###) '
+assert_section_contains "docs/testing.md" "### Acceptance Mapping" 'skills/finishing-a-development-branch/SKILL\.md' "testing docs map finishing-a-development-branch into numeric-choice smoke coverage" '^(##|###) '
+assert_section_contains "docs/testing.md" "### Latest Numeric Choice Smoke Evidence" 'A \|.*Location' "testing docs include the evidence template row for smoke test A" '^(##|###) '
+assert_section_contains "docs/testing.md" "### Latest Numeric Choice Smoke Evidence" 'B \|.*Location' "testing docs include the evidence template row for smoke test B" '^(##|###) '
+assert_section_contains "docs/testing.md" "### Latest Numeric Choice Smoke Evidence" 'C \|.*Location' "testing docs include the evidence template row for smoke test C" '^(##|###) '
 
 echo "All numeric-choice prompt contract checks passed."

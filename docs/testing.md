@@ -53,6 +53,46 @@ bash tests/prompt-contracts/test-numeric-choice-interactions.sh
 - Bash must be available
 - `rg` (ripgrep) must be installed and available on `PATH`
 
+## Numeric Choice Smoke Tests
+
+These smoke tests must be run in a real session because the choice UI only appears when the assistant actually calls `request_user_input`.
+
+The main coordinating session should collect this evidence from a live run. Prompt-contract coverage only proves the documented protocol exists; it does not prove the UI was rendered.
+
+Smoke Test A: A non-dangerous final-step or next-step prompt must trigger `request_user_input` for real instead of falling back to a prose-only numbered reply.
+
+Smoke Test B: A multi-question interaction must keep the choice UI across consecutive questions and must not degrade into plain text prompts.
+
+Smoke Test C: A dangerous two-stage confirmation must use a numeric first stage and a lettered second stage. Stage 1 records the numeric choice, and Stage 2 records the lettered confirmation.
+
+### Required Evidence
+
+Transcript / tool call record is required evidence for every numeric-choice smoke test run.
+
+The required evidence should show the prompt, the `request_user_input` payload, and the selected token for each stage that was exercised.
+
+### Optional Evidence
+
+Screenshot / operator notes are optional evidence when they help explain UI state or operator observations.
+
+### Acceptance Mapping
+
+| File | Contract slice | Smoke tests |
+| --- | --- | --- |
+| `skills/using-superpowers/SKILL.md` | Global default for tool-backed choice UI and destructive two-stage confirmation | A, B, C |
+| `skills/brainstorming/SKILL.md` | Design approval and review-gate choice UI | A, B |
+| `skills/writing-plans/SKILL.md` | Execution handoff choice UI | A |
+| `skills/executing-plans/SKILL.md` | Blocker and next-step escalation choice UI | A, B |
+| `skills/finishing-a-development-branch/SKILL.md` | Dangerous two-stage confirmation state machine | C |
+
+### Latest Numeric Choice Smoke Evidence
+
+| Smoke Test | What to capture | Location |
+| --- | --- | --- |
+| A | Transcript / tool call record showing the final-step or next-step `request_user_input` call | Location |
+| B | Transcript / tool call record showing consecutive choice UI questions without plain-text degradation | Location |
+| C | Transcript / tool call record showing numeric Stage 1 and lettered Stage 2 confirmation | Location |
+
 ## Integration Test: subagent-driven-development
 
 ### What It Tests
