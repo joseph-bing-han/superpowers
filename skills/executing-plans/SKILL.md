@@ -16,7 +16,10 @@ Load plan, review critically, execute all tasks, report when complete.
 ## The Process
 
 Routine summaries, checkpoints, and batch boundaries are internal progress markers, not human approval gates. Do not stop at routine summaries, checkpoints, or batch boundaries just to ask whether to continue.
-Do not stop with prose-only follow-up text like `if you want me to continue` after a routine summary or checkpoint. If the path is clear, keep executing automatically.
+Do not stop with prose-only follow-up text like `if you want me to continue` after a routine summary or checkpoint.
+Do not stop with a declarative prose-only next-step proposal like `the next best step is to continue with task 2` or `next I would continue with task 2` after a routine summary or checkpoint.
+If the next task is already clear and safe, execute it rather than narrating the step and stopping.
+If the path is clear, keep executing automatically.
 
 ### Step 1: Load and Review Plan
 1. Read plan file

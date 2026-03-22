@@ -43,6 +43,8 @@ digraph when_to_use {
 
 Task reviews are internal quality gates, not human approval gates. After a task passes review, move directly to the next task. Task summaries are progress updates, not requests for permission to continue. Do not stop after a reviewed task summary if more tasks remain.
 Do not end a reviewed task update with prose-only follow-up text like `if you want me to continue`.
+Do not end a reviewed task update with a declarative prose-only next-task proposal like `the next task is for me to implement X` or `the next best step is task 3`.
+If the next reviewed task is already clear and safe, move to it instead of narrating it and stopping.
 Either move directly to the next task or use `request_user_input` when a real user decision remains.
 
 ```dot

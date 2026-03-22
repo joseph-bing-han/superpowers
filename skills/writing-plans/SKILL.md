@@ -168,6 +168,8 @@ When `request_user_input` is available, use it for this execution handoff becaus
 Keep a final free-text path only for requirements that do not fit the listed execution choices.
 Do not ask for a prose-only `reply 1/2/3` response in this handoff when `request_user_input` is available.
 Do not end this handoff with prose-only follow-up text like `if you want me to execute next`.
+Do not end this handoff with a declarative prose-only next-step proposal like `the next step is for me to execute task 1` or `the next best step is to execute inline`.
+If you can already describe the next safe execution step concretely, do it instead of narrating it and stopping.
 Either continue automatically on the already-implied execution path or use `request_user_input` when a real execution choice remains.
 Choosing `Subagent-Driven` counts as explicit session-scoped consent to use implementation subagents for the rest of the session.
 Treat that choice as setting the shared session consent state to `granted` for implementation subagents.

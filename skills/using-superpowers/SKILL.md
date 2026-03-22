@@ -125,7 +125,8 @@ If the user asked for end-to-end completion and no clarification is needed and n
 - Do not stop after summaries, checkpoints, or phase boundaries just to ask whether to continue
 - Summaries are progress updates, not approval gates
 - If the next action is already implied by the user's request and is safe to take, do it
-- Non-terminal workflow stages must not end with a prose-only follow-up such as `if you agree`, `if this direction looks good`, or `I can do X next if you want`
+- Non-terminal workflow stages must not end with a prose-only follow-up or a declarative prose-only next-step proposal such as `if you agree`, `if this direction looks good`, `the next best step is X`, `next I would do X`, or `I can directly prepare X next`
+- If you can already describe the next safe step concretely, do it instead of narrating it and stopping
 - Either continue automatically into the next workflow step or use `request_user_input` when a real decision remains and the choices are enumerable
 - Only ask when missing information would change the work, a destructive or external action needs confirmation, or a material tradeoff still needs the user's decision
 

@@ -99,8 +99,10 @@ digraph brainstorming {
 - If the user already asked for end-to-end execution and the design is straightforward, present a concise design checkpoint and continue without waiting for a separate continue prompt.
 - Stop and ask for approval only when there are material tradeoffs, unresolved risk, or the user explicitly wants to review the design before implementation.
 - Do not end a design checkpoint with prose-only follow-up text like `if you agree`, `if this direction looks good`, or `I can implement this next if you want`.
+- Do not stop with a declarative prose-only next-step proposal like `the next best step is X`, `next I would do X`, or `I can directly prepare X next`.
 - Either continue automatically into the next workflow step or use `request_user_input` for a real review gate.
 - Do not end with prose-only next-step invitations like `if you want, I can turn this into a field-by-field table next`.
+- If you can already name the next safe artifact step concretely, take it instead of narrating it and stopping.
 - If the next artifact choices are enumerable, use `request_user_input` instead of a prose-only optional next-step invitation.
 - Cover: architecture, components, data flow, error handling, testing
 - Be ready to go back and clarify if something doesn't make sense
