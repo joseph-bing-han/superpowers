@@ -100,6 +100,8 @@ digraph brainstorming {
 - Stop and ask for approval only when there are material tradeoffs, unresolved risk, or the user explicitly wants to review the design before implementation.
 - Do not end a design checkpoint with prose-only follow-up text like `if you agree`, `if this direction looks good`, or `I can implement this next if you want`.
 - Either continue automatically into the next workflow step or use `request_user_input` for a real review gate.
+- Do not end with prose-only next-step invitations like `if you want, I can turn this into a field-by-field table next`.
+- If the next artifact choices are enumerable, use `request_user_input` instead of a prose-only optional next-step invitation.
 - Cover: architecture, components, data flow, error handling, testing
 - Be ready to go back and clarify if something doesn't make sense
 
@@ -186,7 +188,9 @@ A browser-based companion for showing mockups, diagrams, and visual options duri
 **Offering the companion:** When you anticipate that upcoming questions will involve visual content (mockups, layouts, diagrams), offer it once for consent:
 > "Some of what we're working on might be easier to explain if I can show it to you in a web browser. I can put together mockups, diagrams, comparisons, and other visuals as we go. This feature is still new and can be token-intensive. Want to try it? (Requires opening a local URL)"
 
-**This offer MUST be its own message.** Do not combine it with clarifying questions, context summaries, or any other content. The message should contain ONLY the offer above and nothing else. Wait for the user's response before continuing. If they decline, proceed with text-only brainstorming.
+**This offer MUST be its own interaction.** Do not combine it with clarifying questions, context summaries, or any other content.
+When `request_user_input` is available, use it for the visual companion consent question instead of a prose-only yes/no prompt.
+If you must fall back to plain text, the message should contain ONLY the offer above and nothing else. Wait for the user's response before continuing. If they decline, proceed with text-only brainstorming.
 
 **Per-question decision:** Even after the user accepts, decide FOR EACH QUESTION whether to use the browser or the terminal. The test: **would the user understand this better by seeing it than reading it?**
 
