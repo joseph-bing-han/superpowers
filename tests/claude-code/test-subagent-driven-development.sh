@@ -1,165 +1,170 @@
 #!/usr/bin/env bash
-# Test: subagent-driven-development skill
-# Verifies that the skill is loaded and follows correct workflow
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+PROMPT_TEMPLATE="$SCRIPT_DIR/fixtures/sdd-smoke-prompt.template.txt"
+
 source "$SCRIPT_DIR/test-helpers.sh"
 
-echo "=== Test: subagent-driven-development skill ==="
+run_with_timeout() {
+    local seconds="$1"
+    shift
+
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$seconds" "$@"
+        return $?
+    fi
+
+    "$@" &
+    local command_pid=$!
+
+    (
+        sleep "$seconds"
+        kill -TERM "$command_pid" 2>/dev/null || true
+    ) &
+    local timer_pid=$!
+
+    wait "$command_pid"
+    local command_status=$?
+
+    kill -TERM "$timer_pid" 2>/dev/null || true
+    wait "$timer_pid" 2>/dev/null || true
+
+    return $command_status
+}
+
+echo "========================================"
+echo " Behavior Smoke: subagent-driven-development"
+echo "========================================"
 echo ""
 
-# Test 1: Verify skill can be loaded
-echo "Test 1: Skill loading..."
+TEST_PROJECT=$(create_test_project)
+OUTPUT_FILE="$TEST_PROJECT/claude-output.json"
+PROMPT_FILE="$TEST_PROJECT/prompt.txt"
 
-output=$(run_claude "What is the subagent-driven-development skill? Describe its key steps briefly." 30)
+trap 'cleanup_test_project "$TEST_PROJECT"' EXIT
 
-if assert_contains "$output" "subagent-driven-development\|Subagent-Driven Development\|Subagent Driven" "Skill is recognized"; then
-    : # pass
-else
-    exit 1
-fi
+echo "Test project: $TEST_PROJECT"
+bootstrap_sdd_smoke_project "$TEST_PROJECT"
 
-if assert_contains "$output" "Load Plan\|read.*plan\|extract.*tasks" "Mentions loading plan"; then
-    : # pass
-else
-    exit 1
-fi
+PROMPT=$(sed "s|__TEST_PROJECT__|$TEST_PROJECT|g" "$PROMPT_TEMPLATE")
+printf '%s\n' "$PROMPT" > "$PROMPT_FILE"
 
-echo ""
-
-# Test 2: Verify skill describes correct workflow order
-echo "Test 2: Workflow ordering..."
-
-output=$(run_claude "In the subagent-driven-development skill, what comes first: spec compliance review or code quality review? Be specific about the order." 30)
-
-if assert_order "$output" "spec.*compliance" "code.*quality" "Spec compliance before code quality"; then
-    : # pass
-else
-    exit 1
-fi
-
-echo ""
-
-# Test 3: Verify self-review is mentioned
-echo "Test 3: Self-review requirement..."
-
-output=$(run_claude "Does the subagent-driven-development skill require implementers to do self-review? What should they check?" 30)
-
-if assert_contains "$output" "self-review\|self review" "Mentions self-review"; then
-    : # pass
-else
-    exit 1
-fi
-
-if assert_contains "$output" "completeness\|Completeness" "Checks completeness"; then
-    : # pass
-else
+if printf '%s\n' "$PROMPT" | rg -q "__TEST_PROJECT__"; then
+    echo "ERROR: Prompt template was not rendered correctly"
     exit 1
 fi
 
 echo ""
+echo "Running Claude behavior smoke..."
+echo "Output file: $OUTPUT_FILE"
+echo ""
 
-# Test 4: Verify plan is read once
-echo "Test 4: Plan reading efficiency..."
+TEST_RUN_STARTED_AT=$(date +%s)
 
-output=$(run_claude "In subagent-driven-development, how many times should the controller read the plan file? When does this happen?" 30)
+set +e
+(
+    cd "$REPO_ROOT" || exit 1
+    run_with_timeout 1800 claude -p "$PROMPT" \
+        --output-format stream-json \
+        --add-dir "$TEST_PROJECT" \
+        --permission-mode bypassPermissions 2>&1
+) | tee "$OUTPUT_FILE"
+command_status=${PIPESTATUS[0]}
+set -e
 
-if assert_contains "$output" "once\|one time\|single" "Read plan once"; then
-    : # pass
-else
+if [ "$command_status" -ne 0 ]; then
+    echo ""
+    echo "========================================"
+    echo "EXECUTION FAILED (exit code: $command_status)"
     exit 1
 fi
 
-if assert_contains "$output" "Step 1\|beginning\|start\|Load Plan" "Read at beginning"; then
-    : # pass
-else
+SESSION_FILE=$(find_latest_session_file "$REPO_ROOT" "$TEST_RUN_STARTED_AT" || true)
+
+if [ -z "$SESSION_FILE" ]; then
+    echo ""
+    echo "ERROR: Could not find session transcript file"
     exit 1
 fi
 
 echo ""
-
-# Test 5: Verify spec compliance reviewer is skeptical
-echo "Test 5: Spec compliance reviewer mindset..."
-
-output=$(run_claude "What is the spec compliance reviewer's attitude toward the implementer's report in subagent-driven-development?" 30)
-
-if assert_contains "$output" "not trust\|don't trust\|skeptical\|verify.*independently\|suspiciously" "Reviewer is skeptical"; then
-    : # pass
-else
-    exit 1
-fi
-
-if assert_contains "$output" "read.*code\|inspect.*code\|verify.*code" "Reviewer reads code"; then
-    : # pass
-else
-    exit 1
-fi
-
+echo "Analyzing session transcript: $(basename "$SESSION_FILE")"
 echo ""
 
-# Test 6: Verify review loops
-echo "Test 6: Review loop requirements..."
+FAILED=0
 
-output=$(run_claude "In subagent-driven-development, what happens if a reviewer finds issues? Is it a one-time review or a loop?" 30)
-
-if assert_contains "$output" "loop\|again\|repeat\|until.*approved\|until.*compliant" "Review loops mentioned"; then
-    : # pass
-else
-    exit 1
-fi
-
-if assert_contains "$output" "implementer.*fix\|fix.*issues" "Implementer fixes issues"; then
-    : # pass
-else
-    exit 1
-fi
-
+echo "=== Verification Tests ==="
 echo ""
 
-# Test 7: Verify full task text is provided
-echo "Test 7: Task context provision..."
-
-output=$(run_claude "In subagent-driven-development, how does the controller provide task information to the implementer subagent? Does it make them read a file or provide it directly?" 30)
-
-if assert_contains "$output" "provide.*directly\|full.*text\|paste\|include.*prompt" "Provides text directly"; then
-    : # pass
+if assert_session_contains "$SESSION_FILE" '"name":"Skill".*"skill":"superpowers:subagent-driven-development"' "SDD skill invoked"; then
+    :
 else
-    exit 1
+    FAILED=$((FAILED + 1))
 fi
-
-if assert_not_contains "$output" "read.*file\|open.*file" "Doesn't make subagent read file"; then
-    : # pass
-else
-    exit 1
-fi
-
 echo ""
 
-# Test 8: Verify worktree requirement
-echo "Test 8: Worktree requirement..."
-
-output=$(run_claude "What workflow skills are required before using subagent-driven-development? List any prerequisites or required skills." 30)
-
-if assert_contains "$output" "using-git-worktrees\|worktree" "Mentions worktree requirement"; then
-    : # pass
+if assert_session_contains "$SESSION_FILE" '"name":"Task"' "Subagent task dispatch recorded"; then
+    :
 else
-    exit 1
+    FAILED=$((FAILED + 1))
 fi
-
 echo ""
 
-# Test 9: Verify main branch warning
-echo "Test 9: Main branch red flag..."
-
-output=$(run_claude "In subagent-driven-development, is it okay to start implementation directly on the main branch?" 30)
-
-if assert_contains "$output" "worktree\|feature.*branch\|not.*main\|never.*main\|avoid.*main\|don't.*main\|consent\|permission" "Warns against main branch"; then
-    : # pass
+if assert_session_contains "$SESSION_FILE" '"name":"TodoWrite"' "Task tracking recorded"; then
+    :
 else
-    exit 1
+    FAILED=$((FAILED + 1))
 fi
-
 echo ""
 
-echo "=== All subagent-driven-development skill tests passed ==="
+if assert_session_not_contains "$SESSION_FILE" '(?i)"name":"request_user_input".*("subagent use"|permission to use subagents|may use subagents in this session|allow subagent use)' "Smoke run does not re-enter the subagent consent gate"; then
+    :
+else
+    FAILED=$((FAILED + 1))
+fi
+echo ""
+
+if assert_session_contains_literal "$SESSION_FILE" "$TEST_PROJECT" "Session transcript bound to this smoke project"; then
+    :
+else
+    FAILED=$((FAILED + 1))
+fi
+echo ""
+
+if assert_session_contains_exact_line "$SESSION_FILE" 'TASK_STATUS: (DONE|DONE_WITH_CONCERNS|BLOCKED|NEEDS_CONTEXT)' "Implementer task status recorded"; then
+    :
+else
+    FAILED=$((FAILED + 1))
+fi
+echo ""
+
+if assert_session_contains_exact_line "$SESSION_FILE" 'TEST_STATUS: (PASS|FAIL|NOT_RUN)' "Implementer test status recorded"; then
+    :
+else
+    FAILED=$((FAILED + 1))
+fi
+echo ""
+
+if assert_session_contains_exact_line "$SESSION_FILE" 'NEXT_ACTION: (REVIEW|NEEDS_CONTEXT|STOP)' "Implementer next action recorded"; then
+    :
+else
+    FAILED=$((FAILED + 1))
+fi
+echo ""
+
+echo "========================================"
+echo " Test Summary"
+echo "========================================"
+echo ""
+
+if [ "$FAILED" -eq 0 ]; then
+    echo "STATUS: PASSED"
+    exit 0
+fi
+
+echo "STATUS: FAILED"
+echo "Failed $FAILED verification tests"
+echo "Output saved to: $OUTPUT_FILE"
+exit 1

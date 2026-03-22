@@ -306,6 +306,7 @@ Next skills:
   1. 结束
   2. 继续
   3. 自由输入
+- For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
 
 当 handoff 进入 `terminal-choice` 时，这个 turn 的直接下一个动作就是弹出 `request_user_input`，不能先写一段自由文本终稿再结束。
 

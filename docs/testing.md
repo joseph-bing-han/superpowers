@@ -10,12 +10,18 @@ Testing skills that involve subagents, workflows, and complex interactions requi
 
 ```
 tests/
+├── codex/
+│   ├── fixtures/
+│   │   ├── request-user-input-execution-handoff.jsonl
+│   │   └── request-user-input-terminal-choice.jsonl
+│   └── test-request-user-input-transcript-fixtures.sh
 ├── claude-code/
 │   ├── test-helpers.sh                    # Shared test utilities
 │   ├── test-subagent-driven-development-integration.sh
 │   ├── analyze-token-usage.py             # Token analysis tool
 │   └── run-skill-tests.sh                 # Test runner (if exists)
 └── prompt-contracts/
+    ├── test-machine-readable-workflow-contracts.sh
     └── test-numeric-choice-interactions.sh
 ```
 
@@ -44,6 +50,8 @@ cd tests/claude-code
 Prompt contract tests validate expected wording and interaction boundaries in skill and Codex-facing documentation:
 
 ```bash
+bash tests/prompt-contracts/test-machine-readable-workflow-contracts.sh
+bash tests/codex/test-request-user-input-transcript-fixtures.sh
 bash tests/prompt-contracts/test-numeric-choice-interactions.sh
 ```
 
@@ -52,6 +60,112 @@ bash tests/prompt-contracts/test-numeric-choice-interactions.sh
 - Run from the repository root so the script can resolve documented paths correctly
 - Bash must be available
 - `rg` (ripgrep) must be installed and available on `PATH`
+- `jq` must be installed and available on `PATH` for transcript-fixture parsing
+
+## Machine-Readable Workflow Contracts
+
+本节冻结当前仓库的 workflow contract 审计边界、覆盖地图与验证优先级，
+避免后续只靠 prose 解释导致契约漂移。
+
+这是一份当前 change 的 branch-local contract snapshot，也是 rollout snapshot，
+只描述 `decouple-prose-from-workflow-protocols` 在本分支上的契约冻结状态，
+不把后续任务的计划证据误写成“仓库里已经存在的实现”。
+
+### Source-of-truth priority
+
+当前 source-of-truth priority 固定为
+`tool events / transcript events / fixed machine-readable tail blocks / prose`。
+
+同一顺序也可以写成
+`tool events > transcript events > fixed machine-readable tail blocks > prose`。
+
+- `tool events`：最强约束，直接来自工具调用本身。
+- `transcript events`：第二优先级，记录真实 session 行为。
+- `fixed machine-readable tail blocks`：用于 reviewer / implementer
+  报告等稳定尾块，便于 prompt-contract 断言。
+- `prose`：只用于补充解释；当它和前三层冲突时，以前三层为准。
+
+### Repository audit and fragility tiers
+
+- `P0`：最脆弱、最容易漂移的 workflow protocol，必须优先依赖
+  tool-backed 或 transcript-backed contract。
+- `P1`：中等脆弱层，通常已有文档与测试，但仍需要固定 coverage map
+  以避免 wording drift。
+- `P2`：较稳定层，可以继续依赖现有测试与文档，只需要在仓库审计中
+  明确归档位置。
+
+Change-scoped snapshot: `decouple-prose-from-workflow-protocols`.
+
+Covered node families:
+
+- `reviewer / implementer reports`
+- `checkpoint / handoff / terminal-choice flows`
+- `Claude transcript-backed behavior tests`
+- `OpenCode raw marker / tool-payload tests`
+
+### Workflow Node / Contract Carrier / Verification Matrix
+
+| Workflow Node | Contract Carrier | Verification | Status |
+| --- | --- | --- | --- |
+| reviewer / implementer reports | fixed machine-readable tail blocks + transcript events | prompt-contract + Claude tests | in scope |
+| checkpoint / handoff / terminal-choice flows | request_user_input call + transcript event | prompt-contract + Codex fixture test (`tests/codex/test-request-user-input-transcript-fixtures.sh`) | in scope; transcript fixture evidence landed on this branch |
+| OpenCode tool loading | raw marker / tool payload | `tests/opencode/test-tools.sh` | in scope |
+| skill-triggering discovery | existing Skill tool event transcript | `tests/skill-triggering/*.sh` | audited, out-of-scope for this change because they already assert Skill tool events |
+
+### First drift matrix
+
+First drift matrix: `Chinese / English / concise / verbose`.
+
+| Axis A | Axis B | 审计目的 |
+| --- | --- | --- |
+| Chinese | concise | 防止简体中文短回复把 machine-readable carrier 缩成纯 prose |
+| Chinese | verbose | 防止中文详细说明覆盖既有 transcript / tail-block contract |
+| English | concise | 防止英文短回复丢失固定 marker、raw payload 或 tail block |
+| English | verbose | 防止英文长说明重写 source-of-truth priority 或 verification map |
+
+### Drift Matrix Protocol
+
+当前 drift matrix 明确覆盖以下变体：
+
+- `Chinese`
+- `English`
+- `concise`
+- `verbose`
+- `second runner or second model when available`
+
+允许变化的是 surrounding prose 的语言、长短和措辞。
+不允许变化的是 reviewer 输出末尾的 machine-readable fields。
+
+在 drift 验证里，以下字段必须保持稳定：
+
+- `REVIEW_VERDICT`
+- `BLOCKING_ISSUE_COUNT`
+- `NEXT_ACTION`
+
+也就是说，prose may vary while the machine-readable fields must remain stable。
+
+### Latest Machine-Readable Contract Evidence
+
+- `tests/codex/fixtures/request-user-input-terminal-choice.jsonl`
+  当前证据：real terminal-choice transcript fixture，由
+  `tests/codex/test-request-user-input-transcript-fixtures.sh` 解析。
+  Latest local result: parsed successfully in this Codex-only validation pass.
+- `tests/codex/fixtures/request-user-input-execution-handoff.jsonl`
+  当前证据：real non-terminal execution-handoff transcript fixture，由
+  `tests/codex/test-request-user-input-transcript-fixtures.sh` 解析。
+  Latest local result: parsed successfully in this Codex-only validation pass.
+- `tests/claude-code/test-subagent-driven-development.sh`
+  当前 contract：锁定 transcript 中的 `Skill` / `Task` / `TodoWrite`
+  事件，要求保留 `TASK_STATUS` / `TEST_STATUS` / `NEXT_ACTION`
+  精确行，并包含“不得重新进入 subagent consent gate”的负向断言。
+  Latest local result: live Claude-runner verification was not executed in
+  this Codex-only validation pass.
+- `tests/claude-code/test-reviewer-contract-drift.sh`
+  当前 contract：锁定 `Chinese` / `English` / `concise` / `verbose`
+  四种 reviewer prompt 变体，并在本地可用时补跑 `second runner or second model`
+  分支。
+  Latest local result: script landed and static validation passed in this
+  Codex-only validation pass; live runner execution was not performed here.
 
 ## Numeric Choice Smoke Tests
 

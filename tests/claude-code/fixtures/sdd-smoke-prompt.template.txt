@@ -1,0 +1,5 @@
+Change to directory __TEST_PROJECT__ and execute docs/superpowers/plans/implementation-plan.md using the subagent-driven-development skill.
+
+You have explicit permission to use subagents in this session.
+Do not ask for additional permission to use subagents.
+This is a behavior smoke test. Keep the run minimal, execute the plan, and preserve the machine-readable status lines required by the active prompts.

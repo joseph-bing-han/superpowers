@@ -6,6 +6,33 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/test-helpers.sh"
 
+run_with_timeout() {
+    local seconds="$1"
+    shift
+
+    if command -v timeout >/dev/null 2>&1; then
+        timeout "$seconds" "$@"
+        return $?
+    fi
+
+    "$@" &
+    local command_pid=$!
+
+    (
+        sleep "$seconds"
+        kill -TERM "$command_pid" 2>/dev/null || true
+    ) &
+    local timer_pid=$!
+
+    wait "$command_pid"
+    local command_status=$?
+
+    kill -TERM "$timer_pid" 2>/dev/null || true
+    wait "$timer_pid" 2>/dev/null || true
+
+    return $command_status
+}
+
 echo "========================================"
 echo " Integration Test: Document Review System"
 echo "========================================"
@@ -90,12 +117,20 @@ Look for:
 Output your review in the format specified in the template."
 
 echo "================================================================================"
-cd "$SCRIPT_DIR/../.." && timeout 120 claude -p "$PROMPT" --permission-mode bypassPermissions 2>&1 | tee "$OUTPUT_FILE" || {
+set +e
+(
+    cd "$SCRIPT_DIR/../.." || exit 1
+    run_with_timeout 120 claude -p "$PROMPT" --permission-mode bypassPermissions 2>&1
+) | tee "$OUTPUT_FILE"
+command_status=${PIPESTATUS[0]}
+set -e
+
+if [ "$command_status" -ne 0 ]; then
     echo ""
     echo "================================================================================"
-    echo "EXECUTION FAILED (exit code: $?)"
+    echo "EXECUTION FAILED (exit code: $command_status)"
     exit 1
-}
+fi
 echo "================================================================================"
 
 echo ""
@@ -128,25 +163,32 @@ else
 fi
 echo ""
 
-# Test 3: Reviewer output includes Issues section
-echo "Test 3: Review output format..."
-if grep -qi "issues\|Issues" "$OUTPUT_FILE"; then
-    echo "  [PASS] Review includes Issues section"
+# Test 3: Reviewer returns a stable verdict field
+echo "Test 3: Stable review verdict field..."
+if assert_named_field "$OUTPUT_FILE" "REVIEW_VERDICT" "CHANGES_REQUIRED" "Reviewer returns stable failing verdict"; then
+    :
 else
-    echo "  [FAIL] Review missing Issues section"
     FAILED=$((FAILED + 1))
 fi
 echo ""
 
-# Test 4: Reviewer did NOT approve (found issues)
-echo "Test 4: Reviewer verdict..."
-if grep -qi "Issues Found\|❌\|not approved\|issues found" "$OUTPUT_FILE"; then
-    echo "  [PASS] Reviewer correctly found issues (not approved)"
-elif grep -qi "Approved\|✅" "$OUTPUT_FILE" && ! grep -qi "Issues Found\|❌" "$OUTPUT_FILE"; then
-    echo "  [FAIL] Reviewer incorrectly approved spec with errors"
-    FAILED=$((FAILED + 1))
+# Test 4: Reviewer returns a stable next action field
+echo "Test 4: Stable next action field..."
+if assert_named_field "$OUTPUT_FILE" "NEXT_ACTION" "REVISE|STOP" "Reviewer returns stable next action"; then
+    :
 else
-    echo "  [PASS] Reviewer identified problems (ambiguous format but found issues)"
+    FAILED=$((FAILED + 1))
+fi
+echo ""
+
+# Test 5: Reviewer returns a non-zero blocking issue count
+echo "Test 5: Blocking issue count..."
+issue_count=$(extract_named_field "$OUTPUT_FILE" "BLOCKING_ISSUE_COUNT")
+if [ -n "$issue_count" ] && [ "$issue_count" -ge 1 ]; then
+    echo "  [PASS] Blocking issue count is non-zero"
+else
+    echo "  [FAIL] Blocking issue count missing or zero"
+    FAILED=$((FAILED + 1))
 fi
 echo ""
 
@@ -163,8 +205,8 @@ if [ $FAILED -eq 0 ]; then
     echo "The spec document reviewer correctly:"
     echo "  ✓ Found TODO placeholder"
     echo "  ✓ Found 'specified later' deferral"
-    echo "  ✓ Produced properly formatted review"
-    echo "  ✓ Did not approve spec with errors"
+    echo "  ✓ Returned stable review verdict fields"
+    echo "  ✓ Reported a non-zero blocking issue count"
     exit 0
 else
     echo "STATUS: FAILED"

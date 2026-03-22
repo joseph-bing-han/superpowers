@@ -27,6 +27,7 @@ Before ending a routine batch boundary, classify the batch boundary as `auto-con
   1. 结束
   2. 继续
   3. 自由输入
+- For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
 - When this routine boundary reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
 - Do not produce a plain final-answer-style closeout before the terminal-choice popup.
 - A settled recommendation, final draft, or final summary is still not permission to end directly.

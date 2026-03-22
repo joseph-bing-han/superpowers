@@ -58,4 +58,12 @@ Task tool (general-purpose):
     Report:
     - ✅ Spec compliant (if everything matches after code inspection)
     - ❌ Issues found: [list specifically what's missing or extra, with file:line references]
+
+    End your review with this exact machine-readable tail block:
+    Keep the field names exactly as written.
+    For `REVIEW_VERDICT` and `NEXT_ACTION`, choose exactly one allowed token and do not repeat the pipe-delimited schema.
+    Replace `BLOCKING_ISSUE_COUNT` with digits only.
+    REVIEW_VERDICT: APPROVED | CHANGES_REQUIRED
+    BLOCKING_ISSUE_COUNT: non-negative integer
+    NEXT_ACTION: CONTINUE | REVISE
 ```

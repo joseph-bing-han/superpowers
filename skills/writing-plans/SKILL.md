@@ -164,6 +164,7 @@ Before ending this handoff, classify the handoff as `auto-continue`, `needs-user
   1. 结束
   2. 继续
   3. 自由输入
+- For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
 - When this handoff reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
 - Do not produce a plain final-answer-style closeout before the terminal-choice popup.
 - A settled recommendation, final draft, or final summary is still not permission to end directly.
@@ -176,10 +177,11 @@ Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Choose the ex
 
 1. Subagent-Driven (recommended)
 2. Inline Execution
-3. Input other requirements
+3. Stop here for now
 ```
 
 When `request_user_input` is available, use it for this execution handoff because the choices are known and enumerable.
+Treat free-form requirements as the client-provided `Other` path rather than using slot 3 for free text.
 Keep a final free-text path only for requirements that do not fit the listed execution choices.
 Do not ask for a prose-only `reply 1/2/3` response in this handoff when `request_user_input` is available.
 If the only remaining real decision is continue vs stop, ask that through `request_user_input`; otherwise ask the more specific execution-path choice instead of collapsing it into a generic continue/stop prompt.

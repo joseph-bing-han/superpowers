@@ -110,4 +110,10 @@ Task tool (general-purpose):
     Use DONE_WITH_CONCERNS if you completed the work but have doubts about correctness.
     Use BLOCKED if you cannot complete the task. Use NEEDS_CONTEXT if you need
     information that wasn't provided. Never silently produce work you're unsure about.
+    Keep the report prose you need, but end your report with this exact machine-readable trailer.
+    The field names must remain unchanged and appear verbatim.
+    `TASK_STATUS`, `TEST_STATUS`, and `NEXT_ACTION` must each use exactly one allowed token and must not repeat the pipe-delimited schema.
+    TASK_STATUS: DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT
+    TEST_STATUS: PASS | FAIL | NOT_RUN
+    NEXT_ACTION: REVIEW | NEEDS_CONTEXT | STOP
 ```

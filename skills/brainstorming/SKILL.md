@@ -103,6 +103,7 @@ digraph brainstorming {
   1. 结束
   2. 继续
   3. 自由输入
+- For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
 - When brainstorming reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
 - Do not produce a plain final-answer-style closeout before the terminal-choice popup, including endings framed like `当前我建议的定稿`, `就按这条落地`, or `最终建议一句话版`.
 - A settled recommendation, final draft, current recommendation, or final summary is still not permission to end directly.
