@@ -7,10 +7,13 @@ description: "You MUST use this before any creative work - creating features, bu
 
 Help turn ideas into fully formed design artifacts through natural collaborative dialogue.
 
-Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design and get user approval.
+Start by understanding the current project context, then ask questions one at a time to refine the idea. Once you understand what you're building, present the design. If the user already asked for end-to-end execution and there are no unresolved questions, risky tradeoffs, or explicit review requests, continue on the recommended path instead of inserting a redundant "continue?" gate.
 
 <HARD-GATE>
-Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
+Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and either:
+1. the user has approved it, or
+2. the user already asked for end-to-end execution, the design is straightforward, and no unresolved clarifications, risky tradeoffs, or explicit review requests remain.
+This applies to EVERY project regardless of perceived simplicity.
 </HARD-GATE>
 
 ## Anti-Pattern: "This Is Too Simple To Need A Design"
@@ -25,10 +28,10 @@ You MUST create a task for each of these items and complete them in order:
 2. **Offer visual companion** (if topic will involve visual questions) — this is its own message, not combined with a clarifying question. See the Visual Companion section below.
 3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria; prefer numbered options when the choices are already known
 4. **Propose 2-3 approaches** — with trade-offs and your recommendation
-5. **Present design** — in sections scaled to their complexity, get user approval after each section using `request_user_input` when available for enumerable choices instead of typed approval words or a prose-only numbered reply prompt
+5. **Present design** — in sections scaled to their complexity; when a real review gate remains, get user approval after each section using `request_user_input` when available for enumerable choices instead of typed approval words or a prose-only numbered reply prompt
 6. **Write design artifacts** — in a Superpowers-only lane, save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit; in an OpenSpec-governed lane, update the relevant OpenSpec change artifacts and commit without creating a duplicate Superpowers spec file
 7. **Design artifact review loop** — dispatch spec-document-reviewer subagent with precisely crafted review context (never your session history); review the written design artifacts, fix issues, and re-dispatch until approved (max 3 iterations, then surface to human)
-8. **User reviews written design artifacts** — ask user to review the written design artifact paths before proceeding, using `request_user_input` when available for the known review choices
+8. **User reviews written design artifacts** — only when a real review gate remains; otherwise note the artifact paths and continue automatically
 9. **Transition to implementation** — invoke writing-plans skill to create implementation plan
 
 ## Process Flow
@@ -93,6 +96,8 @@ digraph brainstorming {
 - Ask after each section whether it looks right so far, using numbered approvals instead of requiring typed approval words
 - When `request_user_input` is available and the approval choices are enumerable, use it instead of asking for a prose-only `reply 1/2/3` response.
 - Keep a final free-text path only for new feedback that does not fit the listed approval choices.
+- If the user already asked for end-to-end execution and the design is straightforward, present a concise design checkpoint and continue without waiting for a separate continue prompt.
+- Stop and ask for approval only when there are material tradeoffs, unresolved risk, or the user explicitly wants to review the design before implementation.
 - Cover: architecture, components, data flow, error handling, testing
 - Be ready to go back and clarify if something doesn't make sense
 
@@ -145,7 +150,7 @@ After writing the design artifact(s):
 3. If loop exceeds 3 iterations, surface to human for guidance
 
 ## User Review Gate:
-After the design artifact review loop passes, ask the user to review the written design artifacts before proceeding:
+After the design artifact review loop passes, ask the user to review the written design artifacts before proceeding only when a real review gate is still needed:
 
 > "Design artifacts written and committed to `<path-or-paths>`. Choose the next step:
 > 1. Agree and continue
@@ -154,7 +159,8 @@ After the design artifact review loop passes, ask the user to review the written
 
 When `request_user_input` is available and the next steps are enumerable, use it for this review gate instead of a prose-only numbered reply prompt.
 
-Wait for the user's response. If they request changes, make them and re-run the design artifact review loop. Only proceed once the user approves.
+When the original request already authorizes end-to-end execution and the artifacts match the settled design with no open issues, do not stop just to ask whether to continue. Mention the artifact paths in a progress update and proceed directly to writing-plans.
+If you do open this review gate, wait for the user's response. If they request changes, make them and re-run the design artifact review loop. Only proceed once the user approves.
 
 **Implementation:**
 

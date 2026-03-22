@@ -15,6 +15,8 @@ Load plan, review critically, execute all tasks, report when complete.
 
 ## The Process
 
+Routine summaries, checkpoints, and batch boundaries are internal progress markers, not human approval gates. Do not stop at routine summaries, checkpoints, or batch boundaries just to ask whether to continue.
+
 ### Step 1: Load and Review Plan
 1. Read plan file
 2. Review critically - identify any questions or concerns about the plan
@@ -29,6 +31,7 @@ For each task:
 2. Follow each step exactly (plan has bite-sized steps)
 3. Run verifications as specified
 4. Mark as completed
+5. Continue to the next task automatically unless a real blocker requires human input
 
 ### Step 3: Complete Development
 

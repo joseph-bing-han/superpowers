@@ -82,6 +82,15 @@ Superpowers skill prompts use structured numbered choices by default for user-ch
 This does not mean Superpowers can force raw single-key submit inside Codex CLI. True "press one key and continue immediately" behavior still depends on the Codex input layer, not the skill documents.
 The automatic numbering prefix shown inside a `request_user_input` popup belongs to the Codex UI/input-layer boundary, not to the skill documents.
 
+## Autonomous Continuation
+
+If the user asked for end-to-end completion, Superpowers should continue automatically when no clarification or confirmation is needed.
+
+- Do not stop after summaries, checkpoints, or phase completions just to ask whether to continue.
+- Summaries, checkpoints, and phase completions are progress updates, not automatic stop points.
+- If the next action is already implied and safe, take it.
+- Pause only when missing information would change the work, a destructive or external action needs confirmation, or a material tradeoff still needs the user's decision.
+
 ## Session-Scoped Subagent Consent
 
 Superpowers tracks session-scoped subagent consent as `unknown`, `granted`, or `denied`.

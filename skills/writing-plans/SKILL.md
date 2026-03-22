@@ -152,7 +152,9 @@ After writing the complete plan:
 
 ## Execution Handoff
 
-After saving the plan, offer execution choice:
+If the execution path is already clear, continue automatically. If the user asked for end-to-end completion and the path is already implied by consent state, tool availability, or the surrounding workflow, do not pause after saving the plan just to ask whether to continue. Saving the plan is not a reason by itself to stop.
+
+When a real execution choice is still needed after saving the plan, offer execution choice:
 
 ```text
 Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Choose the execution path:
@@ -168,6 +170,11 @@ Do not ask for a prose-only `reply 1/2/3` response in this handoff when `request
 Choosing `Subagent-Driven` counts as explicit session-scoped consent to use implementation subagents for the rest of the session.
 Treat that choice as setting the shared session consent state to `granted` for implementation subagents.
 Do not immediately ask again for the same subagent consent after that choice.
+
+If the execution path is already clear:
+- If session consent is `granted`, continue automatically with `subagent-driven-development`
+- If session consent is `denied`, or subagents are unavailable, continue automatically with `executing-plans`
+- Do not pause after saving the plan just to ask whether to continue
 
 **If Subagent-Driven chosen:**
 - **REQUIRED SUB-SKILL:** Use superpowers:subagent-driven-development

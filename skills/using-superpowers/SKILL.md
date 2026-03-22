@@ -118,6 +118,15 @@ When asking the user to choose between actions, use structured numbered choices 
 - In the second destructive step, put the safe exit in slot `1` and put the final destructive confirmation in slot `2` of the second step
 - If a dangerous action still requires typed text, show the exact text as copyable text
 
+## Autonomous Continuation
+
+If the user asked for end-to-end completion and no clarification is needed and no confirmation is needed, continue automatically through the workflow.
+
+- Do not stop after summaries, checkpoints, or phase boundaries just to ask whether to continue
+- Summaries are progress updates, not approval gates
+- If the next action is already implied by the user's request and is safe to take, do it
+- Only ask when missing information would change the work, a destructive or external action needs confirmation, or a material tradeoff still needs the user's decision
+
 ## Session-Scoped Subagent Consent
 
 Maintain a session-scoped consent state for subagent use: `unknown`, `granted`, `denied`.
