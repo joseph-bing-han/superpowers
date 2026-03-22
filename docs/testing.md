@@ -89,9 +89,16 @@ Screenshot / operator notes are optional evidence when they help explain UI stat
 
 | Smoke Test | What to capture | Location |
 | --- | --- | --- |
-| A | Transcript / tool call record showing the final-step or next-step `request_user_input` call | Location |
-| B | Transcript / tool call record showing consecutive choice UI questions without plain-text degradation | Location |
-| C | Transcript / tool call record showing numeric Stage 1 and lettered Stage 2 confirmation | Location |
+| A | Transcript / tool call record showing the final-step or next-step `request_user_input` call | 2026-03-22 Codex interactive session (this conversation). `request_user_input` used for a single non-dangerous next-step question. Selected option: `继续验证 (Recommended)`. |
+| B | Transcript / tool call record showing consecutive choice UI questions without plain-text degradation | 2026-03-22 Codex interactive session (this conversation). One `request_user_input` call carried three consecutive questions. Selected options: `完整三题 (Recommended)`, `记录工具调用 (Recommended)`, `保持选择 UI (Recommended)`. |
+| C | Transcript / tool call record showing numeric Stage 1 and lettered Stage 2 confirmation | 2026-03-22 Codex interactive session (this conversation). Stage 1 used `request_user_input` and selected `1. 进入第二段确认 (Recommended)`. Stage 2 first captured operator note `按 a/b/c键都没有反应`, then Stage 2 was re-run with the same lettered labels and the choice UI selected `a. 确认执行 (Recommended)`. |
+
+Operator note from the latest smoke run:
+
+- Stage 2 did render as a real `request_user_input` choice UI with lettered labels.
+- In this Codex session, raw `a` / `b` / `c` keypresses did not activate that UI.
+- Re-running the same Stage 2 prompt and selecting the first choice through the choice UI succeeded.
+- Inference: Superpowers can require tool-backed Stage 2 confirmation and lettered labels, but raw hotkey mapping still depends on the Codex input layer rather than the skill documents.
 
 ## Integration Test: subagent-driven-development
 

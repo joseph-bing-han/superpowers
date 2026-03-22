@@ -176,8 +176,8 @@ assert_section_contains "docs/testing.md" "### Acceptance Mapping" 'skills/brain
 assert_section_contains "docs/testing.md" "### Acceptance Mapping" 'skills/writing-plans/SKILL\.md' "testing docs map writing-plans into numeric-choice smoke coverage" '^(##|###) '
 assert_section_contains "docs/testing.md" "### Acceptance Mapping" 'skills/executing-plans/SKILL\.md' "testing docs map executing-plans into numeric-choice smoke coverage" '^(##|###) '
 assert_section_contains "docs/testing.md" "### Acceptance Mapping" 'skills/finishing-a-development-branch/SKILL\.md' "testing docs map finishing-a-development-branch into numeric-choice smoke coverage" '^(##|###) '
-assert_section_contains "docs/testing.md" "### Latest Numeric Choice Smoke Evidence" 'A \|.*Location' "testing docs include the evidence template row for smoke test A" '^(##|###) '
-assert_section_contains "docs/testing.md" "### Latest Numeric Choice Smoke Evidence" 'B \|.*Location' "testing docs include the evidence template row for smoke test B" '^(##|###) '
-assert_section_contains "docs/testing.md" "### Latest Numeric Choice Smoke Evidence" 'C \|.*Location' "testing docs include the evidence template row for smoke test C" '^(##|###) '
+assert_section_contains "docs/testing.md" "### Latest Numeric Choice Smoke Evidence" 'A \| .*request_user_input.* \| [^|]+' "testing docs include a populated evidence row for smoke test A" '^(##|###) '
+assert_section_contains "docs/testing.md" "### Latest Numeric Choice Smoke Evidence" 'B \| .*consecutive choice UI questions.* \| [^|]+' "testing docs include a populated evidence row for smoke test B" '^(##|###) '
+assert_section_contains "docs/testing.md" "### Latest Numeric Choice Smoke Evidence" 'C \| .*numeric Stage 1 and lettered Stage 2 confirmation.* \| [^|]+' "testing docs include a populated evidence row for smoke test C" '^(##|###) '
 
 echo "All numeric-choice prompt contract checks passed."
