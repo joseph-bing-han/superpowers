@@ -15,6 +15,10 @@ Load plan, review critically, execute all tasks, report when complete.
 
 ## The Process
 
+Before executing tasks, ensure you are already inside a dedicated worktree.
+If not already in a dedicated worktree, invoke `using-git-worktrees` first.
+Do not create a nested worktree if one is already active; reuse the current dedicated worktree.
+
 Routine summaries, checkpoints, and batch boundaries are internal progress markers, not human approval gates. Do not stop at routine summaries, checkpoints, or batch boundaries just to ask whether to continue.
 Before ending a routine batch boundary, classify the batch boundary as `auto-continue`, `needs-user-decision`, or `terminal-choice`.
 - `auto-continue`: the next task is already clear and safe; execute it immediately
@@ -51,6 +55,7 @@ After all tasks complete and verified:
 - Announce: "I'm using the finishing-a-development-branch skill to complete this work."
 - **REQUIRED SUB-SKILL:** Use superpowers:finishing-a-development-branch
 - Follow that skill to verify tests, present options, execute choice
+- Treat that finishing step as the standard worktree convergence path: merge/discard outcomes clean up the worktree, while PR/keep-as-is outcomes preserve it for follow-up work
 
 ## When to Stop and Ask for Help
 

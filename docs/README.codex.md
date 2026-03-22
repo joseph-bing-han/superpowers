@@ -113,6 +113,17 @@ When a reviewer or implementer subagent would materially help and the state is `
 If that session-level consent is `granted`, those workflows can keep using helpful subagents without asking again for the rest of the session. If it is `denied`, the workflow stays inline for the rest of the session unless the user explicitly reopens the choice.
 In the writing-plans execution handoff, choosing `Subagent-Driven` sets the shared session consent state to `granted` for implementation subagents in the rest of the session.
 
+## Worktree Lifecycle
+
+Implementation-oriented Superpowers flows should run inside a dedicated git worktree for isolation.
+
+- If the workflow is about to move from design into planning or execution and no dedicated worktree is active yet, it should invoke `using-git-worktrees` first.
+- If a dedicated worktree is already active for that implementation lane, the workflow should reuse it instead of creating a nested worktree.
+- `subagent-driven-development` and `executing-plans` should execute inside that dedicated worktree, not in the shared primary workspace.
+- `finishing-a-development-branch` is the standard convergence path for worktree cleanup:
+  - Merge locally or discard: remove the worktree
+  - Push PR or keep as-is: preserve the worktree for follow-up review or fixes
+
 ### Personal Skills
 
 Create your own skills in `~/.agents/skills/`:

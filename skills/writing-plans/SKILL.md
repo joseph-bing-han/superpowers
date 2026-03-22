@@ -13,7 +13,9 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
-**Context:** If working in an isolated worktree, it should have been created via the `superpowers:using-git-worktrees` skill at execution time.
+**Context:** This should be run in a dedicated worktree (normally created before planning).
+If you are not already in a dedicated worktree, invoke `using-git-worktrees` first instead of assuming brainstorming already created one.
+If you are already in a dedicated worktree, reuse the existing dedicated worktree rather than creating a nested one.
 
 **Save plans to:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`
 - (User preferences for plan location override this default)

@@ -41,6 +41,10 @@ digraph when_to_use {
 
 ## The Process
 
+Before dispatching implementation subagents, ensure you are already inside a dedicated worktree.
+If not already in a dedicated worktree, invoke `using-git-worktrees` first.
+Do not create a nested worktree if one is already active; reuse the current dedicated worktree.
+
 Task reviews are internal quality gates, not human approval gates. After a task passes review, move directly to the next task. Task summaries are progress updates, not requests for permission to continue. Do not stop after a reviewed task summary if more tasks remain.
 Before ending a reviewed task boundary, classify the reviewed task boundary as `auto-continue`, `needs-user-decision`, or `terminal-choice`.
 - `auto-continue`: the next reviewed task is already clear and safe; move to it immediately
@@ -241,6 +245,7 @@ Done!
 - Review loops ensure fixes actually work
 - Spec compliance prevents over/under-building
 - Code quality ensures implementation is well-built
+- Finishing flow provides the standard worktree convergence path after implementation completes
 
 **Cost:**
 - More subagent invocations (implementer + 2 reviewers per task)
