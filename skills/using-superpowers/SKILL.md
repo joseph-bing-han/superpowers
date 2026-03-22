@@ -112,10 +112,22 @@ When asking the user to choose between actions, use structured numbered choices 
 - Prefer 2-4 options
 - For non-dangerous, enumerable choices, use `request_user_input` by default when available so the user gets a tool-backed choice UI instead of a prose-only numbered reply prompt
 - Keep a final free-text fallback when the scenario allows additional input beyond the listed choices
+- When you write prose-numbered options or text fallbacks yourself, use ASCII `1. `, `2. `, and `3. ` numbering, not `1。`
 - Do not use open-ended prompts like "Which approach?" when concrete choices are already known
 - For dangerous or destructive enumerable choices, use two-stage confirmation by default: a numbered choice first, then a second numbered confirmation step
 - In the second destructive step, put the safe exit in slot `1` and put the final destructive confirmation in slot `2` of the second step
 - If a dangerous action still requires typed text, show the exact text as copyable text
+
+## Session-Scoped Subagent Consent
+
+Maintain a session-scoped consent state for subagent use: `unknown`, `granted`, `denied`.
+
+- When subagents would materially help and the state is unknown, use `request_user_input` to ask once whether subagents may be used in this session
+- Do not silently downgrade before asking
+- Do not downgrade first and explain later
+- After granted or denied, reuse that state for the rest of the session
+- If the state is `granted`, use subagents when they help without re-asking
+- If the state is `denied`, do not ask again unless the user explicitly reopens the decision or higher-priority instructions require a different path
 
 ## Governance Routing
 

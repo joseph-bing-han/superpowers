@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make non-dangerous enumerable choices trigger `request_user_input` by default, replace destructive typed confirmations with a two-stage numeric confirmation flow, and add durable prompt-contract plus smoke-test coverage.
+**Goal:** Make non-dangerous enumerable choices trigger `request_user_input` by default, replace destructive typed confirmations with a two-stage numeric confirmation flow, standardize assistant-authored prose numbering on ASCII `1. ` / `2. ` / `3. `, and add durable prompt-contract plus smoke-test coverage.
 
-**Architecture:** The change stays in the skill-and-doc lane. First encode the new contract in prompt-contract tests, then update the global guidance and the workflow skills that ask for user choices, then replace the destructive branch-discard flow with a two-stage numeric confirmation model where the final destructive action lives in slot `2` of Stage 2, and finally document and execute the smoke-test protocol that proves the last step really triggers `request_user_input`.
+**Architecture:** The change stays in the skill-and-doc lane. First encode the new contract in prompt-contract tests, then update the global guidance and the workflow skills that ask for user choices, then replace the destructive branch-discard flow with a two-stage numeric confirmation model where the final destructive action lives in slot `2` of Stage 2, and finally document and execute the smoke-test protocol that proves the last step really triggers `request_user_input`. Assistant-authored prose-numbered options and text fallbacks use ASCII `1. ` / `2. ` / `3. `, while the automatic numbering shown by a `request_user_input` popup is documented as a Codex UI / input-layer boundary rather than a repository-controlled behavior.
 
 **Tech Stack:** Markdown skill docs, Bash prompt-contract tests, Codex `request_user_input` interaction flow
 
@@ -44,7 +44,8 @@ Update `skills/using-superpowers/SKILL.md` so the “User Choice Formatting” s
 - For non-dangerous, enumerable choices, prefer actually calling `request_user_input` instead of only writing `1 / 2 / 3` in plain text.
 - Do not end with text-only prompts like "reply 1/2/3" when the tool-backed choice UI is available.
 - When the scene allows it, keep a final free-text fallback option instead of forcing enumeration only.
-- For dangerous or destructive actions, prefer a two-stage confirmation flow: first a numbered confirmation step, then a lettered confirmation step.
+- For dangerous or destructive actions, prefer a two-stage confirmation flow: first a numbered confirmation step, then a second numbered confirmation step.
+- When you write prose-numbered options or text fallbacks yourself, use ASCII `1. `, `2. `, and `3. ` numbering.
 - If text input is still required, show the exact text in the prompt so the user can copy it.
 ```
 
@@ -56,7 +57,9 @@ Update `docs/README.codex.md` so the “Choice-Based Interaction” section says
 Superpowers now aims for tool-backed choice UI when Codex tools are available, not just numbered prose.
 Non-dangerous enumerable choices should use `request_user_input`.
 Dangerous enumerable choices should use a two-stage confirmation flow.
+Assistant-authored prose-numbered options and text fallbacks should use ASCII `1. `, `2. `, and `3. ` numbering.
 True raw single-key submit still depends on the Codex input layer.
+The automatic numbering shown inside a `request_user_input` popup belongs to the Codex UI / input-layer boundary.
 ```
 
 - [ ] **Step 5: Re-run the prompt-contract test**

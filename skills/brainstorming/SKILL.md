@@ -138,6 +138,9 @@ After writing the design artifact(s):
 1. Dispatch spec-document-reviewer subagent (see spec-document-reviewer-prompt.md)
    - In a **Superpowers-only lane**, provide the path to the written design artifact
    - In an **OpenSpec-governed lane**, provide the relevant OpenSpec artifact paths
+   - If a reviewer subagent would materially help and the session consent state is unknown, use `request_user_input` to ask once before dispatching it
+   - If the state is `granted`, dispatch the reviewer subagent
+   - If the state is `denied`, review inline and do not ask again in the same session
 2. If Issues Found: fix, re-dispatch, repeat until Approved
 3. If loop exceeds 3 iterations, surface to human for guidance
 

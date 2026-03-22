@@ -136,10 +136,13 @@ Every step must contain the actual content an engineer needs. These are **plan f
 
 After writing the complete plan:
 
-1. Dispatch a single plan-document-reviewer subagent (see plan-document-reviewer-prompt.md) with precisely crafted review context — never your session history. This keeps the reviewer focused on the plan, not your thought process.
+1. Review the written plan.
+   - If a reviewer subagent would materially help and the session consent state is unknown, use `request_user_input` to ask once before dispatching it
+   - If the state is `granted`, dispatch the reviewer subagent: a single plan-document-reviewer subagent (see plan-document-reviewer-prompt.md) with precisely crafted review context — never your session history. This keeps the reviewer focused on the plan, not your thought process.
+   - If the state is `denied`, review inline and do not ask again in the same session
    - In a **Superpowers-only lane**, provide: path to the plan document, path to spec document
    - In an **OpenSpec-governed lane**, provide: path to the plan document, plus the relevant OpenSpec artifact paths (`proposal.md`, `design.md`, relevant `specs/*`, `tasks.md`)
-2. If ❌ Issues Found: fix the issues, re-dispatch reviewer for the whole plan
+2. If ❌ Issues Found: fix the issues, then review the whole plan again using the same session-consent rules
 3. If ✅ Approved: proceed to execution handoff
 
 **Review loop guidance:**
@@ -162,6 +165,9 @@ Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Choose the ex
 When `request_user_input` is available, use it for this execution handoff because the choices are known and enumerable.
 Keep a final free-text path only for requirements that do not fit the listed execution choices.
 Do not ask for a prose-only `reply 1/2/3` response in this handoff when `request_user_input` is available.
+Choosing `Subagent-Driven` counts as explicit session-scoped consent to use implementation subagents for the rest of the session.
+Treat that choice as setting the shared session consent state to `granted` for implementation subagents.
+Do not immediately ask again for the same subagent consent after that choice.
 
 **If Subagent-Driven chosen:**
 - **REQUIRED SUB-SKILL:** Use superpowers:subagent-driven-development

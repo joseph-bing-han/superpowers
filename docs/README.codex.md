@@ -74,11 +74,22 @@ Superpowers skill prompts use structured numbered choices by default for user-ch
 - Prefer 2-4 options.
 - For non-dangerous, enumerable choices, use `request_user_input` by default when available so the user gets a tool-backed choice UI instead of a prose-only numbered reply prompt.
 - Keep a final free-text fallback when the scenario allows additional input beyond the listed choices.
+- When the assistant writes prose-numbered options or text fallbacks itself, use ASCII `1. `, `2. `, and `3. ` numbering instead of `1。`.
 - For dangerous or destructive enumerable choices, use two-stage confirmation by default: a numbered choice first, then a second numbered confirmation step.
 - In the second destructive step, put the safe exit in slot `1` and put the final destructive confirmation in slot `2` of the second step.
 - If a dangerous action still requires typed text, show the exact text as copyable text.
 
 This does not mean Superpowers can force raw single-key submit inside Codex CLI. True "press one key and continue immediately" behavior still depends on the Codex input layer, not the skill documents.
+The automatic numbering prefix shown inside a `request_user_input` popup belongs to the Codex UI/input-layer boundary, not to the skill documents.
+
+## Session-Scoped Subagent Consent
+
+Superpowers tracks session-scoped subagent consent as `unknown`, `granted`, or `denied`.
+
+When a reviewer or implementer subagent would materially help and the state is `unknown`, the workflow should ask once through `request_user_input` before dispatching it. It should not silently downgrade first or explain the missing authorization after the fact.
+
+If that session-level consent is `granted`, those workflows can keep using helpful subagents without asking again for the rest of the session. If it is `denied`, the workflow stays inline for the rest of the session unless the user explicitly reopens the choice.
+In the writing-plans execution handoff, choosing `Subagent-Driven` sets the shared session consent state to `granted` for implementation subagents in the rest of the session.
 
 ### Personal Skills
 
