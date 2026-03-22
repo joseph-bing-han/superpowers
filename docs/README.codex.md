@@ -89,6 +89,8 @@ If the user asked for end-to-end completion, Superpowers should continue automat
 - Do not stop after summaries, checkpoints, or phase completions just to ask whether to continue.
 - Summaries, checkpoints, and phase completions are progress updates, not automatic stop points.
 - If the next action is already implied and safe, take it.
+- Non-terminal workflow stages must not end with a prose-only follow-up such as `if you agree`, `if this direction looks good`, or `I can do X next if you want`.
+- Either continue automatically or use `request_user_input` when a real decision remains and the choices are enumerable.
 - Pause only when missing information would change the work, a destructive or external action needs confirmation, or a material tradeoff still needs the user's decision.
 
 ## Session-Scoped Subagent Consent

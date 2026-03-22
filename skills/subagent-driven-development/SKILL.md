@@ -42,6 +42,8 @@ digraph when_to_use {
 ## The Process
 
 Task reviews are internal quality gates, not human approval gates. After a task passes review, move directly to the next task. Task summaries are progress updates, not requests for permission to continue. Do not stop after a reviewed task summary if more tasks remain.
+Do not end a reviewed task update with prose-only follow-up text like `if you want me to continue`.
+Either move directly to the next task or use `request_user_input` when a real user decision remains.
 
 ```dot
 digraph process {

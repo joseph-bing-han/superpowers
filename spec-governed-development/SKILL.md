@@ -298,11 +298,14 @@ Next skills:
 
 ## Handoff Guidance
 
-如果用户确认继续：
+如果后续路径已经明确，就直接进入对应下一个 skill，不要停在一句自由文本“如果你确认继续”或“如果你认同这个方向我就继续”。
+
+如果确实还存在可枚举的用户决策，再使用 `request_user_input` 触发数字选项，不要使用笼统确认句。
 
 - 对 **OpenSpec lane**：
   - 如果已经存在合适 change，直接基于该 change 进入后续 `brainstorming`、`writing-plans` 或实现流程
-  - 如果还没有 change，再进入 `openspec-explore` 或 `openspec-propose`
+  - 如果还没有 change，但下一步明显应先做范围探索，直接进入 `openspec-explore`
+  - 如果还没有 change，且已具备 proposal 输入，直接进入 `openspec-propose`
 - 对 **Superpowers-only lane**：
   - 立即进入 `brainstorming`
 

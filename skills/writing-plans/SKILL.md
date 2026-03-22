@@ -167,6 +167,8 @@ Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Choose the ex
 When `request_user_input` is available, use it for this execution handoff because the choices are known and enumerable.
 Keep a final free-text path only for requirements that do not fit the listed execution choices.
 Do not ask for a prose-only `reply 1/2/3` response in this handoff when `request_user_input` is available.
+Do not end this handoff with prose-only follow-up text like `if you want me to execute next`.
+Either continue automatically on the already-implied execution path or use `request_user_input` when a real execution choice remains.
 Choosing `Subagent-Driven` counts as explicit session-scoped consent to use implementation subagents for the rest of the session.
 Treat that choice as setting the shared session consent state to `granted` for implementation subagents.
 Do not immediately ask again for the same subagent consent after that choice.

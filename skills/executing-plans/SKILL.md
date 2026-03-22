@@ -16,6 +16,7 @@ Load plan, review critically, execute all tasks, report when complete.
 ## The Process
 
 Routine summaries, checkpoints, and batch boundaries are internal progress markers, not human approval gates. Do not stop at routine summaries, checkpoints, or batch boundaries just to ask whether to continue.
+Do not stop with prose-only follow-up text like `if you want me to continue` after a routine summary or checkpoint. If the path is clear, keep executing automatically.
 
 ### Step 1: Load and Review Plan
 1. Read plan file
@@ -52,6 +53,7 @@ After all tasks complete and verified:
 
 If concerns or blockers need human input, present numbered options instead of open-ended questions.
 If concerns, blockers, or known next actions need human input and the choices are enumerable, use `request_user_input` when available.
+If a real blocker requires input and the choices are enumerable, use `request_user_input`; otherwise continue automatically once the path is clear.
 Keep a final free-text path only for guidance that does not fit the listed options.
 Do not ask for a prose-only `reply 1/2/3` response in these flows when `request_user_input` is available.
 

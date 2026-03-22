@@ -98,6 +98,8 @@ digraph brainstorming {
 - Keep a final free-text path only for new feedback that does not fit the listed approval choices.
 - If the user already asked for end-to-end execution and the design is straightforward, present a concise design checkpoint and continue without waiting for a separate continue prompt.
 - Stop and ask for approval only when there are material tradeoffs, unresolved risk, or the user explicitly wants to review the design before implementation.
+- Do not end a design checkpoint with prose-only follow-up text like `if you agree`, `if this direction looks good`, or `I can implement this next if you want`.
+- Either continue automatically into the next workflow step or use `request_user_input` for a real review gate.
 - Cover: architecture, components, data flow, error handling, testing
 - Be ready to go back and clarify if something doesn't make sense
 
@@ -161,6 +163,7 @@ When `request_user_input` is available and the next steps are enumerable, use it
 
 When the original request already authorizes end-to-end execution and the artifacts match the settled design with no open issues, do not stop just to ask whether to continue. Mention the artifact paths in a progress update and proceed directly to writing-plans.
 If you do open this review gate, wait for the user's response. If they request changes, make them and re-run the design artifact review loop. Only proceed once the user approves.
+Do not switch back to prose-only follow-up text like `if you agree` after a tool-backed approval or review choice in the same non-terminal flow.
 
 **Implementation:**
 
