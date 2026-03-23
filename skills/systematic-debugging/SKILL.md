@@ -69,7 +69,16 @@ You MUST complete each phase before proceeding to the next.
    - New dependencies, config changes
    - Environmental differences
 
-4. **Gather Evidence in Multi-Component Systems**
+4. **Recover Existing Governed Context**
+
+   **WHEN the bug may belong to an active OpenSpec change or other governed implementation lane:**
+
+   - Identify the relevant change from the current context, current plan, or `openspec list --json`
+   - Read `proposal.md`, `design.md`, `specs/*`, and `tasks.md` before proposing fixes
+   - Treat those artifacts as the intended behavior, scope boundary, and unfinished-work context
+   - Do not skip this just because the immediate symptom looks local
+
+5. **Gather Evidence in Multi-Component Systems**
 
    **WHEN system has multiple components (CI → build → signing, API → service → database):**
 
@@ -107,7 +116,7 @@ You MUST complete each phase before proceeding to the next.
 
    **This reveals:** Which layer fails (secrets → workflow ✓, workflow → build ✗)
 
-5. **Trace Data Flow**
+6. **Trace Data Flow**
 
    **WHEN error is deep in call stack:**
 

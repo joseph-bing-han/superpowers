@@ -105,6 +105,8 @@ If the user asked for end-to-end completion, Superpowers should keep advancing t
 - Do not stop after announcing that judgment. Headings or conclusion blocks such as `最终判断`, `现在可以把结论更新为`, `项目现在可以稳妥进入 signing 阶段`, or similar "this can now safely move to the next phase" language are still prose-only endings if they are followed by `task_complete` instead of the already-authorized next step.
 - A typed free-form stop request, approval word, or natural-language "continue/stop" reply prompt must not replace the `terminal-choice` popup when the workflow is truly complete.
 - If the next action is already implied and safe, take it.
+- If a bug belongs to an active OpenSpec change, recover that governed context before proposing fixes by reading `proposal.md`, `design.md`, `specs/*`, and `tasks.md`.
+- If the current turn already knows the next OpenSpec lane, keep it in `auto-continue`: remaining governed work should continue into `openspec-apply-change`, and a complete archive-compatible active OpenSpec change should continue into `openspec-archive-change`.
 - If the only remaining real decision is continue vs stop, ask that through `request_user_input`; otherwise ask the more specific next-step choice instead of collapsing it into a generic continue/stop prompt.
 - Non-terminal workflow stages must not end with a prose-only follow-up or declarative prose-only next-step proposal such as `if you agree`, `if this direction looks good`, `the next best step is X`, or `I can directly prepare X next`.
 - This also includes judgment-framed, comparative, or recommendation-framed next-step proposals, including Chinese variants such as `如果按我的判断，下一步应该先……`, `下一步最值得做的不是 A，而是 B`, `接下来更值得做的是……`, or `我建议先……`.

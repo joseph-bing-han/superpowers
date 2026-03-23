@@ -44,6 +44,7 @@ description: Use when starting a new feature, cross-module change, or multi-stag
 - 任务需要**团队协作、交接或长期追溯**
 - 变更涉及**权限、数据结构、支付、核心流程、外部接口**等高风险区域
 - 用户明确要求引入 **OpenSpec**、规范化变更记录、proposal/design/tasks 或归档能力
+- 当前是在**既有 OpenSpec change** 上继续修 bug、处理 regression 或补齐已知缺口
 
 以下情况通常**不需要**进入 OpenSpec：
 
@@ -64,6 +65,7 @@ description: Use when starting a new feature, cross-module change, or multi-stag
 4. 预计分阶段实施，而非一次性完成
 5. 涉及高风险设计决策或核心业务约束
 6. 用户明确要求走 OpenSpec
+7. 当前 bugfix / regression 明显属于一个已经存在的 OpenSpec change（existing change）或 active OpenSpec lane
 
 如果满足任意一条：
 
@@ -181,18 +183,19 @@ Next skills:
    openspec list --json
    ```
 2. 如果已经存在合适的 change，直接基于该 change 继续后续设计、计划与实现流程
-3. 如果还没有合适 change：
+3. 如果当前请求是该 change 上的 bugfix / regression，先读取该 change 的 `proposal.md`、`design.md`、`specs/*`、`tasks.md`，再继续根因分析、设计或实现
+4. 如果还没有合适 change：
    - 先使用 `openspec-explore`
    - 再使用 `openspec-propose`
-4. 随后使用 `brainstorming` 继续澄清需求、比较方案、收敛设计
-5. 已确认的范围、设计、要求必须沉淀到 OpenSpec artifacts，而不是重复写入 `docs/superpowers/specs/...`
-6. 使用 `writing-plans` 生成**执行级计划**，输入应优先来自 OpenSpec artifacts
-7. 进入实现前，使用 `openspec-apply-change`
-8. 执行时使用 `subagent-driven-development` 或 `executing-plans`
-9. 若实现中发现设计或范围变化，先更新 OpenSpec artifacts，再继续实现
-10. 完成前使用 `verification-before-completion`
-11. 收尾时使用 `finishing-a-development-branch`
-12. 当 change 真正完成后，再使用 `openspec-archive-change`
+5. 随后使用 `brainstorming` 继续澄清需求、比较方案、收敛设计
+6. 已确认的范围、设计、要求必须沉淀到 OpenSpec artifacts，而不是重复写入 `docs/superpowers/specs/...`
+7. 使用 `writing-plans` 生成**执行级计划**，输入应优先来自 OpenSpec artifacts
+8. 进入实现前，使用 `openspec-apply-change`
+9. 执行时使用 `subagent-driven-development` 或 `executing-plans`
+10. 若实现中发现设计或范围变化，先更新 OpenSpec artifacts，再继续实现
+11. 完成前使用 `verification-before-completion`
+12. 收尾时使用 `finishing-a-development-branch`
+13. 当 change 真正完成且 archive compatibility 明确时，直接继续进入 `openspec-archive-change`
 
 ## Source of Truth Rules
 
@@ -243,11 +246,13 @@ Next skills:
 
 - 在 OpenSpec lane 中，进入实现前必须确保 change 已明确
 - 如果实现暴露出设计问题，应先回流更新 artifacts，再继续执行
+- 如果当前 change 仍有待完成任务，而下一条 lane 已经明确，则应把 `openspec-apply-change` 视为 `auto-continue`，而不是退化成 generic continue/stop 提示
 
 ### with `openspec-archive-change`
 
 - 只在实现、验证、收尾均完成后才建议归档
 - 不要因为“代码已写完”就立即归档
+- 当当前 change 已完成且 archive compatibility 已明确时，下一条 lane 就是 `openspec-archive-change`；这时应直接 auto-continue into `openspec-archive-change`，而不是只停在一条 recommendation
 
 ## Common Mistakes
 
@@ -327,7 +332,10 @@ Next skills:
 如果确实还存在可枚举的用户决策，再使用 `request_user_input` 触发数字选项，不要使用笼统确认句。
 
 - 对 **OpenSpec lane**：
-  - 如果已经存在合适 change，直接基于该 change 进入后续 `brainstorming`、`writing-plans` 或实现流程
+  - 如果当前 bugfix / regression 属于既有 change，先恢复该 change 的 `proposal.md`、`design.md`、`specs/*`、`tasks.md`
+  - 如果已经存在合适 change，且该 change 仍有待完成工作，直接进入 `openspec-apply-change`；这是 `auto-continue`
+  - 如果已经存在合适 change，且该 change 已完成并且 archive compatibility 明确，直接进入 `openspec-archive-change`；这也是 `auto-continue`
+  - 如果已经存在合适 change，但当前下一条明显是设计或计划，而不是直接实现，直接基于该 change 进入后续 `brainstorming` 或 `writing-plans`
   - 如果还没有 change，但下一步明显应先做范围探索，直接进入 `openspec-explore`
   - 如果还没有 change，且已具备 proposal 输入，直接进入 `openspec-propose`
 - 对 **Superpowers-only lane**：

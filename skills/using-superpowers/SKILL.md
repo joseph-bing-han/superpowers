@@ -102,7 +102,7 @@ When multiple skills could apply, use this order:
 2. **Implementation skills second** (frontend-design, mcp-builder) - these guide execution
 
 "Let's build X" → if the request is a new feature, cross-module change, multi-stage effort, or needs durable history, invoke `spec-governed-development` first. Otherwise, use brainstorming first, then implementation skills.
-"Fix this bug" → debugging first, then domain-specific skills.
+"Fix this bug" → debugging first. If the bug may belong to an existing OpenSpec-governed change or active OpenSpec lane, restore that governed context before proposing fixes, then continue with the lane-specific skills.
 
 ## User Choice Formatting
 
@@ -169,6 +169,11 @@ Invoke `spec-governed-development` first when the request involves:
 - a multi-stage implementation
 - long-lived scope/design tracking
 - explicit OpenSpec usage or change archival requirements
+
+The same governed routing also applies to bugfix continuation when the issue belongs to existing OpenSpec-governed work.
+
+- If the current bug, failed test, or regression appears to sit inside an active OpenSpec change, a current plan names an OpenSpec change, or the surrounding context already identifies governed OpenSpec work, invoke `spec-governed-development` before proposing fixes so the workflow restores `proposal.md`, `design.md`, `specs/*`, and `tasks.md` as the design context.
+- Do not treat a governed bugfix as a purely local patch just because the immediate request uses bug language.
 
 If none of those apply, continue with the normal Superpowers flow.
 

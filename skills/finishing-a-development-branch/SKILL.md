@@ -246,13 +246,13 @@ Trigger this handoff only when the context explicitly indicates one of the follo
 
 If none of the above is true, do nothing extra.
 
-**Do not guess. Do not auto-archive.**
+**Do not guess. Do not auto-archive blindly.**
 
-The handoff should be brief and should make it clear that archive is the next recommended step, not something already completed.
+The handoff should be brief and should make it clear when archive is the next implied lane. Keep the safety checks inside `openspec-archive-change`.
 
 **Outcome rules:**
 
-- **After Option 1 (Merge locally):** If the merged result represents a completed OpenSpec change, recommend `openspec-archive-change` now.
+- **After Option 1 (Merge locally):** If the merged result represents a completed OpenSpec change, treat `openspec-archive-change` as the next `auto-continue` lane and continue directly into it.
 - **After Option 2 (Push and create PR):** Do NOT recommend immediate archive. Instead, note that archive should happen only after the PR is merged and the change is confirmed complete.
 - **After Option 3 (Keep as-is):** Do not mention archive.
 - **After Option 4 (Discard):** Do not mention archive.
@@ -262,7 +262,7 @@ The handoff should be brief and should make it clear that archive is the next re
 ```text
 Branch workflow complete.
 
-If this work belongs to OpenSpec change <change-name>, the next recommended step is:
+Continue directly into `openspec-archive-change <change-name>` as the next auto-continue lane:
 openspec-archive-change <change-name>
 ```
 
@@ -271,7 +271,7 @@ openspec-archive-change <change-name>
 ```text
 Branch workflow complete.
 
-If this work belongs to an OpenSpec change, the next recommended step is:
+Continue directly into `openspec-archive-change` as the next auto-continue lane:
 openspec-archive-change
 ```
 
@@ -285,6 +285,7 @@ openspec-archive-change <change-name>
 ```
 
 Keep change selection, artifact checks, task checks, spec sync decisions, and archive confirmation inside `openspec-archive-change`.
+This step is about auto-continuing into the archive skill when the lane is already known, not about skipping that skill's checks.
 
 ## Quick Reference
 
