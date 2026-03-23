@@ -653,3 +653,17 @@ Same cycle: RED (baseline) → GREEN (write skill) → REFACTOR (close loopholes
 Same benefits: Better quality, fewer surprises, bulletproof results.
 
 If you follow TDD for code, follow it for skills. It's the same discipline applied to documentation.
+
+## Terminal Endgate Protocol
+
+If this skill reaches a terminal boundary where the current request appears complete:
+- This skill must not end the conversation directly with prose, `task_complete`, or a typed free-form prompt.
+- Conditional approvals such as `如果没问题就继续下一阶段`, `如果设计合理就开始实现`, or `if this is sound, continue to phase 2` count as prior authorization. A positive judgment must auto-continue instead of ending with a conclusion block.
+- Route true completion through `terminal-choice`.
+- The very next action must be `request_user_input`.
+- Use the fixed terminal-choice options:
+  1. 结束
+  2. 继续
+  3. 自由输入
+- Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
+- If the next safe step is already implied, auto-continue instead of asking the user to type a free-form continuation or ending message.

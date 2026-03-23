@@ -136,6 +136,8 @@ If the user asked for end-to-end completion and no clarification is needed, keep
 - Do not call `task_complete` or otherwise end the turn while the terminal-choice popup is still pending.
 - Do not stop after summaries, checkpoints, or phase boundaries just to ask whether to continue
 - Summaries are progress updates, not approval gates
+- Contingent authorization counts as prior authorization. If the user says `如果没问题就继续下一阶段`, `如果设计合理就开始实现`, or `if this is sound, continue to phase 2`, then a positive judgment means the condition has been satisfied and the turn is `auto-continue`, not a fresh approval gate.
+- Do not stop after announcing that judgment. Headings or conclusion blocks such as `最终判断`, `现在可以把结论更新为`, `项目现在可以稳妥进入 signing 阶段`, or similar "this can now safely move to the next phase" language are still prose-only endings if they are followed by `task_complete` instead of the already-authorized next step.
 - If the next action is already implied by the user's request and is safe to take, do it
 - If the only remaining real decision is continue vs stop, ask that through `request_user_input`; otherwise ask the more specific next-step choice instead of collapsing it into a generic continue/stop prompt
 - Non-terminal workflow stages must not end with a prose-only follow-up or a declarative prose-only next-step proposal such as `if you agree`, `if this direction looks good`, `the next best step is X`, `next I would do X`, or `I can directly prepare X next`
@@ -181,3 +183,17 @@ The skill itself tells you which.
 ## User Instructions
 
 Instructions say WHAT, not HOW. "Add X" or "Fix Y" doesn't mean skip workflows.
+
+## Terminal Endgate Protocol
+
+If this skill reaches a terminal boundary where the current request appears complete:
+- This skill must not end the conversation directly with prose, `task_complete`, or a typed free-form prompt.
+- Conditional approvals such as `如果没问题就继续下一阶段`, `如果设计合理就开始实现`, or `if this is sound, continue to phase 2` count as prior authorization. A positive judgment must auto-continue instead of ending with a conclusion block.
+- Route true completion through `terminal-choice`.
+- The very next action must be `request_user_input`.
+- Use the fixed terminal-choice options:
+  1. 结束
+  2. 继续
+  3. 自由输入
+- Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
+- If the next safe step is already implied, auto-continue instead of asking the user to type a free-form continuation or ending message.

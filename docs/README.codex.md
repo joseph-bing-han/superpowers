@@ -100,6 +100,10 @@ If the user asked for end-to-end completion, Superpowers should keep advancing t
 - Do not call `task_complete` or otherwise end the turn while the terminal-choice popup is still pending.
 - Do not stop after summaries, checkpoints, or phase completions just to ask whether to continue.
 - Summaries, checkpoints, and phase completions are progress updates, not automatic stop points.
+- These terminal endgate rules apply across all local skills in this repository, not only the core workflow skills that first introduced them.
+- Contingent authorization counts as prior authorization. If the user says `如果没问题就继续下一阶段`, `如果设计合理就开始实现`, or `if this is sound, continue to phase 2`, then a positive judgment means the condition is satisfied and the turn is `auto-continue`, not a new approval gate.
+- Do not stop after announcing that judgment. Headings or conclusion blocks such as `最终判断`, `现在可以把结论更新为`, `项目现在可以稳妥进入 signing 阶段`, or similar "this can now safely move to the next phase" language are still prose-only endings if they are followed by `task_complete` instead of the already-authorized next step.
+- A typed free-form stop request, approval word, or natural-language "continue/stop" reply prompt must not replace the `terminal-choice` popup when the workflow is truly complete.
 - If the next action is already implied and safe, take it.
 - If the only remaining real decision is continue vs stop, ask that through `request_user_input`; otherwise ask the more specific next-step choice instead of collapsing it into a generic continue/stop prompt.
 - Non-terminal workflow stages must not end with a prose-only follow-up or declarative prose-only next-step proposal such as `if you agree`, `if this direction looks good`, `the next best step is X`, or `I can directly prepare X next`.

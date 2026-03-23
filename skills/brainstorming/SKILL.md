@@ -112,6 +112,8 @@ digraph brainstorming {
 - When `request_user_input` is available and the approval choices are enumerable, use it instead of asking for a prose-only `reply 1/2/3` response.
 - Keep a final free-text path only for new feedback that does not fit the listed approval choices.
 - If the user already asked for end-to-end execution and the design is straightforward, present a concise design checkpoint and continue without waiting for a separate continue prompt.
+- Contingent authorization means auto-continue. If the user frames the checkpoint as `如果没问题就继续下一阶段`, `如果设计合理就开始实现`, or similar, then a positive judgment counts as auto-continue rather than a fresh approval gate.
+- Do not end that checkpoint with headings like `最终判断`, `现在可以把结论更新为`, or `可以进入下一阶段` and then stop. Once the condition is satisfied, continue into the already-authorized next phase instead of ending with a free-text conclusion block.
 - Stop and ask for approval only when there are material tradeoffs, unresolved risk, or the user explicitly wants to review the design before implementation.
 - If the only remaining real choice is continue vs stop, ask that through `request_user_input`; otherwise ask the more specific review or next-artifact choice instead of collapsing it into a generic continue/stop prompt.
 - Do not end a design checkpoint with prose-only follow-up text like `if you agree`, `if this direction looks good`, or `I can implement this next if you want`.
@@ -224,3 +226,17 @@ A question about a UI topic is not automatically a visual question. "What does p
 
 If they agree to the companion, read the detailed guide before proceeding:
 `skills/brainstorming/visual-companion.md`
+
+## Terminal Endgate Protocol
+
+If this skill reaches a terminal boundary where the current request appears complete:
+- This skill must not end the conversation directly with prose, `task_complete`, or a typed free-form prompt.
+- Conditional approvals such as `如果没问题就继续下一阶段`, `如果设计合理就开始实现`, or `if this is sound, continue to phase 2` count as prior authorization. A positive judgment must auto-continue instead of ending with a conclusion block.
+- Route true completion through `terminal-choice`.
+- The very next action must be `request_user_input`.
+- Use the fixed terminal-choice options:
+  1. 结束
+  2. 继续
+  3. 自由输入
+- Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
+- If the next safe step is already implied, auto-continue instead of asking the user to type a free-form continuation or ending message.
