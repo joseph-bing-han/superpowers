@@ -78,6 +78,7 @@ Superpowers skill prompts use structured numbered choices by default for user-ch
 - For dangerous or destructive enumerable choices, use two-stage confirmation by default: a numbered choice first, then a second numbered confirmation step.
 - In the second destructive step, put the safe exit in slot `1` and put the final destructive confirmation in slot `2` of the second step.
 - If a dangerous action still requires typed text, show the exact text as copyable text.
+- For Codex tool-backed terminal-choice popups, author only `结束 (Recommended)` and `继续`; rely on the client-provided `Other` / notes path for free-form requirements instead of adding a duplicate authored free-form option.
 
 This does not mean Superpowers can force raw single-key submit inside Codex CLI. True "press one key and continue immediately" behavior still depends on the Codex input layer, not the skill documents.
 The automatic numbering prefix shown inside a `request_user_input` popup belongs to the Codex UI/input-layer boundary, not to the skill documents.
@@ -89,10 +90,11 @@ If the user asked for end-to-end completion, Superpowers should keep advancing t
 - Before ending a workflow turn, classify the turn as `auto-continue`, `needs-user-decision`, or `terminal-choice`.
 - `auto-continue`: the next safe step is already implied; execute it immediately.
 - `needs-user-decision`: the workflow cannot safely continue until the user chooses among concrete options; use `request_user_input`.
-- `terminal-choice`: the requested work appears complete, but do not end directly; use `request_user_input` with:
-  1. 结束
+- `terminal-choice`: the requested work appears complete, but do not end directly; use `request_user_input`.
+- In Codex tool-backed terminal-choice popups, author only:
+  1. 结束 (Recommended)
   2. 继续
-  3. 自由输入
+- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
 - For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
 - When the turn reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
 - Do not produce a plain final-answer-style closeout before the terminal-choice popup.

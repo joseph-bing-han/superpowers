@@ -112,6 +112,7 @@ When asking the user to choose between actions, use structured numbered choices 
 - Prefer 2-4 options
 - For non-dangerous, enumerable choices, use `request_user_input` by default when available so the user gets a tool-backed choice UI instead of a prose-only numbered reply prompt
 - Keep a final free-text fallback when the scenario allows additional input beyond the listed choices
+- For Codex tool-backed terminal-choice popups, author only `结束 (Recommended)` and `继续`; rely on the client-provided `Other` / notes path for free-form requirements instead of adding a duplicate authored free-form option
 - When you write prose-numbered options or text fallbacks yourself, use ASCII `1. `, `2. `, and `3. ` numbering, not `1。`
 - Do not use open-ended prompts like "Which approach?" when concrete choices are already known
 - For dangerous or destructive enumerable choices, use two-stage confirmation by default: a numbered choice first, then a second numbered confirmation step
@@ -125,10 +126,11 @@ If the user asked for end-to-end completion and no clarification is needed, keep
 - Before ending any workflow turn, classify the turn as `auto-continue`, `needs-user-decision`, or `terminal-choice`
 - `auto-continue`: the next safe step is already implied; execute it now
 - `needs-user-decision`: the workflow cannot safely continue until the user chooses among concrete options; use `request_user_input`
-- `terminal-choice`: the requested work appears complete, but do not end directly; use `request_user_input` with:
-  1. 结束
+- `terminal-choice`: the requested work appears complete, but do not end directly; use `request_user_input`
+- In Codex tool-backed terminal-choice popups, author only:
+  1. 结束 (Recommended)
   2. 继续
-  3. 自由输入
+- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option
 - For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
 - When the workflow reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
 - Do not produce a plain final-answer-style closeout before the terminal-choice popup.
@@ -142,6 +144,8 @@ If the user asked for end-to-end completion and no clarification is needed, keep
 - If the only remaining real decision is continue vs stop, ask that through `request_user_input`; otherwise ask the more specific next-step choice instead of collapsing it into a generic continue/stop prompt
 - Non-terminal workflow stages must not end with a prose-only follow-up or a declarative prose-only next-step proposal such as `if you agree`, `if this direction looks good`, `the next best step is X`, `next I would do X`, or `I can directly prepare X next`
 - This also includes judgment-framed, comparative, or recommendation-framed declarative next-step proposals, including Chinese variants such as `如果按我的判断，下一步应该先……`, `下一步最值得做的不是 A，而是 B`, `接下来更值得做的是……`, or `我建议先……`
+- A concrete leak example is `如果你同意，我下一步可以直接按这个推荐方案 A 开始修。`
+- That pattern must resolve to either `request_user_input` or `auto-continue`, never `task_complete`
 - A non-terminal turn must never end with `task_complete` after only a summary, recommendation, judgment, comparison, or suggestion about what to do next
 - If you can already describe the next safe step concretely, do it instead of narrating it and stopping
 - Either continue automatically into the next workflow step or use `request_user_input` when a real decision remains and the choices are enumerable
@@ -196,9 +200,10 @@ If this skill reaches a terminal boundary where the current request appears comp
 - Conditional approvals such as `如果没问题就继续下一阶段`, `如果设计合理就开始实现`, or `if this is sound, continue to phase 2` count as prior authorization. A positive judgment must auto-continue instead of ending with a conclusion block.
 - Route true completion through `terminal-choice`.
 - The very next action must be `request_user_input`.
-- Use the fixed terminal-choice options:
-  1. 结束
+- In Codex tool-backed terminal-choice popups, author only:
+  1. 结束 (Recommended)
   2. 继续
-  3. 自由输入
+- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
 - Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
+- Concrete invitation prose such as `如果你同意，我下一步可以直接按这个推荐方案 A 开始修。` must resolve through `request_user_input` or `auto-continue`, never `task_complete`.
 - If the next safe step is already implied, auto-continue instead of asking the user to type a free-form continuation or ending message.

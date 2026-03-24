@@ -160,10 +160,11 @@ Before ending this handoff, classify the handoff as `auto-continue`, `needs-user
 
 - `auto-continue`: the execution path is already implied and safe; proceed immediately
 - `needs-user-decision`: a real execution choice remains; use `request_user_input`
-- `terminal-choice`: the requested work truly ends at planning, but do not end directly; use `request_user_input` with:
-  1. 结束
+- `terminal-choice`: the requested work truly ends at planning, but do not end directly; use `request_user_input`
+- In Codex tool-backed terminal-choice popups, author only:
+  1. 结束 (Recommended)
   2. 继续
-  3. 自由输入
+- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option
 - For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
 - When this handoff reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
 - Do not produce a plain final-answer-style closeout before the terminal-choice popup.
@@ -181,7 +182,7 @@ Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Choose the ex
 ```
 
 When `request_user_input` is available, use it for this execution handoff because the choices are known and enumerable.
-Treat free-form requirements as the client-provided `Other` path rather than using slot 3 for free text.
+Treat free-form requirements as the client-provided `Other` / notes path rather than authoring slot 3 for free text.
 Keep a final free-text path only for requirements that do not fit the listed execution choices.
 Do not ask for a prose-only `reply 1/2/3` response in this handoff when `request_user_input` is available.
 If the only remaining real decision is continue vs stop, ask that through `request_user_input`; otherwise ask the more specific execution-path choice instead of collapsing it into a generic continue/stop prompt.
@@ -214,9 +215,9 @@ If this skill reaches a terminal boundary where the current request appears comp
 - Conditional approvals such as `如果没问题就继续下一阶段`, `如果设计合理就开始实现`, or `if this is sound, continue to phase 2` count as prior authorization. A positive judgment must auto-continue instead of ending with a conclusion block.
 - Route true completion through `terminal-choice`.
 - The very next action must be `request_user_input`.
-- Use the fixed terminal-choice options:
-  1. 结束
+- In Codex tool-backed terminal-choice popups, author only:
+  1. 结束 (Recommended)
   2. 继续
-  3. 自由输入
+- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
 - Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
 - If the next safe step is already implied, auto-continue instead of asking the user to type a free-form continuation or ending message.

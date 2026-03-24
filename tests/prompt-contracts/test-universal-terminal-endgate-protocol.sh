@@ -56,6 +56,34 @@ assert_section_contains() {
   fi
 }
 
+assert_section_not_contains() {
+  local file="$1"
+  local heading="$2"
+  local pattern="$3"
+  local description="$4"
+  local stop_pattern="${5:-^(##|###) }"
+  local content
+
+  content="$(extract_section "$REPO_ROOT/$file" "$heading" "$stop_pattern")"
+
+  if [[ -z "$content" ]]; then
+    echo "FAIL: $description"
+    echo "  File: $file"
+    echo "  Missing section: $heading"
+    exit 1
+  fi
+
+  if printf '%s' "$content" | normalize_stream | rg -qi -- "$pattern"; then
+    echo "FAIL: $description"
+    echo "  File: $file"
+    echo "  Section: $heading"
+    echo "  Forbidden pattern: $pattern"
+    exit 1
+  else
+    echo "PASS: $description"
+  fi
+}
+
 SKILL_FILES=(
   "skills/brainstorming/SKILL.md"
   "skills/dispatching-parallel-agents/SKILL.md"
@@ -99,8 +127,22 @@ for file in "${SKILL_FILES[@]}"; do
   assert_section_contains \
     "$file" \
     "## Terminal Endgate Protocol" \
-    '1\. 结束|2\. 继续|3\. 自由输入' \
-    "$file preserves the mandatory 1/2/3 terminal-choice options" \
+    '1\. 结束 \(Recommended\).*2\. 继续' \
+    "$file preserves the two assistant-authored terminal-choice options" \
+    '^## '
+
+  assert_section_contains \
+    "$file" \
+    "## Terminal Endgate Protocol" \
+    'client-provided `Other` / notes path|客户端自动追加的 `Other` / notes 路径' \
+    "$file routes terminal free-form input through the client-provided Other/notes path" \
+    '^## '
+
+  assert_section_not_contains \
+    "$file" \
+    "## Terminal Endgate Protocol" \
+    '3\. 自由输入|显式.*自由输入|author(?:ed|ing).*自由输入' \
+    "$file does not preserve a duplicate authored free-form terminal-choice option" \
     '^## '
 
   assert_section_contains \

@@ -13,8 +13,12 @@ tests/
 ├── codex/
 │   ├── fixtures/
 │   │   ├── request-user-input-execution-handoff.jsonl
-│   │   └── request-user-input-terminal-choice.jsonl
-│   └── test-request-user-input-transcript-fixtures.sh
+│   │   ├── request-user-input-terminal-choice.jsonl
+│   │   ├── runtime-prose-endgate-leak-negative.jsonl
+│   │   ├── runtime-prose-endgate-repaired-autocontinue.jsonl
+│   │   └── runtime-prose-endgate-repaired-request-user-input.jsonl
+│   ├── test-request-user-input-transcript-fixtures.sh
+│   └── test-runtime-endgate-transcript-audit.sh
 ├── claude-code/
 │   ├── test-helpers.sh                    # Shared test utilities
 │   ├── test-subagent-driven-development-integration.sh
@@ -52,6 +56,7 @@ Prompt contract tests validate expected wording and interaction boundaries in sk
 ```bash
 bash tests/prompt-contracts/test-machine-readable-workflow-contracts.sh
 bash tests/codex/test-request-user-input-transcript-fixtures.sh
+bash tests/codex/test-runtime-endgate-transcript-audit.sh
 bash tests/prompt-contracts/test-numeric-choice-interactions.sh
 ```
 
@@ -68,7 +73,7 @@ bash tests/prompt-contracts/test-numeric-choice-interactions.sh
 避免后续只靠 prose 解释导致契约漂移。
 
 这是一份当前 change 的 branch-local contract snapshot，也是 rollout snapshot，
-只描述 `decouple-prose-from-workflow-protocols` 在本分支上的契约冻结状态，
+只描述 `close-runtime-prose-endgate-leaks` 在本分支上的契约冻结状态，
 不把后续任务的计划证据误写成“仓库里已经存在的实现”。
 
 ### Source-of-truth priority
@@ -94,12 +99,13 @@ bash tests/prompt-contracts/test-numeric-choice-interactions.sh
 - `P2`：较稳定层，可以继续依赖现有测试与文档，只需要在仓库审计中
   明确归档位置。
 
-Change-scoped snapshot: `decouple-prose-from-workflow-protocols`.
+Change-scoped snapshot: `close-runtime-prose-endgate-leaks`.
 
 Covered node families:
 
 - `reviewer / implementer reports`
 - `checkpoint / handoff / terminal-choice flows`
+- `Codex runtime endgate incident fixtures`
 - `Claude transcript-backed behavior tests`
 - `OpenCode raw marker / tool-payload tests`
 
@@ -108,7 +114,7 @@ Covered node families:
 | Workflow Node | Contract Carrier | Verification | Status |
 | --- | --- | --- | --- |
 | reviewer / implementer reports | fixed machine-readable tail blocks + transcript events | prompt-contract + Claude tests | in scope |
-| checkpoint / handoff / terminal-choice flows | request_user_input call + transcript event | prompt-contract + Codex fixture test (`tests/codex/test-request-user-input-transcript-fixtures.sh`) | in scope; transcript fixture evidence landed on this branch |
+| checkpoint / handoff / terminal-choice flows | request_user_input call + transcript event | prompt-contract + Codex fixture tests (`tests/codex/test-request-user-input-transcript-fixtures.sh`, `tests/codex/test-runtime-endgate-transcript-audit.sh`) | in scope; transcript fixture evidence landed on this branch |
 | OpenCode tool loading | raw marker / tool payload | `tests/opencode/test-tools.sh` | in scope |
 | skill-triggering discovery | existing Skill tool event transcript | `tests/skill-triggering/*.sh` | audited, out-of-scope for this change because they already assert Skill tool events |
 
@@ -154,6 +160,21 @@ First drift matrix: `Chinese / English / concise / verbose`.
   当前证据：real non-terminal execution-handoff transcript fixture，由
   `tests/codex/test-request-user-input-transcript-fixtures.sh` 解析。
   Latest local result: parsed successfully in this Codex-only validation pass.
+- `tests/codex/fixtures/runtime-prose-endgate-leak-negative.jsonl`
+  当前证据：negative runtime prose-endgate incident fixture，由
+  `tests/codex/test-runtime-endgate-transcript-audit.sh` 拒绝。
+  Latest local result: rejected as a runtime prose-endgate leak in this
+  Codex-only validation pass.
+- `tests/codex/fixtures/runtime-prose-endgate-repaired-request-user-input.jsonl`
+  当前证据：request_user_input repair fixture，由
+  `tests/codex/test-runtime-endgate-transcript-audit.sh` 放行。
+  Latest local result: passed the runtime endgate audit in this Codex-only
+  validation pass.
+- `tests/codex/fixtures/runtime-prose-endgate-repaired-autocontinue.jsonl`
+  当前证据：authorized auto-continue repair fixture，由
+  `tests/codex/test-runtime-endgate-transcript-audit.sh` 放行。
+  Latest local result: passed the runtime endgate audit in this Codex-only
+  validation pass.
 - `tests/claude-code/test-subagent-driven-development.sh`
   当前 contract：锁定 transcript 中的 `Skill` / `Task` / `TodoWrite`
   事件，要求保留 `TASK_STATUS` / `TEST_STATUS` / `NEXT_ACTION`
@@ -166,6 +187,37 @@ First drift matrix: `Chinese / English / concise / verbose`.
   分支。
   Latest local result: script landed and static validation passed in this
   Codex-only validation pass; live runner execution was not performed here.
+
+## Runtime Endgate Transcript Audits
+
+这组审计把真实 incident 固化成可回归的 Codex transcript fixtures，用来验证
+“analysis / recommendation boundary”是否仍然会在运行期漏成 prose-only
+结束。
+
+Runtime Audit A: A negative incident fixture with a prose-only next-step
+invitation followed by `task_complete` must be rejected.
+
+Runtime Audit B: A repaired fixture that routes the next-step split through
+`request_user_input` must pass.
+
+Runtime Audit C: A repaired fixture that directly executes an authorized
+auto-continue step must pass.
+
+### Required Audit Evidence
+
+- 保留最小负向 incident fixture，能够稳定复现
+  `prose-only next-step invitation + task_complete`。
+- 至少保留一个 `request_user_input` 修复样本和一个 `auto-continue`
+  修复样本。
+- 记录每个样本由哪一个脚本验证，以及最近一次本地验证结果。
+
+### Latest Runtime Endgate Audit Evidence
+
+| Audit | What to capture | Location |
+| --- | --- | --- |
+| A | Negative incident fixture with invitation prose, direct `task_complete`, and no `request_user_input` | `tests/codex/fixtures/runtime-prose-endgate-leak-negative.jsonl` + `tests/codex/test-runtime-endgate-transcript-audit.sh` |
+| B | Repaired fixture that resolves the next-step split through `request_user_input` | `tests/codex/fixtures/runtime-prose-endgate-repaired-request-user-input.jsonl` + `tests/codex/test-runtime-endgate-transcript-audit.sh` |
+| C | Repaired fixture that shows authorized auto-continue via a real tool action | `tests/codex/fixtures/runtime-prose-endgate-repaired-autocontinue.jsonl` + `tests/codex/test-runtime-endgate-transcript-audit.sh` |
 
 ## Numeric Choice Smoke Tests
 
@@ -184,6 +236,8 @@ Smoke Test C: A dangerous two-stage confirmation must use numbered choices in bo
 Transcript / tool call record is required evidence for every numeric-choice smoke test run.
 
 The required evidence should show the prompt, the `request_user_input` payload, and the selected token for each stage that was exercised.
+
+对于 terminal-choice 相关 evidence，必须把 authored payload 与客户端 UI fallback 分开记录：assistant-authored payload 只包含 `结束 (Recommended)`、`继续`；客户端 UI 会自动追加 `Other` / notes path 作为自由输入兜底，不应把它记录成 assistant-authored `3`。
 
 ### Optional Evidence
 

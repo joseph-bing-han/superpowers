@@ -23,10 +23,11 @@ Routine summaries, checkpoints, and batch boundaries are internal progress marke
 Before ending a routine batch boundary, classify the batch boundary as `auto-continue`, `needs-user-decision`, or `terminal-choice`.
 - `auto-continue`: the next task is already clear and safe; execute it immediately
 - `needs-user-decision`: the workflow cannot safely continue until the user chooses among concrete options; use `request_user_input`
-- `terminal-choice`: the requested execution work is complete, but do not end directly; use `request_user_input` with:
-  1. 结束
+- `terminal-choice`: the requested execution work is complete, but do not end directly; use `request_user_input`
+- In Codex tool-backed terminal-choice popups, author only:
+  1. 结束 (Recommended)
   2. 继续
-  3. 自由输入
+- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option
 - For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
 - When this routine boundary reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
 - Do not produce a plain final-answer-style closeout before the terminal-choice popup.
@@ -115,9 +116,9 @@ If this skill reaches a terminal boundary where the current request appears comp
 - Conditional approvals such as `如果没问题就继续下一阶段`, `如果设计合理就开始实现`, or `if this is sound, continue to phase 2` count as prior authorization. A positive judgment must auto-continue instead of ending with a conclusion block.
 - Route true completion through `terminal-choice`.
 - The very next action must be `request_user_input`.
-- Use the fixed terminal-choice options:
-  1. 结束
+- In Codex tool-backed terminal-choice popups, author only:
+  1. 结束 (Recommended)
   2. 继续
-  3. 自由输入
+- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
 - Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
 - If the next safe step is already implied, auto-continue instead of asking the user to type a free-form continuation or ending message.

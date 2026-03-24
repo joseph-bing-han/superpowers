@@ -235,7 +235,7 @@ assert_section_contains "## Machine-Readable Workflow Contracts" \
   '^## '
 
 assert_section_contains "## Machine-Readable Workflow Contracts" \
-  'decouple-prose-from-workflow-protocols' \
+  'close-runtime-prose-endgate-leaks' \
   "machine-readable contract section names the current change scope" \
   '^## '
 
@@ -258,7 +258,7 @@ assert_section_contains "### Workflow Node / Contract Carrier / Verification Mat
 
 assert_file_line_contains_literal "docs/testing.md" \
   '| checkpoint / handoff / terminal-choice flows |' \
-  'prompt-contract + Codex fixture test (`tests/codex/test-request-user-input-transcript-fixtures.sh`)' \
+  'prompt-contract + Codex fixture tests (`tests/codex/test-request-user-input-transcript-fixtures.sh`, `tests/codex/test-runtime-endgate-transcript-audit.sh`)' \
   "checkpoint, handoff, and terminal-choice row keeps both the current prompt-contract evidence and the Codex fixture evidence path"
 
 assert_file_line_contains_literal "docs/testing.md" \
@@ -297,8 +297,8 @@ assert_file_section_contains_literal "skills/writing-plans/SKILL.md" \
 
 assert_file_section_contains_literal "skills/writing-plans/SKILL.md" \
   "## Execution Handoff" \
-  'Treat free-form requirements as the client-provided `Other` path rather than using slot 3 for free text.' \
-  "writing-plans freezes the client-provided Other path for free-form execution input"
+  'Treat free-form requirements as the client-provided `Other` / notes path rather than authoring slot 3 for free text.' \
+  "writing-plans freezes the client-provided Other/notes path for free-form execution input"
 
 assert_file_section_contains_literal "skills/executing-plans/SKILL.md" \
   "## The Process" \
@@ -314,6 +314,11 @@ assert_file_section_contains_literal "docs/README.codex.md" \
   "## Autonomous Continuation" \
   "$CANONICAL_SENTENCE" \
   "Codex README mirrors the canonical machine-contract sentence in workflow guidance"
+
+assert_file_section_contains_literal "docs/testing.md" \
+  "### Required Evidence" \
+  'assistant-authored payload 只包含 `结束 (Recommended)`、`继续`；客户端 UI 会自动追加 `Other` / notes path 作为自由输入兜底，不应把它记录成 assistant-authored `3`。' \
+  "terminal-choice evidence guidance separates the authored popup payload from the client UI fallback"
 
 assert_file_has_exact_tail_block "skills/brainstorming/spec-document-reviewer-prompt.md" \
   $'Keep the field names exactly as written.\nFor `REVIEW_VERDICT` and `NEXT_ACTION`, choose exactly one allowed token and do not repeat the pipe-delimited schema.\nReplace `BLOCKING_ISSUE_COUNT` with digits only.\nREVIEW_VERDICT: APPROVED | CHANGES_REQUIRED\nBLOCKING_ISSUE_COUNT: non-negative integer\nNEXT_ACTION: CONTINUE | REVISE | STOP\n```' \

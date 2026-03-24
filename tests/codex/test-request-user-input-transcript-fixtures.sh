@@ -44,7 +44,7 @@ assert_jq_true "$TERMINAL_FIXTURE" 'map(select(.payload.type == "function_call_o
 assert_jq_true "$TERMINAL_FIXTURE" '(map(select(.payload.type == "function_call")) | .[0].payload.call_id) == (map(select(.payload.type == "function_call_output")) | .[0].payload.call_id)' "terminal-choice fixture keeps a shared call_id across call and output"
 assert_jq_true "$TERMINAL_FIXTURE" 'map(select(.payload.type == "function_call")) | .[0].payload.arguments | fromjson | .questions | length == 1' "terminal-choice fixture captures one question payload"
 assert_jq_true "$TERMINAL_FIXTURE" 'map(select(.payload.type == "function_call")) | .[0].payload.arguments | fromjson | .questions[0].id == "terminal_choice"' "terminal-choice fixture preserves the terminal-choice question id"
-assert_jq_true "$TERMINAL_FIXTURE" 'map(select(.payload.type == "function_call")) | .[0].payload.arguments | fromjson | .questions[0].options | map(.label) == ["结束 (Recommended)", "继续", "自由输入"]' "terminal-choice fixture preserves the exact option labels"
+assert_jq_true "$TERMINAL_FIXTURE" 'map(select(.payload.type == "function_call")) | .[0].payload.arguments | fromjson | .questions[0].options | map(.label) == ["结束 (Recommended)", "继续"]' "terminal-choice fixture preserves the exact assistant-authored option labels"
 assert_jq_true "$TERMINAL_FIXTURE" 'map(select(.payload.type == "function_call_output")) | .[0].payload.output | fromjson | .answers.terminal_choice.answers == ["结束 (Recommended)"]' "terminal-choice fixture preserves the exact selected answer"
 
 assert_file_exists "$HANDOFF_FIXTURE" "execution-handoff fixture exists"

@@ -307,10 +307,11 @@ Next skills:
 
 - `auto-continue`：下一条 lane 已经清晰且安全，直接进入对应 skill
 - `needs-user-decision`：后续依赖用户在若干具体选项中做选择，必须用 `request_user_input`
-- `terminal-choice`：当前请求看起来已经完成，但也不能直接结束，必须先用 `request_user_input` 弹出：
-  1. 结束
+- `terminal-choice`：当前请求看起来已经完成，但也不能直接结束，必须先用 `request_user_input`
+- 在 Codex tool-backed terminal-choice 弹窗中，assistant 只列出：
+  1. 结束 (Recommended)
   2. 继续
-  3. 自由输入
+- 额外文本需求必须走客户端自动追加的 `Other` / notes 路径，不要再在选项列表里重复增加同类入口
 - For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
 
 当 handoff 进入 `terminal-choice` 时，这个 turn 的直接下一个动作就是弹出 `request_user_input`，不能先写一段自由文本终稿再结束。
@@ -366,9 +367,9 @@ If this skill reaches a terminal boundary where the current request appears comp
 - Conditional approvals such as `如果没问题就继续下一阶段`, `如果设计合理就开始实现`, or `if this is sound, continue to phase 2` count as prior authorization. A positive judgment must auto-continue instead of ending with a conclusion block.
 - Route true completion through `terminal-choice`.
 - The very next action must be `request_user_input`.
-- Use the fixed terminal-choice options:
-  1. 结束
+- In Codex tool-backed terminal-choice popups, author only:
+  1. 结束 (Recommended)
   2. 继续
-  3. 自由输入
+- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
 - Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
 - If the next safe step is already implied, auto-continue instead of asking the user to type a free-form continuation or ending message.

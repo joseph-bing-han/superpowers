@@ -99,10 +99,11 @@ digraph brainstorming {
 - Before ending a design checkpoint, classify the checkpoint as `auto-continue`, `needs-user-decision`, or `terminal-choice`
 - `auto-continue`: the next safe design or artifact step is already implied; take it now
 - `needs-user-decision`: a real review or tradeoff decision remains; use `request_user_input`
-- `terminal-choice`: the requested brainstorming work is genuinely complete, but do not end directly; use `request_user_input` with:
-  1. 结束
+- `terminal-choice`: the requested brainstorming work is genuinely complete, but do not end directly; use `request_user_input`
+- In Codex tool-backed terminal-choice popups, author only:
+  1. 结束 (Recommended)
   2. 继续
-  3. 自由输入
+- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option
 - For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
 - When brainstorming reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
 - Do not produce a plain final-answer-style closeout before the terminal-choice popup, including endings framed like `当前我建议的定稿`, `就按这条落地`, or `最终建议一句话版`.
@@ -119,6 +120,8 @@ digraph brainstorming {
 - Do not end a design checkpoint with prose-only follow-up text like `if you agree`, `if this direction looks good`, or `I can implement this next if you want`.
 - Do not stop with a declarative prose-only next-step proposal like `the next best step is X`, `next I would do X`, or `I can directly prepare X next`.
 - This also includes judgment-framed, comparative, or recommendation-framed next-step proposals, including Chinese variants such as `如果按我的判断，下一步应该先……`, `下一步最值得做的不是 A，而是 B`, `接下来更值得做的是……`, or `我建议先……`
+- A concrete leak example is `如果你同意，我下一步可以直接按这个推荐方案 A 开始修。`
+- That pattern must resolve to either `request_user_input` or `auto-continue`, never `task_complete`
 - A non-terminal checkpoint must never end with `task_complete` after only a summary, recommendation, judgment, comparison, or suggestion about the next artifact step
 - Either continue automatically into the next workflow step or use `request_user_input` for a real review gate.
 - Do not end with prose-only next-step invitations like `if you want, I can turn this into a field-by-field table next`.
@@ -234,9 +237,10 @@ If this skill reaches a terminal boundary where the current request appears comp
 - Conditional approvals such as `如果没问题就继续下一阶段`, `如果设计合理就开始实现`, or `if this is sound, continue to phase 2` count as prior authorization. A positive judgment must auto-continue instead of ending with a conclusion block.
 - Route true completion through `terminal-choice`.
 - The very next action must be `request_user_input`.
-- Use the fixed terminal-choice options:
-  1. 结束
+- In Codex tool-backed terminal-choice popups, author only:
+  1. 结束 (Recommended)
   2. 继续
-  3. 自由输入
+- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
 - Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
+- Concrete invitation prose such as `如果你同意，我下一步可以直接按这个推荐方案 A 开始修。` must resolve through `request_user_input` or `auto-continue`, never `task_complete`.
 - If the next safe step is already implied, auto-continue instead of asking the user to type a free-form continuation or ending message.

@@ -49,10 +49,11 @@ Task reviews are internal quality gates, not human approval gates. After a task 
 Before ending a reviewed task boundary, classify the reviewed task boundary as `auto-continue`, `needs-user-decision`, or `terminal-choice`.
 - `auto-continue`: the next reviewed task is already clear and safe; move to it immediately
 - `needs-user-decision`: the workflow cannot safely continue until the user chooses among concrete options; use `request_user_input`
-- `terminal-choice`: the requested execution work is complete, but do not end directly; use `request_user_input` with:
-  1. 结束
+- `terminal-choice`: the requested execution work is complete, but do not end directly; use `request_user_input`
+- In Codex tool-backed terminal-choice popups, author only:
+  1. 结束 (Recommended)
   2. 继续
-  3. 自由输入
+- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option
 - When this reviewed-task boundary reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
 - Do not produce a plain final-answer-style closeout before the terminal-choice popup.
 - A settled recommendation, final draft, or final summary is still not permission to end directly.
@@ -309,9 +310,9 @@ If this skill reaches a terminal boundary where the current request appears comp
 - Conditional approvals such as `如果没问题就继续下一阶段`, `如果设计合理就开始实现`, or `if this is sound, continue to phase 2` count as prior authorization. A positive judgment must auto-continue instead of ending with a conclusion block.
 - Route true completion through `terminal-choice`.
 - The very next action must be `request_user_input`.
-- Use the fixed terminal-choice options:
-  1. 结束
+- In Codex tool-backed terminal-choice popups, author only:
+  1. 结束 (Recommended)
   2. 继续
-  3. 自由输入
+- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
 - Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
 - If the next safe step is already implied, auto-continue instead of asking the user to type a free-form continuation or ending message.
