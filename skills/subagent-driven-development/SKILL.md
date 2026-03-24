@@ -18,18 +18,23 @@ Execute plan by dispatching fresh subagent per task, with two-stage review after
 ```dot
 digraph when_to_use {
     "Have implementation plan?" [shape=diamond];
-    "Tasks mostly independent?" [shape=diamond];
     "Stay in this session?" [shape=diamond];
-    "subagent-driven-development" [shape=box];
+    "High-risk or tightly coupled?" [shape=diamond];
+    "Need true parallel lanes?" [shape=diamond];
+    "Serial SDD" [shape=box];
+    "Pipeline SDD" [shape=box];
+    "Parallel Dispatch" [shape=box];
     "executing-plans" [shape=box];
     "Manual execution or brainstorm first" [shape=box];
 
-    "Have implementation plan?" -> "Tasks mostly independent?" [label="yes"];
+    "Have implementation plan?" -> "Stay in this session?" [label="yes"];
     "Have implementation plan?" -> "Manual execution or brainstorm first" [label="no"];
-    "Tasks mostly independent?" -> "Stay in this session?" [label="yes"];
-    "Tasks mostly independent?" -> "Manual execution or brainstorm first" [label="no - tightly coupled"];
-    "Stay in this session?" -> "subagent-driven-development" [label="yes"];
+    "Stay in this session?" -> "High-risk or tightly coupled?" [label="yes"];
     "Stay in this session?" -> "executing-plans" [label="no - parallel session"];
+    "High-risk or tightly coupled?" -> "Serial SDD" [label="yes"];
+    "High-risk or tightly coupled?" -> "Need true parallel lanes?" [label="no"];
+    "Need true parallel lanes?" -> "Parallel Dispatch" [label="yes - disjoint Write Set and Conflict Group"];
+    "Need true parallel lanes?" -> "Pipeline SDD" [label="no - default same-session mode"];
 }
 ```
 
@@ -94,10 +99,16 @@ digraph process {
 
     subgraph cluster_per_task {
         label="Per Task";
+        "Mark task queued" [shape=box];
+        "Preflight task context (read-only)" [shape=box];
+        "Dependency changes task boundary?" [shape=diamond];
+        "Keep task blocked" [shape=box];
+        "Mark task ready" [shape=box];
         "Dispatch implementer subagent (./implementer-prompt.md)" [shape=box];
         "Implementer subagent asks questions?" [shape=diamond];
         "Answer questions, provide context" [shape=box];
         "Implementer subagent implements, tests, commits, self-reviews" [shape=box];
+        "Preflight next eligible task (read-only overlap)" [shape=box];
         "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [shape=box];
         "Spec reviewer subagent confirms code matches spec?" [shape=diamond];
         "Implementer subagent fixes spec gaps" [shape=box];
@@ -108,21 +119,32 @@ digraph process {
     }
 
     "Read plan, extract all tasks with full text, note context, create TodoWrite" [shape=box];
+    "Select Serial SDD, Pipeline SDD, or Parallel Dispatch" [shape=box];
     "More tasks remain?" [shape=diamond];
     "Dispatch final code reviewer subagent for entire implementation" [shape=box];
     "Use superpowers:finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
 
-    "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Dispatch implementer subagent (./implementer-prompt.md)";
+    "Read plan, extract all tasks with full text, note context, create TodoWrite" -> "Select Serial SDD, Pipeline SDD, or Parallel Dispatch";
+    "Select Serial SDD, Pipeline SDD, or Parallel Dispatch" -> "Mark task queued";
+    "Mark task queued" -> "Preflight task context (read-only)";
+    "Preflight task context (read-only)" -> "Dependency changes task boundary?";
+    "Dependency changes task boundary?" -> "Keep task blocked" [label="yes"];
+    "Dependency changes task boundary?" -> "Mark task ready" [label="no"];
+    "Keep task blocked" -> "More tasks remain?";
+    "Mark task ready" -> "Dispatch implementer subagent (./implementer-prompt.md)";
     "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
     "Implementer subagent asks questions?" -> "Answer questions, provide context" [label="yes"];
     "Answer questions, provide context" -> "Dispatch implementer subagent (./implementer-prompt.md)";
     "Implementer subagent asks questions?" -> "Implementer subagent implements, tests, commits, self-reviews" [label="no"];
+    "Implementer subagent implements, tests, commits, self-reviews" -> "Preflight next eligible task (read-only overlap)";
     "Implementer subagent implements, tests, commits, self-reviews" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)";
     "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" -> "Spec reviewer subagent confirms code matches spec?";
+    "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" -> "Preflight next eligible task (read-only overlap)";
     "Spec reviewer subagent confirms code matches spec?" -> "Implementer subagent fixes spec gaps" [label="no"];
     "Implementer subagent fixes spec gaps" -> "Dispatch spec reviewer subagent (./spec-reviewer-prompt.md)" [label="re-review"];
     "Spec reviewer subagent confirms code matches spec?" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="yes"];
     "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" -> "Code quality reviewer subagent approves?";
+    "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" -> "Preflight next eligible task (read-only overlap)";
     "Code quality reviewer subagent approves?" -> "Implementer subagent fixes quality issues" [label="no"];
     "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="re-review"];
     "Code quality reviewer subagent approves?" -> "Mark task complete in TodoWrite" [label="yes"];
