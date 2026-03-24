@@ -162,6 +162,17 @@ Maintain a session-scoped consent state for subagent use: `unknown`, `granted`, 
 - If the state is `granted`, use subagents when they help without re-asking
 - If the state is `denied`, do not ask again unless the user explicitly reopens the decision or higher-priority instructions require a different path
 
+## Subagent Execution Modes
+
+Treat subagent execution as three distinct modes:
+
+- **Serial SDD** for high-risk, tightly coupled, or boundary-shifting work
+- **Pipeline SDD** as the default same-session execution model
+- **Parallel Dispatch** only for independent lanes with disjoint `Write Set` and `Conflict Group` boundaries
+
+The presence of subagents does not automatically mean maximum concurrency.
+The default promise is controlled execution quality via **Pipeline SDD**. True **Parallel Dispatch** is a conditional upgrade when the plan's `Execution Metadata` proves the work is safe to split.
+
 ## Governance Routing
 
 Before entering design or implementation for feature work, check whether the work needs a governed change lane.

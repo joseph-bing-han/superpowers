@@ -54,11 +54,14 @@ cd tests/claude-code
 Prompt contract tests validate expected wording and interaction boundaries in skill and Codex-facing documentation:
 
 ```bash
+bash tests/prompt-contracts/test-subagent-pipeline-routing.sh
 bash tests/prompt-contracts/test-machine-readable-workflow-contracts.sh
 bash tests/codex/test-request-user-input-transcript-fixtures.sh
 bash tests/codex/test-runtime-endgate-transcript-audit.sh
 bash tests/prompt-contracts/test-numeric-choice-interactions.sh
 ```
+
+Use `bash tests/prompt-contracts/test-subagent-pipeline-routing.sh` as the routing and `Execution Metadata` regression, and `bash tests/codex/test-subagent-pipeline-routing-fixtures.sh` as the transcript/fixture evidence check for Pipeline overlap and conflict guard semantics once that fixture audit lands.
 
 ### Prompt Contract Test Requirements
 

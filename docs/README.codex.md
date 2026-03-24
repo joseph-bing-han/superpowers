@@ -126,6 +126,26 @@ When a reviewer or implementer subagent would materially help and the state is `
 If that session-level consent is `granted`, those workflows can keep using helpful subagents without asking again for the rest of the session. If it is `denied`, the workflow stays inline for the rest of the session unless the user explicitly reopens the choice.
 In the writing-plans execution handoff, choosing `Subagent-Driven` sets the shared session consent state to `granted` for implementation subagents in the rest of the session.
 
+## Subagent Execution Modes
+
+Superpowers treats implementation-time subagent execution as three related modes:
+
+- **Serial SDD** for high-risk or tightly coupled work
+- **Pipeline SDD** as the default same-session execution model
+- **Parallel Dispatch** as a conditional upgrade for disjoint lanes
+
+`Pipeline SDD` is the default promise. It preserves review gates while overlapping safe preparation work.
+
+To support that routing, `writing-plans` may emit **Execution Metadata** per task:
+
+- `Depends on`
+- `Write Set`
+- `Conflict Group`
+- `Risk Level`
+- `Parallelizable`
+
+`Parallel Dispatch` is not a blanket promise that every subagent workflow runs at maximum concurrency. It is an upgrade path that should be used only when the plan proves independent lanes with disjoint `Write Set` and `Conflict Group` boundaries.
+
 ## Worktree Lifecycle
 
 Implementation-oriented Superpowers flows should run inside a dedicated git worktree for isolation.
