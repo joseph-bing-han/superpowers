@@ -60,6 +60,8 @@ Codex has native skill discovery — it scans `~/.agents/skills/` at startup, pa
 The `using-superpowers` skill is discovered automatically and enforces skill usage discipline — no additional configuration needed.
 All discoverable skills, including `spec-governed-development`, live under the `skills/` tree at `~/.codex/superpowers/skills`; no separate root-level skill copy is required for Codex discovery.
 
+说明：`spec-governed-development` 是当前 Superpowers `openspec` 分支提供的 OpenSpec 治理入口 skill，用于先决定是否进入 OpenSpec lane。它不是 `openspec-apply-change` 的改名；后者仍然是独立的 OpenSpec 执行 skill，会在进入 OpenSpec lane 后继续接手实现阶段。
+
 ## Usage
 
 Skills are discovered automatically. Codex activates them when:
