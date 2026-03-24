@@ -45,6 +45,29 @@ Before dispatching implementation subagents, ensure you are already inside a ded
 If not already in a dedicated worktree, invoke `using-git-worktrees` first.
 Do not create a nested worktree if one is already active; reuse the current dedicated worktree.
 
+Treat same-session execution as three related modes:
+- **Serial SDD** for high-risk or tightly coupled work
+- **Pipeline SDD** as the default same-session execution mode
+- **Parallel Dispatch** only when the plan proves disjoint `Write Set` and `Conflict Group` boundaries
+
+Within **Pipeline SDD**, task states are:
+`queued` → `preflight` → `ready` → `implementing` → `spec_review` → `quality_review` → `done`
+and `blocked` for work that cannot safely advance yet.
+
+`Depends on` only gates `ready` / `implementing`.
+`preflight` may start early only when unresolved dependencies do not change file scope, requirement meaning, or acceptance.
+If an unresolved dependency would change those task boundaries, keep the task `blocked`.
+
+Pipeline SDD requires both:
+- `implementer + preflight`
+- `reviewer + preflight`
+
+Routing priority is:
+`Risk Level` > dependency changes task boundary > `Conflict Group` / `Write Set` > `Parallelizable`
+
+Never allow multiple implementation subagents to write within the same `Conflict Group`.
+Allow only read-only overlap unless the plan explicitly qualifies for **Parallel Dispatch**.
+
 Task reviews are internal quality gates, not human approval gates. After a task passes review, move directly to the next task. Task summaries are progress updates, not requests for permission to continue. Do not stop after a reviewed task summary if more tasks remain.
 Before ending a reviewed task boundary, classify the reviewed task boundary as `auto-continue`, `needs-user-decision`, or `terminal-choice`.
 - `auto-continue`: the next reviewed task is already clear and safe; move to it immediately
@@ -264,7 +287,7 @@ Done!
 - Start implementation on main/master branch without explicit user consent
 - Skip reviews (spec compliance OR code quality)
 - Proceed with unfixed issues
-- Dispatch multiple implementation subagents in parallel (conflicts)
+- Dispatch multiple implementation subagents that write inside the same `Conflict Group`
 - Make subagent read plan file (provide full text instead)
 - Skip scene-setting context (subagent needs to understand where task fits)
 - Ignore subagent questions (answer before letting them proceed)
