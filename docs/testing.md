@@ -61,7 +61,7 @@ bash tests/codex/test-runtime-endgate-transcript-audit.sh
 bash tests/prompt-contracts/test-numeric-choice-interactions.sh
 ```
 
-Use `bash tests/prompt-contracts/test-subagent-pipeline-routing.sh` as the routing and `Execution Metadata` regression, and `bash tests/codex/test-subagent-pipeline-routing-fixtures.sh` as the transcript/fixture evidence check for Pipeline overlap and conflict guard semantics once that fixture audit lands.
+Use `bash tests/prompt-contracts/test-subagent-pipeline-routing.sh` as the routing and `Execution Metadata` regression, and `bash tests/codex/test-subagent-pipeline-routing-fixtures.sh` as the transcript/fixture evidence check for Pipeline overlap and conflict guard semantics on this branch.
 
 ### Prompt Contract Test Requirements
 

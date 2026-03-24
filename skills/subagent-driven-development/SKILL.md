@@ -149,7 +149,7 @@ digraph process {
     "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="re-review"];
     "Code quality reviewer subagent approves?" -> "Mark task complete in TodoWrite" [label="yes"];
     "Mark task complete in TodoWrite" -> "More tasks remain?";
-    "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
+    "More tasks remain?" -> "Mark task queued" [label="yes"];
     "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
     "Dispatch final code reviewer subagent for entire implementation" -> "Use superpowers:finishing-a-development-branch";
 }
@@ -206,6 +206,8 @@ You: I'm using Subagent-Driven Development to execute this plan.
 Task 1: Hook installation script
 
 [Get Task 1 text and context (already extracted)]
+[Select Pipeline SDD for same-session execution]
+[Mark Task 1 queued -> preflight -> ready]
 [Dispatch implementation subagent with full task text + context]
 
 Implementer: "Before I begin - should the hook be installed at user or system level?"
@@ -213,6 +215,7 @@ Implementer: "Before I begin - should the hook be installed at user or system le
 You: "User level (~/.config/superpowers/hooks/)"
 
 Implementer: "Got it. Implementing now..."
+[While Task 1 is implementing, preflight Task 2 as read-only overlap]
 [Later] Implementer:
   - Implemented install-hook command
   - Added tests, 5/5 passing
@@ -220,6 +223,7 @@ Implementer: "Got it. Implementing now..."
   - Committed
 
 [Dispatch spec compliance reviewer]
+[Continue Task 2 preflight during review overlap]
 Spec reviewer: ✅ Spec compliant - all requirements met, nothing extra
 
 [Get git SHAs, dispatch code quality reviewer]
@@ -229,7 +233,7 @@ Code reviewer: Strengths: Good test coverage, clean. Issues: None. Approved.
 
 Task 2: Recovery modes
 
-[Get Task 2 text and context (already extracted)]
+[Task 2 already preflighted; mark it ready once dependencies are satisfied]
 [Dispatch implementation subagent with full task text + context]
 
 Implementer: [No questions, proceeds]
