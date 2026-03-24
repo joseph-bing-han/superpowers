@@ -1,0 +1,4 @@
+{"turn":"pipeline-positive","event":"lane","role":"implementer","conflict_group":"workflow-contracts","overlap_key":"implementing-window","write_access":"write"}
+{"turn":"pipeline-positive","event":"lane","role":"preflight","overlaps_role":"implementer","overlap_key":"implementing-window","write_access":"read"}
+{"turn":"pipeline-positive","event":"lane","role":"reviewer","review_stage":"spec_review","overlap_key":"review-window","write_access":"read"}
+{"turn":"pipeline-positive","event":"lane","role":"preflight","overlaps_role":"reviewer","overlap_key":"review-window","write_access":"read"}
