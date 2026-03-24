@@ -189,6 +189,8 @@ The same governed routing also applies to bugfix continuation when the issue bel
 
 - If the current bug, failed test, or regression appears to sit inside an active OpenSpec change, a current plan names an OpenSpec change, or the surrounding context already identifies governed OpenSpec work, invoke `spec-governed-development` before proposing fixes so the workflow restores `proposal.md`, `design.md`, `specs/*`, and `tasks.md` as the design context.
 - Do not treat a governed bugfix as a purely local patch just because the immediate request uses bug language.
+- If the work looks like an important change that probably belongs in OpenSpec, but the user has not explicitly chosen OpenSpec and no existing change is already identified, do not let `brainstorming` or `writing-plans` create ordinary `plans/specs` docs first. Use `request_user_input` before generating those docs to ask whether to create an OpenSpec proposal. Put `创建 OpenSpec 提案 (Recommended)` in slot `1`, put the explicit ordinary-docs fallback in slot `2`, and rely on the client-provided `Other` / notes path for extra input.
+- Once an OpenSpec proposal / change has been created, that work carries an archive obligation. Treat it as staying inside the OpenSpec lane until `openspec-archive-change` completes; final completion must not skip archive or downgrade into a generic terminal stop.
 
 If none of those apply, continue with the normal Superpowers flow.
 

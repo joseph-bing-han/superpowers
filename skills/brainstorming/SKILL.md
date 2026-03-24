@@ -156,10 +156,25 @@ Do not accept a prose-only `reply 1/2/3` prompt for these enumerable approval ga
 
 ## After the Design
 
+## Document Path Selection
+
+Before writing any non-OpenSpec design artifact, choose the destination path in this order:
+
+1. A concrete path explicitly named by the user or scoped instructions
+2. An existing structured spec directory such as `docs/specs` or `docs/superpowers/specs`
+3. If no structured spec directory exists yet, create `docs/specs` instead of dropping a new design document into bare `docs/`
+
+Rules:
+
+- Do not infer bare `docs/` as the default destination just because the repository has legacy documents there.
+- A generic instruction like "store docs under `docs/`" still allows structured subdirectories; it does not override `docs/specs` or `docs/superpowers/specs`.
+- If the repo already has `docs/plans`, prefer the matching structured spec directory `docs/specs`; if it already has `docs/superpowers/plans`, prefer `docs/superpowers/specs`.
+- In an OpenSpec lane, do not create a parallel design doc outside OpenSpec artifacts by default. If the user explicitly wants a brainstorming record, store it in the structured spec directory and clearly mark OpenSpec as the canonical source of truth.
+
 **Documentation:**
 
-- In a **Superpowers-only lane**, write the validated design artifact to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
-  - (User preferences for spec location override this default)
+- In a **Superpowers-only lane**, write the validated design artifact to the structured spec directory selected above (for example `docs/specs/YYYY-MM-DD-<topic>-design.md` or `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`)
+  - Only an explicit path from the user or scoped instructions overrides this structured-directory rule
 - In an **OpenSpec-governed lane**, update the relevant OpenSpec change artifacts instead of creating a duplicate Superpowers spec document
   - In that lane, OpenSpec artifacts are the canonical record for scope, design, and requirements
   - Do NOT maintain a parallel `docs/superpowers/specs/...` file covering the same change

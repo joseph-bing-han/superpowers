@@ -71,21 +71,21 @@ assert_section_contains \
   '^### '
 
 assert_section_contains \
-  "spec-governed-development/SKILL.md" \
+  "skills/spec-governed-development/SKILL.md" \
   "## Decision Rule" \
   'bug.*existing change|existing change.*bug|active OpenSpec change.*bug|bugfix.*inherits.*OpenSpec lane' \
   "spec-governed-development keeps bugfixes inside an existing OpenSpec change when they belong there" \
   '^## '
 
 assert_section_contains \
-  "spec-governed-development/SKILL.md" \
+  "skills/spec-governed-development/SKILL.md" \
   "## Handoff Guidance" \
   'openspec-apply-change.*auto-continue|auto-continue.*openspec-apply-change|直接进入 `openspec-apply-change`' \
   "spec-governed-development auto-continues into openspec-apply-change when the active change still has work remaining" \
   '^## '
 
 assert_section_contains \
-  "spec-governed-development/SKILL.md" \
+  "skills/spec-governed-development/SKILL.md" \
   "## Handoff Guidance" \
   'openspec-archive-change.*auto-continue|auto-continue.*openspec-archive-change|直接进入 `openspec-archive-change`' \
   "spec-governed-development auto-continues into openspec-archive-change when the active change is complete and archive-compatible" \

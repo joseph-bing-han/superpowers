@@ -79,6 +79,19 @@ description: Use when starting a new feature, cross-module change, or multi-stag
 
 - 优先遵从用户指定
 
+## Lane Confirmation
+
+当需求满足 OpenSpec lane 条件，但用户还没有明确选择 OpenSpec，且当前也没有已经确定的 existing change 时：
+
+- 在创建任何普通 `plans/specs` 文档前，先通过 `request_user_input` 做一次 tool-backed 线路确认
+- 推荐选项固定为：
+  1. 创建 OpenSpec 提案 (Recommended)
+  2. 继续仅生成常规设计/计划文档
+- 如果用户选择 `1`，继续留在 OpenSpec lane，并进入 `openspec-explore` / `openspec-propose`
+- 创建 OpenSpec 提案后，该工作直到归档前都保持在 OpenSpec lane 中，并自动带有 archive obligation
+- 如果用户选择 `2`，这是一次明确的轻量化决策；此后才允许转入 Superpowers-only lane 的 `brainstorming` / `writing-plans`
+- 如果用户已经明确要求 OpenSpec、已经点名 change，或上下文已存在明确的 existing change，则跳过这一步，直接进入对应 lane
+
 ## Required Output Format
 
 做出判断后，始终先输出一段简短决策。
@@ -253,6 +266,7 @@ Next skills:
 - 只在实现、验证、收尾均完成后才建议归档
 - 不要因为“代码已写完”就立即归档
 - 当当前 change 已完成且 archive compatibility 已明确时，下一条 lane 就是 `openspec-archive-change`；这时应直接 auto-continue into `openspec-archive-change`，而不是只停在一条 recommendation
+- 只要当前工作已经创建过 OpenSpec proposal / change，archive 就不是可选收尾；在最终完成边界，必须进入 `openspec-archive-change`
 
 ## Common Mistakes
 
@@ -336,6 +350,7 @@ Next skills:
   - 如果当前 bugfix / regression 属于既有 change，先恢复该 change 的 `proposal.md`、`design.md`、`specs/*`、`tasks.md`
   - 如果已经存在合适 change，且该 change 仍有待完成工作，直接进入 `openspec-apply-change`；这是 `auto-continue`
   - 如果已经存在合适 change，且该 change 已完成并且 archive compatibility 明确，直接进入 `openspec-archive-change`；这也是 `auto-continue`
+  - 如果这个 change 是由 assistant 创建的 proposal / change，那么在最终完成边界不能跳过 `openspec-archive-change`
   - 如果已经存在合适 change，但当前下一条明显是设计或计划，而不是直接实现，直接基于该 change 进入后续 `brainstorming` 或 `writing-plans`
   - 如果还没有 change，但下一步明显应先做范围探索，直接进入 `openspec-explore`
   - 如果还没有 change，且已具备 proposal 输入，直接进入 `openspec-propose`

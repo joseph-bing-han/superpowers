@@ -58,6 +58,7 @@ Codex has native skill discovery — it scans `~/.agents/skills/` at startup, pa
 ```
 
 The `using-superpowers` skill is discovered automatically and enforces skill usage discipline — no additional configuration needed.
+All discoverable skills, including `spec-governed-development`, live under the `skills/` tree at `~/.codex/superpowers/skills`; no separate root-level skill copy is required for Codex discovery.
 
 ## Usage
 
@@ -65,6 +66,8 @@ Skills are discovered automatically. Codex activates them when:
 - You mention a skill by name (e.g., "use brainstorming")
 - The task matches a skill's description
 - The `using-superpowers` skill directs Codex to use one
+- If a request looks like an important change but no OpenSpec lane or change has been chosen yet, Superpowers should use `request_user_input` before writing ordinary design/plan docs to ask whether to create an OpenSpec proposal first.
+- Once an OpenSpec proposal / change is created, that work remains in the OpenSpec lane until archive completes; archive is part of closure, not an optional afterthought.
 
 ## Choice-Based Interaction
 
@@ -109,6 +112,7 @@ If the user asked for end-to-end completion, Superpowers should keep advancing t
 - If the next action is already implied and safe, take it.
 - If a bug belongs to an active OpenSpec change, recover that governed context before proposing fixes by reading `proposal.md`, `design.md`, `specs/*`, and `tasks.md`.
 - If the current turn already knows the next OpenSpec lane, keep it in `auto-continue`: remaining governed work should continue into `openspec-apply-change`, and a complete archive-compatible active OpenSpec change should continue into `openspec-archive-change`.
+- If the assistant created an OpenSpec proposal / change for the work, final completion must continue into `openspec-archive-change`; archive is not optional and must not be replaced by a generic stop or terminal-choice popup.
 - If the only remaining real decision is continue vs stop, ask that through `request_user_input`; otherwise ask the more specific next-step choice instead of collapsing it into a generic continue/stop prompt.
 - Non-terminal workflow stages must not end with a prose-only follow-up or declarative prose-only next-step proposal such as `if you agree`, `if this direction looks good`, `the next best step is X`, or `I can directly prepare X next`.
 - This also includes judgment-framed, comparative, or recommendation-framed next-step proposals, including Chinese variants such as `如果按我的判断，下一步应该先……`, `下一步最值得做的不是 A，而是 B`, `接下来更值得做的是……`, or `我建议先……`.

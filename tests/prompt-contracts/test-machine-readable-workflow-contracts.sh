@@ -305,7 +305,7 @@ assert_file_section_contains_literal "skills/executing-plans/SKILL.md" \
   "$CANONICAL_SENTENCE" \
   "executing-plans freezes the canonical machine-contract sentence in checkpoint guidance"
 
-assert_file_section_contains_literal "spec-governed-development/SKILL.md" \
+assert_file_section_contains_literal "skills/spec-governed-development/SKILL.md" \
   "## Handoff Guidance" \
   "$CANONICAL_SENTENCE" \
   "spec-governed-development freezes the canonical machine-contract sentence in governance handoff guidance"

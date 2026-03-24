@@ -114,6 +114,29 @@ review、execution handoff 与类似决策节点 MUST 使用稳定的 verdict �
 - **AND** MUST auto-continue 到该 skill，而不是只输出 “ready to archive”
   或 recommendation-only handoff
 
+### Requirement: Created OpenSpec changes carry a mandatory archive obligation
+只要 assistant 已经为某项工作创建了 OpenSpec proposal / change，该工作就 MUST
+保持在受治理的 OpenSpec lane 中，直到该 change 通过
+`openspec-archive-change` 完成归档；最终完成时不得跳过这一归档步骤。
+
+#### Scenario: Proposal creation establishes archive obligation
+- **WHEN** assistant 已经为当前工作创建了 OpenSpec proposal / change
+- **THEN** 该工作 MUST 被视为带有 archive obligation 的 OpenSpec lane 工作
+- **AND** 在 archive 完成前，系统 MUST NOT 把它降级回可自由结束的普通流程
+
+#### Scenario: Final completion of a created change cannot skip archive
+- **WHEN** 当前工作对应的 OpenSpec change 已完成实现、验证与最终收尾
+- **AND** 该 change 先前已经被创建
+- **THEN** workflow MUST 继续进入 `openspec-archive-change`
+- **AND** MUST NOT 用 recommendation-only prose、generic continue/stop
+  选择、或普通 terminal-choice 直接结束
+
+#### Scenario: Archive skill remains the place for archive safety checks
+- **WHEN** created OpenSpec change 已到达最终完成边界
+- **THEN** workflow MUST 进入 `openspec-archive-change`
+- **AND** incomplete tasks、delta spec sync、以及最终确认等安全检查
+  仍由 `openspec-archive-change` 自身负责
+
 ### Requirement: Analysis and recommendation boundaries use protocolized next-step handling
 当 assistant 在当前 turn 中已经完成分析、给出具体推荐方案，并且能够指出明确的下一步时，系统 MUST 将该边界视为正式 workflow 协议边界，并且只能在 `auto-continue` 与 `request_user_input` 两种路径之间选择，不得以 prose-only 的下一步邀请结束当前 turn。
 
@@ -166,4 +189,3 @@ overlap 契约，使实现者与验证器能基于同一协议理解流程。
 - **THEN** MUST 同时定义 `implementer + preflight`
   与 `reviewer + preflight`
 - **AND** MUST 明确这些 overlap 不等于放开同冲突域并发写入
-

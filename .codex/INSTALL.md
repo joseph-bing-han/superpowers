@@ -21,6 +21,8 @@ This installer is for the team-maintained fork. The default team installation so
    ln -s ~/.codex/superpowers/skills ~/.agents/skills/superpowers
    ```
 
+   All discoverable skills, including `spec-governed-development`, now live under the `skills/` tree at `~/.codex/superpowers/skills`. No separate root-level skill copy is required for Codex discovery.
+
    **Windows (PowerShell):**
    ```powershell
    New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.agents\skills"

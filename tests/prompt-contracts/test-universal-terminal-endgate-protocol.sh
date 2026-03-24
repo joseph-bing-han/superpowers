@@ -99,7 +99,7 @@ SKILL_FILES=(
   "skills/verification-before-completion/SKILL.md"
   "skills/writing-plans/SKILL.md"
   "skills/writing-skills/SKILL.md"
-  "spec-governed-development/SKILL.md"
+  "skills/spec-governed-development/SKILL.md"
 )
 
 for file in "${SKILL_FILES[@]}"; do

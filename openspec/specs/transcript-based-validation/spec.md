@@ -71,6 +71,16 @@ prose-only 的自由文本收口。
   prompt、recommendation-only 结束、或只建议不续跑
 - **THEN** 测试 MUST 失败
 
+#### Scenario: Guidance allows a created OpenSpec change to finish without archive
+- **WHEN** prompt-contract 测试审计 created OpenSpec proposal / change 的终局规则
+- **AND** 当前 guidance 涉及“创建 proposal 后的最终完成边界”
+- **THEN** 如果文案允许 assistant 在最终完成时跳过
+  `openspec-archive-change`
+- **OR** 允许以 recommendation-only prose、generic continue/stop、
+  或普通 terminal-choice 结束该 change
+- **OR** 没有把“创建过 proposal 后未归档”判定为测试失败
+- **THEN** 测试 MUST 失败
+
 ### Requirement: Validation audits runtime prose-endgate leaks from Codex transcripts
 自动化验证 MUST 能够直接从 Codex `.jsonl` transcript 中审计 runtime endgate
 是否合法，而不能只验证文档里是否写有禁止 prose-only 结束的 guidance。
@@ -118,4 +128,3 @@ prose-only 的自由文本收口。
 - **WHEN** 验证器读取同一 `Conflict Group` 中双 implementer 重叠写入的负向 fixture
 - **THEN** 验证 MUST 将其判定为被正确拒绝的非法情况
 - **AND** 整个审计脚本 MAY 以“负样本被正确拒绝”作为通过结果的一部分
-

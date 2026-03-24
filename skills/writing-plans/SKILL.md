@@ -17,13 +17,28 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 If you are not already in a dedicated worktree, invoke `using-git-worktrees` first instead of assuming brainstorming already created one.
 If you are already in a dedicated worktree, reuse the existing dedicated worktree rather than creating a nested one.
 
-**Save plans to:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`
-- (User preferences for plan location override this default)
+**Save plans to:** the structured plan directory selected below (for example `docs/plans/YYYY-MM-DD-<feature-name>.md` or `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`)
+- Only an explicit path from the user or scoped instructions overrides this structured-directory rule
 
 **When operating in an OpenSpec-governed lane:**
 - Read the relevant OpenSpec artifacts first (`proposal.md`, `design.md`, `specs/*`, `tasks.md`)
 - Treat OpenSpec as the canonical source for scope, design, and requirements
 - Write only the execution-level plan here; do NOT create a duplicate scope/design spec
+
+## Document Path Selection
+
+Choose the plan path in this order:
+
+1. A concrete path explicitly named by the user or scoped instructions
+2. An existing structured plan directory such as `docs/plans` or `docs/superpowers/plans`
+3. If no structured plan directory exists yet, create `docs/plans` instead of dropping the plan into bare `docs/`
+
+Rules:
+
+- Do not infer bare `docs/` as the default destination just because the repository already has legacy documents there.
+- A generic instruction like "store docs under `docs/`" still allows structured subdirectories; it does not override `docs/plans` or `docs/superpowers/plans`.
+- If the repo already has `docs/specs`, pair it with `docs/plans`; if it already has `docs/superpowers/specs`, pair it with `docs/superpowers/plans`.
+- In an OpenSpec-governed lane, this plan still belongs in the structured plan directory, while scope/design/spec/tasks remain in OpenSpec artifacts.
 
 ## Scope Check
 
