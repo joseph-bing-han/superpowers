@@ -83,6 +83,15 @@ This structure informs the task decomposition. Each task should produce self-con
 - Modify: `exact/path/to/existing.py:123-145`
 - Test: `tests/exact/path/to/test.py`
 
+**Execution Metadata:**
+- Depends on: none
+- Write Set:
+  - `exact/path/to/existing.py`
+  - `tests/exact/path/to/test.py`
+- Conflict Group: `example-group`
+- Risk Level: low
+- Parallelizable: preflight-only
+
 - [ ] **Step 1: Write the failing test**
 
 ```python
@@ -115,6 +124,21 @@ git add tests/path/test.py src/path/file.py
 git commit -m "feat: add specific feature"
 ```
 ````
+
+**Execution Metadata schema:**
+
+- `Depends on`: `none` or comma-separated task references; gates `ready` / `implementing`
+- `Write Set`: exact paths or `/**` directory prefixes; no bare `*`
+- `Conflict Group`: one slug only
+- `Risk Level`: `low | medium | high`
+- `Parallelizable`: `no | preflight-only | yes`
+
+**Planner constraints:**
+
+1. Every task must include `Execution Metadata`
+2. Prefer exact paths in `Write Set`
+3. Reuse one consistent `Conflict Group` vocabulary per plan
+4. If `Parallelizable: yes` is not clearly justified, downgrade to `preflight-only` or `no`
 
 ## No Placeholders
 
