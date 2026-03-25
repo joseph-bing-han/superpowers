@@ -221,10 +221,11 @@ run_endgate_audit() {
     local strict_turn_mode
     local has_request_user_input
     local turn_has_auto_continue_action
-    local last_carrier_index=""
-    local last_carrier_kind=""
-    local last_carrier_object=""
-    local last_carrier_state=""
+    local last_candidate_index=""
+    local last_candidate_kind=""
+    local last_candidate_object=""
+    local last_candidate_state=""
+    local last_candidate_source=""
     local last_assistant_index=""
     local last_assistant_text=""
     local post_window_end
@@ -248,6 +249,8 @@ run_endgate_audit() {
       local raw_entry
       local assistant_text
       local snapshot_file
+      local structured_candidate_root_kind=""
+      local visible_candidate_block=""
       local carrier_object
 
       entry_json="$(printf '%s\n' "$turn_context" | jq -c ".entries[$index]")"
@@ -261,19 +264,53 @@ run_endgate_audit() {
         printf '\n%s\n' "$assistant_text" >> "$snapshot_file"
       fi
 
+      structured_candidate_root_kind="$(extract_structured_endgate_carrier_root_kind_from_raw_json "$raw_entry")"
+      visible_candidate_block="$(print_endgate_packet_block "$snapshot_file")"
       carrier_object="$(print_endgate_carrier_object "$snapshot_file")"
-      if [ -n "$carrier_object" ]; then
-        last_carrier_index="$index"
-        last_carrier_kind="$(extract_endgate_carrier_kind "$snapshot_file")"
-        last_carrier_object="$carrier_object"
-        last_carrier_state="$(extract_endgate_carrier_field "$snapshot_file" "ENDGATE_STATE")"
+      if [ -n "$structured_candidate_root_kind" ] || [ -n "$visible_candidate_block" ]; then
+        last_candidate_index="$index"
+        last_candidate_source=""
+
+        if [ -n "$structured_candidate_root_kind" ]; then
+          last_candidate_source="structured"
+        fi
+
+        if [ -n "$visible_candidate_block" ]; then
+          if [ -n "$last_candidate_source" ]; then
+            last_candidate_source="${last_candidate_source}+visible_tail_block"
+          else
+            last_candidate_source="visible_tail_block"
+          fi
+        fi
+
+        if [ -n "$carrier_object" ]; then
+          last_candidate_kind="$(extract_endgate_carrier_kind "$snapshot_file")"
+          last_candidate_object="$carrier_object"
+          last_candidate_state="$(extract_endgate_carrier_field "$snapshot_file" "ENDGATE_STATE")"
+        else
+          last_candidate_kind=""
+          last_candidate_object=""
+          last_candidate_state=""
+        fi
       fi
 
       rm -f "$snapshot_file"
     done
 
-    if [ -n "$last_carrier_index" ]; then
-      post_window_start=$((last_carrier_index + 1))
+    if [ -n "$last_candidate_index" ]; then
+      if [ -z "$last_candidate_object" ]; then
+        results+=("$(jq -n --arg turn_id "$turn_id" --arg candidate_source "$last_candidate_source" '
+          {
+            turn_id: $turn_id,
+            status: "fail",
+            failure_mode: "missing canonical carrier",
+            candidate_source: $candidate_source
+          }
+        ')")
+        continue
+      fi
+
+      post_window_start=$((last_candidate_index + 1))
       post_window_end="$turn_length"
 
       if [ -n "$task_complete_index" ]; then
@@ -290,10 +327,10 @@ run_endgate_audit() {
         any(.entries[$start:$end][]?; .is_request_user_input and .request_user_input_question_id != "terminal_choice")
       ')"
 
-      case "$last_carrier_state" in
+      case "$last_candidate_state" in
         AUTO_CONTINUE)
           if [ "$has_auto_continue_action" = "true" ]; then
-            results+=("$(jq -n --arg turn_id "$turn_id" --arg carrier_kind "$last_carrier_kind" --argjson declared_carrier "$last_carrier_object" '
+            results+=("$(jq -n --arg turn_id "$turn_id" --arg carrier_kind "$last_candidate_kind" --argjson declared_carrier "$last_candidate_object" '
               {
                 turn_id: $turn_id,
                 status: "pass",
@@ -303,7 +340,7 @@ run_endgate_audit() {
               }
             ')")
           else
-            results+=("$(jq -n --arg turn_id "$turn_id" --arg carrier_kind "$last_carrier_kind" --argjson declared_carrier "$last_carrier_object" '
+            results+=("$(jq -n --arg turn_id "$turn_id" --arg carrier_kind "$last_candidate_kind" --argjson declared_carrier "$last_candidate_object" '
               {
                 turn_id: $turn_id,
                 status: "fail",
@@ -317,7 +354,7 @@ run_endgate_audit() {
           ;;
         TERMINAL_CHOICE)
           if [ "$has_terminal_choice_popup" = "true" ]; then
-            results+=("$(jq -n --arg turn_id "$turn_id" --arg carrier_kind "$last_carrier_kind" --argjson declared_carrier "$last_carrier_object" '
+            results+=("$(jq -n --arg turn_id "$turn_id" --arg carrier_kind "$last_candidate_kind" --argjson declared_carrier "$last_candidate_object" '
               {
                 turn_id: $turn_id,
                 status: "pass",
@@ -327,7 +364,7 @@ run_endgate_audit() {
               }
             ')")
           else
-            results+=("$(jq -n --arg turn_id "$turn_id" --arg carrier_kind "$last_carrier_kind" --argjson declared_carrier "$last_carrier_object" '
+            results+=("$(jq -n --arg turn_id "$turn_id" --arg carrier_kind "$last_candidate_kind" --argjson declared_carrier "$last_candidate_object" '
               {
                 turn_id: $turn_id,
                 status: "fail",
@@ -341,7 +378,7 @@ run_endgate_audit() {
           ;;
         NEEDS_USER_DECISION)
           if [ "$has_specific_request_user_input" = "true" ]; then
-            results+=("$(jq -n --arg turn_id "$turn_id" --arg carrier_kind "$last_carrier_kind" --argjson declared_carrier "$last_carrier_object" '
+            results+=("$(jq -n --arg turn_id "$turn_id" --arg carrier_kind "$last_candidate_kind" --argjson declared_carrier "$last_candidate_object" '
               {
                 turn_id: $turn_id,
                 status: "pass",
@@ -351,7 +388,7 @@ run_endgate_audit() {
               }
             ')")
           else
-            results+=("$(jq -n --arg turn_id "$turn_id" --arg carrier_kind "$last_carrier_kind" --argjson declared_carrier "$last_carrier_object" '
+            results+=("$(jq -n --arg turn_id "$turn_id" --arg carrier_kind "$last_candidate_kind" --argjson declared_carrier "$last_candidate_object" '
               {
                 turn_id: $turn_id,
                 status: "fail",
@@ -364,7 +401,7 @@ run_endgate_audit() {
           fi
           ;;
         *)
-          results+=("$(jq -n --arg turn_id "$turn_id" --arg carrier_kind "$last_carrier_kind" --arg carrier_state "$last_carrier_state" --argjson declared_carrier "$last_carrier_object" '
+          results+=("$(jq -n --arg turn_id "$turn_id" --arg carrier_kind "$last_candidate_kind" --arg carrier_state "$last_candidate_state" --argjson declared_carrier "$last_candidate_object" '
             {
               turn_id: $turn_id,
               status: "fail",
@@ -541,6 +578,25 @@ EOF
 {"timestamp":"2026-03-26T10:10:04.000Z","turn_id":"turn-duplicate-structured-no-fallback","type":"response_item","payload":{"type":"function_call_output","call_id":"call_duplicate_structured_no_fallback_exec","output":"PASS"}}
 EOF
       ;;
+    valid_structured_then_later_malformed_structured_no_fallback)
+      cat <<'EOF' > "$file"
+{"timestamp":"2026-03-26T10:20:00.000Z","turn_id":"turn-valid-then-malformed-structured","type":"response_item","payload":{"type":"message","role":"assistant","metadata":{"endgate":{"ENDGATE_PROTOCOL_VERSION":"1","ENDGATE_STATE":"AUTO_CONTINUE","ENDGATE_CHOICE_KIND":"NONE","ENDGATE_NEXT_ACTION":"CONTINUE_WITH_TOOL"}},"content":[{"type":"output_text","text":"Earlier valid structured carrier should be overridden by the later malformed candidate."}]}}
+{"timestamp":"2026-03-26T10:20:02.000Z","turn_id":"turn-valid-then-malformed-structured","type":"response_item","payload":{"type":"function_call","name":"exec_command","arguments":"{\"cmd\":\"bash tests/codex/test-runtime-endgate-transcript-audit.sh\"}","call_id":"call_valid_then_malformed_structured_exec"}}
+{"timestamp":"2026-03-26T10:20:04.000Z","turn_id":"turn-valid-then-malformed-structured","type":"response_item","payload":{"type":"function_call_output","call_id":"call_valid_then_malformed_structured_exec","output":"PASS"}}
+{"timestamp":"2026-03-26T10:20:06.000Z","turn_id":"turn-valid-then-malformed-structured","type":"response_item","payload":{"type":"message","role":"assistant","metadata":{"endgate":{"ENDGATE_PROTOCOL_VERSION":"1","ENDGATE_STATE":"TERMINAL_CHOICE","ENDGATE_STATE":"AUTO_CONTINUE","ENDGATE_CHOICE_KIND":"NONE","ENDGATE_NEXT_ACTION":"CONTINUE_WITH_TOOL"}},"content":[{"type":"output_text","text":"This later malformed structured carrier has no fallback and must override the earlier valid carrier."}]}}
+{"timestamp":"2026-03-26T10:20:07.000Z","turn_id":"turn-valid-then-malformed-structured","type":"event_msg","payload":{"type":"task_complete","turn_id":"turn-valid-then-malformed-structured","last_agent_message":"This later malformed structured carrier has no fallback and must override the earlier valid carrier."}}
+EOF
+      ;;
+    valid_structured_then_later_malformed_item_structured_no_fallback)
+      cat <<'EOF' > "$file"
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_valid_structured_message","type":"agent_message","text":"Earlier valid structured carrier should be overridden by the later malformed item candidate.","metadata":{"endgate":{"ENDGATE_PROTOCOL_VERSION":"1","ENDGATE_STATE":"AUTO_CONTINUE","ENDGATE_CHOICE_KIND":"NONE","ENDGATE_NEXT_ACTION":"CONTINUE_WITH_TOOL"}}}}
+{"type":"item.started","item":{"id":"item_valid_structured_command","type":"command_execution","command":"/bin/zsh -lc 'bash tests/codex/test-runtime-endgate-transcript-audit.sh'","aggregated_output":"","exit_code":null,"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_valid_structured_command","type":"command_execution","command":"/bin/zsh -lc 'bash tests/codex/test-runtime-endgate-transcript-audit.sh'","aggregated_output":"PASS","exit_code":0,"status":"completed"}}
+{"type":"item.completed","item":{"id":"item_malformed_structured_message","type":"agent_message","text":"This later malformed item carrier has no fallback and must override the earlier valid carrier.","metadata":{"endgate":{"ENDGATE_PROTOCOL_VERSION":"1","ENDGATE_STATE":"TERMINAL_CHOICE","ENDGATE_STATE":"AUTO_CONTINUE","ENDGATE_CHOICE_KIND":"NONE","ENDGATE_NEXT_ACTION":"CONTINUE_WITH_TOOL"}}}}
+{"type":"turn.completed","usage":{"input_tokens":16,"cached_input_tokens":0,"output_tokens":22}}
+EOF
+      ;;
     *)
       echo "FAIL: unknown inline runtime fixture scenario: $scenario"
       exit 1
@@ -616,5 +672,7 @@ assert_audit_fails_with_mode "$PACKET_MISSING_FIXTURE" "missing canonical carrie
 assert_audit_fails_with_mode "$STRICT_SESSION_MISSING_PACKET_FIXTURE" "missing canonical carrier" "strict-session transcript is rejected when the canonical carrier is missing"
 assert_inline_runtime_fixture_passes_with_mode "duplicate_structured_with_visible_fallback" "valid tail block fallback" "duplicate structured carrier falls back to the visible tail block instead of passing as structured"
 assert_inline_runtime_fixture_fails_with_mode "duplicate_structured_without_fallback" "missing canonical carrier" "duplicate structured carrier without a valid fallback is rejected"
+assert_inline_runtime_fixture_fails_with_mode "valid_structured_then_later_malformed_structured_no_fallback" "missing canonical carrier" "later malformed structured carrier overrides an earlier valid structured carrier"
+assert_inline_runtime_fixture_fails_with_mode "valid_structured_then_later_malformed_item_structured_no_fallback" "missing canonical carrier" "later malformed item carrier overrides an earlier valid structured carrier"
 
 echo "All runtime endgate transcript audit checks passed."
