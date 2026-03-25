@@ -502,7 +502,9 @@ assert_audit_passes_with_mode() {
   result="$(run_endgate_audit "$file")"
 
   if printf '%s' "$result" | jq -e --arg expected_mode "$expected_mode" '
-    length > 0 and any(.[]?; .validation_mode == $expected_mode and .status == "pass")
+    length > 0
+    and all(.[]?; .status == "pass")
+    and any(.[]?; .validation_mode == $expected_mode)
   ' >/dev/null; then
     echo "PASS: $description"
   else
