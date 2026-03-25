@@ -357,6 +357,29 @@ case "$scenario" in
     printf 'Visible stdout without protocol lines\n'
     printf 'Visible stderr without protocol lines\n' >&2
     ;;
+  partial_single_line)
+    printf 'Visible before partial block\n'
+    printf 'ENDGATE_STATE: AUTO_CONTINUE\n'
+    printf 'Visible after partial block\n'
+    ;;
+  partial_three_line)
+    printf 'Visible before three-line partial block\n'
+    printf '%s\n' \
+      'ENDGATE_PROTOCOL_VERSION: 1' \
+      'ENDGATE_STATE: AUTO_CONTINUE' \
+      'ENDGATE_CHOICE_KIND: NONE'
+    printf 'Visible after three-line partial block\n'
+    ;;
+  malformed_extra_key)
+    printf 'Visible before malformed block\n'
+    printf '%s\n' \
+      'ENDGATE_PROTOCOL_VERSION: 1' \
+      'ENDGATE_STATE: AUTO_CONTINUE' \
+      'ENDGATE_CHOICE_KIND: NONE' \
+      'ENDGATE_NEXT_ACTION: CONTINUE_WITH_TOOL' \
+      'ENDGATE_DEBUG: should stay visible'
+    printf 'Visible after malformed block\n'
+    ;;
   prompt_before_input)
     printf 'Prompt> '
     IFS= read -r answer
@@ -410,12 +433,15 @@ failure_stdout_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-failure-stdout.XXXXXX")"
 failure_stderr_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-failure-stderr.XXXXXX")"
 refresh_stdout_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-refresh-stdout.XXXXXX")"
 refresh_stderr_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-refresh-stderr.XXXXXX")"
+partial_stdout_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-partial-stdout.XXXXXX")"
+partial_stderr_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-partial-stderr.XXXXXX")"
+partial_runtime_dir="$(mktemp -d "${TMPDIR:-/tmp}/wrapper-partial-runtime.XXXXXX")"
 term_stdout_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-term-stdout.XXXXXX")"
 term_stderr_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-term-stderr.XXXXXX")"
 term_signal_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-term-signal.XXXXXX")"
 term_child_pid_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-term-child-pid.XXXXXX")"
 prompt_expect_script="$(mktemp "${TMPDIR:-/tmp}/wrapper-prompt-expect.XXXXXX")"
-trap 'rm -f "$mock_codex" "$stdout_file" "$stderr_file" "$prompt_stdout_file" "$prompt_stderr_file" "$failure_stdout_file" "$failure_stderr_file" "$refresh_stdout_file" "$refresh_stderr_file" "$term_stdout_file" "$term_stderr_file" "$term_signal_file" "$term_child_pid_file" "$prompt_expect_script"; rm -rf "$runtime_dir" "$no_packet_runtime_dir"' EXIT
+trap 'rm -f "$mock_codex" "$stdout_file" "$stderr_file" "$prompt_stdout_file" "$prompt_stderr_file" "$failure_stdout_file" "$failure_stderr_file" "$refresh_stdout_file" "$refresh_stderr_file" "$partial_stdout_file" "$partial_stderr_file" "$term_stdout_file" "$term_stderr_file" "$term_signal_file" "$term_child_pid_file" "$prompt_expect_script"; rm -rf "$runtime_dir" "$no_packet_runtime_dir" "$partial_runtime_dir"' EXIT
 
 create_mock_codex "$mock_codex"
 
@@ -488,6 +514,50 @@ assert_file_exact_text \
   "wrapper preserves carriage-return refresh semantics instead of expanding refresh history into multiple lines"
 assert_file_empty "$refresh_stderr_file" "carriage-refresh scenario does not leak terminal render to stderr"
 
+CODEX_BIN="$mock_codex" bash "$WRAPPER" partial_single_line >"$partial_stdout_file" 2>"$partial_stderr_file"
+assert_file_exact_text_after_cr_to_lf \
+  "$partial_stdout_file" \
+  "$(cat <<'TEXT'
+Visible before partial block
+Visible after partial block
+TEXT
+)" \
+  "single-line ENDGATE_STATE content may be hidden even without a full 4-line packet"
+assert_file_empty "$partial_stderr_file" "single-line partial block scenario does not leak terminal render to stderr"
+
+CODEX_BIN="$mock_codex" \
+CODEX_ENDGATE_WRITE_DEBUG_MIRROR=1 \
+CODEX_ENDGATE_RUNTIME_DIR="$partial_runtime_dir" \
+bash "$WRAPPER" partial_three_line >"$partial_stdout_file" 2>"$partial_stderr_file"
+assert_file_exact_text_after_cr_to_lf \
+  "$partial_stdout_file" \
+  "$(cat <<'TEXT'
+Visible before three-line partial block
+ENDGATE_PROTOCOL_VERSION: 1
+ENDGATE_CHOICE_KIND: NONE
+Visible after three-line partial block
+TEXT
+)" \
+  "three-line partial block keeps non-state lines visible while allowing ENDGATE_STATE to be hidden"
+assert_not_exists "$partial_runtime_dir/endgate-state.jsonl" "partial three-line block does not produce a debug mirror"
+assert_not_exists "$partial_runtime_dir/latest-endgate.json" "partial three-line block does not update latest endgate snapshot"
+assert_file_empty "$partial_stderr_file" "partial three-line block scenario does not leak terminal render to stderr"
+
+CODEX_BIN="$mock_codex" bash "$WRAPPER" malformed_extra_key >"$partial_stdout_file" 2>"$partial_stderr_file"
+assert_file_exact_text_after_cr_to_lf \
+  "$partial_stdout_file" \
+  "$(cat <<'TEXT'
+Visible before malformed block
+ENDGATE_PROTOCOL_VERSION: 1
+ENDGATE_CHOICE_KIND: NONE
+ENDGATE_NEXT_ACTION: CONTINUE_WITH_TOOL
+ENDGATE_DEBUG: should stay visible
+Visible after malformed block
+TEXT
+)" \
+  "malformed extra-key block does not get treated as canonical, but ENDGATE_STATE may still be hidden on its own"
+assert_file_empty "$partial_stderr_file" "malformed extra-key block scenario does not leak terminal render to stderr"
+
 exit_code=0
 if CODEX_BIN="$mock_codex" bash "$WRAPPER" exit_code_27 >"$stdout_file" 2>"$stderr_file"; then
   echo "FAIL: wrapper should propagate non-zero exit codes from the underlying codex command"
@@ -514,16 +584,14 @@ spawn -noecho env CODEX_BIN=$mock_bin bash $wrapper prompt_before_input
 expect {
   -re {Prompt> } {
     puts "PROMPT_SEEN"
+    send -- "blue\r"
+    sleep 0.2
   }
   timeout {
     puts "PROMPT_TIMEOUT"
     exit 1
   }
 }
-
-send -- "blue\r"
-
-sleep 0.2
 EXPECT
 
 if expect "$prompt_expect_script" "$WRAPPER" "$mock_codex" >"$prompt_stdout_file" 2>"$prompt_stderr_file"; then
@@ -538,7 +606,7 @@ assert_file_exact_text \
 PROMPT_SEEN
 TEXT
 )" \
-  "wrapper shows a no-newline prompt before input and completes after the reply is sent"
+  "wrapper shows a no-newline prompt before input and still exits after the reply is sent"
 assert_file_empty "$prompt_stderr_file" "prompt scenario does not leak terminal render to stderr"
 
 MOCK_SIGNAL_FILE="$term_signal_file" \

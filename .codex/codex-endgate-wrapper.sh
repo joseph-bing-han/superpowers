@@ -199,6 +199,47 @@ line_is_hidden_endgate() {
   [[ "$line" =~ ^ENDGATE_[A-Z_]+:\ .*$ ]]
 }
 
+is_canonical_endgate_block() {
+  local -a lines=("$@")
+  local -a expected_keys=(
+    "ENDGATE_PROTOCOL_VERSION"
+    "ENDGATE_STATE"
+    "ENDGATE_CHOICE_KIND"
+    "ENDGATE_NEXT_ACTION"
+  )
+  local index=0
+  local line=""
+  local expected_key=""
+  local value=""
+
+  if [ "${#lines[@]}" -ne 4 ]; then
+    return 1
+  fi
+
+  for ((index = 0; index < 4; index++)); do
+    line="${lines[$index]%$'\r'}"
+    expected_key="${expected_keys[$index]}"
+
+    if [[ "$line" != "$expected_key: "* ]]; then
+      return 1
+    fi
+
+    value="${line#"$expected_key: "}"
+    if [ -z "$value" ]; then
+      return 1
+    fi
+  done
+
+  return 0
+}
+
+line_is_hidden_endgate_state() {
+  local line="$1"
+
+  line="${line%$'\r'}"
+  [[ "$line" =~ ^ENDGATE_STATE:\ .*$ ]]
+}
+
 startup_prefix_still_possible() {
   local buffer="$1"
   local raw_prefix=$'\004\b\b'
@@ -223,6 +264,7 @@ process_stream() {
   local candidate_buffer=""
   local ordinary_mode=0
   local -a packet_lines=()
+  local -a packet_chunks=()
 
   emit_visible_byte() {
     local char="$1"
@@ -246,8 +288,25 @@ process_stream() {
 
   flush_hidden_packet_lines() {
     if [ "${#packet_lines[@]}" -gt 0 ]; then
-      flush_endgate_block "$stream" "${packet_lines[@]}"
+      if is_canonical_endgate_block "${packet_lines[@]}"; then
+        flush_endgate_block "$stream" "${packet_lines[@]}"
+      else
+        local packet_index=0
+        local packet_chunk=""
+
+        for ((packet_index = 0; packet_index < ${#packet_chunks[@]}; packet_index++)); do
+          packet_chunk="${packet_chunks[$packet_index]}"
+
+          if line_is_hidden_endgate_state "${packet_lines[$packet_index]}"; then
+            continue
+          fi
+
+          emit_visible_text "$packet_chunk"
+        done
+      fi
+
       packet_lines=()
+      packet_chunks=()
     fi
   }
 
@@ -273,6 +332,7 @@ process_stream() {
 
       if line_is_hidden_endgate "$candidate_line"; then
         packet_lines+=("$candidate_line")
+        packet_chunks+=("$candidate_buffer")
       else
         flush_hidden_packet_lines
         emit_visible_text "$candidate_buffer"
@@ -327,6 +387,7 @@ process_stream() {
 
     if [ "$ordinary_mode" -eq 0 ] && line_is_hidden_endgate "$candidate_line"; then
       packet_lines+=("$candidate_line")
+      packet_chunks+=("$candidate_buffer")
     else
       flush_hidden_packet_lines
       emit_visible_text "$candidate_buffer"
