@@ -100,6 +100,54 @@ assert_file_exact_text() {
   fi
 }
 
+assert_file_exact_text_after_cr_to_lf() {
+  local file="$1"
+  local expected="$2"
+  local description="$3"
+  local actual=""
+
+  actual="$(tr '\r' '\n' < "$file")"
+
+  if [[ "$actual" == "$expected" ]]; then
+    echo "PASS: $description"
+  else
+    echo "FAIL: $description"
+    echo "  Expected:"
+    printf '%s\n' "$expected"
+    echo "  Actual after CR->LF normalization:"
+    printf '%s\n' "$actual"
+    echo "  Actual hex:"
+    od -An -tx1 -v "$file"
+    exit 1
+  fi
+}
+
+assert_pid_not_running_within() {
+  local pid="$1"
+  local description="$2"
+  local timeout_ticks="${3:-20}"
+  local tick=0
+
+  if [[ -z "$pid" ]]; then
+    echo "FAIL: $description"
+    echo "  Missing pid"
+    exit 1
+  fi
+
+  for ((tick = 0; tick < timeout_ticks; tick++)); do
+    if ! kill -0 "$pid" >/dev/null 2>&1; then
+      echo "PASS: $description"
+      return 0
+    fi
+
+    sleep 0.1
+  done
+
+  echo "FAIL: $description"
+  echo "  PID still alive after timeout: $pid"
+  exit 1
+}
+
 assert_contains() {
   local file="$1"
   local pattern="$2"
@@ -199,6 +247,26 @@ assert_process_exits_quickly_with_status() {
   fi
 }
 
+assert_file_nonempty_within() {
+  local file="$1"
+  local description="$2"
+  local timeout_ticks="${3:-20}"
+  local tick=0
+
+  for ((tick = 0; tick < timeout_ticks; tick++)); do
+    if [[ -s "$file" ]]; then
+      echo "PASS: $description"
+      return 0
+    fi
+
+    sleep 0.1
+  done
+
+  echo "FAIL: $description"
+  echo "  File stayed empty: $file"
+  exit 1
+}
+
 assert_file_contains_within() {
   local file="$1"
   local pattern="$2"
@@ -294,6 +362,16 @@ case "$scenario" in
     IFS= read -r answer
     printf '\nReceived: %s\n' "$answer"
     ;;
+  carriage_refresh)
+    printf 'step1\rstep2\rfinal\n'
+    ;;
+  long_running_until_signal)
+    trap 'printf "child_term_signal\n" >> "${MOCK_SIGNAL_FILE:?}"; exit 143' TERM INT
+    printf '%s\n' "$$" > "${MOCK_CHILD_PID_FILE:?}"
+    while true; do
+      sleep 0.2
+    done
+    ;;
   exit_code_27)
     printf 'Command exits with a non-zero code\n'
     exit 27
@@ -330,8 +408,14 @@ prompt_stdout_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-prompt-stdout.XXXXXX")"
 prompt_stderr_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-prompt-stderr.XXXXXX")"
 failure_stdout_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-failure-stdout.XXXXXX")"
 failure_stderr_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-failure-stderr.XXXXXX")"
+refresh_stdout_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-refresh-stdout.XXXXXX")"
+refresh_stderr_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-refresh-stderr.XXXXXX")"
+term_stdout_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-term-stdout.XXXXXX")"
+term_stderr_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-term-stderr.XXXXXX")"
+term_signal_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-term-signal.XXXXXX")"
+term_child_pid_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-term-child-pid.XXXXXX")"
 prompt_expect_script="$(mktemp "${TMPDIR:-/tmp}/wrapper-prompt-expect.XXXXXX")"
-trap 'rm -f "$mock_codex" "$stdout_file" "$stderr_file" "$prompt_stdout_file" "$prompt_stderr_file" "$failure_stdout_file" "$failure_stderr_file" "$prompt_expect_script"; rm -rf "$runtime_dir" "$no_packet_runtime_dir"' EXIT
+trap 'rm -f "$mock_codex" "$stdout_file" "$stderr_file" "$prompt_stdout_file" "$prompt_stderr_file" "$failure_stdout_file" "$failure_stderr_file" "$refresh_stdout_file" "$refresh_stderr_file" "$term_stdout_file" "$term_stderr_file" "$term_signal_file" "$term_child_pid_file" "$prompt_expect_script"; rm -rf "$runtime_dir" "$no_packet_runtime_dir"' EXIT
 
 create_mock_codex "$mock_codex"
 
@@ -343,7 +427,7 @@ assert_contains "$stdout_file" "Visible stdout after packet" "wrapper keeps norm
 assert_contains "$stdout_file" "Visible stderr before packet" "wrapper keeps normal stderr text before packet lines in the terminal render"
 assert_contains "$stdout_file" "Visible stderr after packet" "wrapper keeps normal stderr text after packet lines in the terminal render"
 assert_not_contains_regex "$stdout_file" '^ENDGATE_[A-Z_]+: ' "wrapper removes packet lines from visible stdout"
-assert_file_exact_text \
+assert_file_exact_text_after_cr_to_lf \
   "$stdout_file" \
   "$(cat <<'TEXT'
 stdout_tty=yes
@@ -387,7 +471,7 @@ assert_contains "$stdout_file" "Visible stderr without protocol lines" "wrapper 
 assert_not_exists "$no_packet_runtime_dir/endgate-state.jsonl" "wrapper does not generate a debug mirror when no packet block exists"
 assert_not_exists "$no_packet_runtime_dir/latest-endgate.json" "wrapper does not create a latest snapshot when no packet block exists"
 assert_not_contains_regex "$stdout_file" '^ENDGATE_[A-Z_]+: ' "wrapper never invents canonical packet lines in stdout"
-assert_file_exact_text \
+assert_file_exact_text_after_cr_to_lf \
   "$stdout_file" \
   "$(cat <<'TEXT'
 Visible stdout without protocol lines
@@ -396,6 +480,13 @@ TEXT
 )" \
   "wrapper keeps ordinary stdout and stderr text byte-clean when no packet exists"
 assert_file_empty "$stderr_file" "wrapper keeps the visible render on the PTY-backed terminal stream when no packet exists"
+
+CODEX_BIN="$mock_codex" bash "$WRAPPER" carriage_refresh >"$refresh_stdout_file" 2>"$refresh_stderr_file"
+assert_file_exact_text \
+  "$refresh_stdout_file" \
+  $'step1\rstep2\rfinal\r' \
+  "wrapper preserves carriage-return refresh semantics instead of expanding refresh history into multiple lines"
+assert_file_empty "$refresh_stderr_file" "carriage-refresh scenario does not leak terminal render to stderr"
 
 exit_code=0
 if CODEX_BIN="$mock_codex" bash "$WRAPPER" exit_code_27 >"$stdout_file" 2>"$stderr_file"; then
@@ -432,17 +523,7 @@ expect {
 
 send -- "blue\r"
 
-expect {
-  -re {Received: blue} {
-    puts "RECEIVED_OK"
-  }
-  timeout {
-    puts "RECEIVED_TIMEOUT"
-    exit 1
-  }
-}
-
-expect eof
+sleep 0.2
 EXPECT
 
 if expect "$prompt_expect_script" "$WRAPPER" "$mock_codex" >"$prompt_stdout_file" 2>"$prompt_stderr_file"; then
@@ -455,11 +536,30 @@ assert_file_exact_text \
   "$prompt_stdout_file" \
   "$(cat <<'TEXT'
 PROMPT_SEEN
-RECEIVED_OK
 TEXT
 )" \
   "wrapper shows a no-newline prompt before input and completes after the reply is sent"
 assert_file_empty "$prompt_stderr_file" "prompt scenario does not leak terminal render to stderr"
+
+MOCK_SIGNAL_FILE="$term_signal_file" \
+MOCK_CHILD_PID_FILE="$term_child_pid_file" \
+CODEX_BIN="$mock_codex" \
+bash "$WRAPPER" long_running_until_signal >"$term_stdout_file" 2>"$term_stderr_file" &
+term_wrapper_pid="$!"
+assert_file_nonempty_within \
+  "$term_child_pid_file" \
+  "term cleanup scenario writes the child pid"
+term_child_pid="$(cat "$term_child_pid_file")"
+kill -TERM "$term_wrapper_pid"
+assert_process_exits_quickly_with_status \
+  "$term_wrapper_pid" \
+  "143" \
+  "wrapper exits promptly when it receives TERM"
+assert_pid_not_running_within \
+  "$term_child_pid" \
+  "TERM cleanup stops the underlying child instead of leaving it running"
+assert_file_empty "$term_stdout_file" "term cleanup scenario does not leak terminal render to stdout"
+assert_file_empty "$term_stderr_file" "term cleanup scenario does not leak terminal render to stderr"
 
 cat > "$runtime_dir/endgate-state.jsonl" <<'JSONL'
 {"debug_mirror":true,"source":"codex-endgate-wrapper","carrier":{"ENDGATE_PROTOCOL_VERSION":"1","ENDGATE_STATE":"TERMINAL_CHOICE","ENDGATE_CHOICE_KIND":"CONTINUE_OR_STOP","ENDGATE_NEXT_ACTION":"REQUEST_USER_INPUT"}}

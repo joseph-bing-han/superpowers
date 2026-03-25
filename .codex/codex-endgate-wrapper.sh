@@ -222,28 +222,10 @@ process_stream() {
   local startup_filter_active=1
   local candidate_buffer=""
   local ordinary_mode=0
-  local emit_pending_cr=0
   local -a packet_lines=()
 
   emit_visible_byte() {
     local char="$1"
-
-    if [ "$char" = $'\r' ]; then
-      emit_pending_cr=1
-      return 0
-    fi
-
-    if [ "$emit_pending_cr" -eq 1 ]; then
-      if [ "$char" = $'\n' ]; then
-        emit_pending_cr=0
-        printf '\n'
-        return 0
-      fi
-
-      printf '\n'
-      emit_pending_cr=0
-    fi
-
     printf '%s' "$char"
   }
 
@@ -259,10 +241,7 @@ process_stream() {
   }
 
   flush_visible_cr() {
-    if [ "$emit_pending_cr" -eq 1 ]; then
-      printf '\n'
-      emit_pending_cr=0
-    fi
+    :
   }
 
   flush_hidden_packet_lines() {
@@ -364,18 +343,49 @@ process_stream() {
   flush_visible_cr
 }
 
+list_child_pids() {
+  local pid="$1"
+
+  if ! command -v pgrep >/dev/null 2>&1; then
+    return 0
+  fi
+
+  pgrep -P "$pid" 2>/dev/null || true
+}
+
+signal_process_tree() {
+  local signal_name="$1"
+  local pid="$2"
+  local child_pid=""
+
+  if [ -z "$pid" ]; then
+    return 0
+  fi
+
+  while IFS= read -r child_pid; do
+    if [ -n "$child_pid" ]; then
+      signal_process_tree "$signal_name" "$child_pid"
+    fi
+  done < <(list_child_pids "$pid")
+
+  kill -s "$signal_name" "$pid" >/dev/null 2>&1 || true
+}
+
 main() {
   local runtime_dir=""
   local transcript_pipe=""
   local keepalive_pid=""
   local reader_pid=""
+  local launcher_pid=""
   local status=0
   local launcher_rc=0
 
   runtime_dir="$(mktemp -d "${TMPDIR:-/tmp}/codex-endgate-wrapper.XXXXXX")"
   transcript_pipe="$runtime_dir/terminal-render.pipe"
 
-  cleanup() {
+  close_render_pipeline() {
+    local force_reader_kill="${1:-0}"
+
     if [ -n "$keepalive_pid" ]; then
       kill "$keepalive_pid" >/dev/null 2>&1 || true
       wait "$keepalive_pid" >/dev/null 2>&1 || true
@@ -383,14 +393,39 @@ main() {
     fi
 
     if [ -n "$reader_pid" ]; then
+      if [ "$force_reader_kill" = "1" ]; then
+        kill "$reader_pid" >/dev/null 2>&1 || true
+      fi
       wait "$reader_pid" >/dev/null 2>&1 || true
       reader_pid=""
     fi
+  }
+
+  cleanup() {
+    close_render_pipeline
 
     rm -rf "$runtime_dir"
   }
 
-  trap cleanup EXIT INT TERM
+  terminate_wrapper() {
+    local signal_name="$1"
+    local exit_code="$2"
+
+    if [ -n "$launcher_pid" ]; then
+      signal_process_tree "$signal_name" "$launcher_pid"
+      sleep 0.2
+      signal_process_tree KILL "$launcher_pid"
+      wait "$launcher_pid" >/dev/null 2>&1 || true
+      launcher_pid=""
+    fi
+
+    close_render_pipeline 1
+    exit "$exit_code"
+  }
+
+  trap cleanup EXIT
+  trap 'terminate_wrapper INT 130' INT
+  trap 'terminate_wrapper TERM 143' TERM
 
   mkfifo "$transcript_pipe"
 
@@ -400,19 +435,14 @@ main() {
   process_stream terminal_render < "$transcript_pipe" &
   reader_pid="$!"
 
-  "$SCRIPT_BIN" -qF "$transcript_pipe" "$CODEX_BIN" "$@" >/dev/null 2>&1 || launcher_rc=$?
+  "$SCRIPT_BIN" -qF "$transcript_pipe" "$CODEX_BIN" "$@" >/dev/null 2>&1 &
+  launcher_pid="$!"
+
+  wait "$launcher_pid" || launcher_rc=$?
   status="$launcher_rc"
+  launcher_pid=""
 
-  if [ -n "$keepalive_pid" ]; then
-    kill "$keepalive_pid" >/dev/null 2>&1 || true
-    wait "$keepalive_pid" >/dev/null 2>&1 || true
-    keepalive_pid=""
-  fi
-
-  if [ -n "$reader_pid" ]; then
-    wait "$reader_pid" >/dev/null 2>&1 || true
-    reader_pid=""
-  fi
+  close_render_pipeline 0
 
   exit "$status"
 }
