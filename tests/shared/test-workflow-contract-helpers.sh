@@ -146,9 +146,10 @@ assert_equals "$actual_action" "REQUEST_USER_INPUT" "endgate packet helper extra
 
 tail_fallback_file="$(mktemp)"
 partial_structured_fallback_file="$(mktemp)"
+duplicate_structured_fallback_file="$(mktemp)"
 duplicate_visible_tail_file="$(mktemp)"
 priority_file="$(mktemp)"
-trap 'rm -f "$tail_fallback_file" "$partial_structured_fallback_file" "$duplicate_visible_tail_file" "$priority_file"' EXIT
+trap 'rm -f "$tail_fallback_file" "$partial_structured_fallback_file" "$duplicate_structured_fallback_file" "$duplicate_visible_tail_file" "$priority_file"' EXIT
 
 cat > "$tail_fallback_file" <<'TEXT'
 Human-readable paragraph.
@@ -192,6 +193,27 @@ assert_equals \
   "$(extract_endgate_packet_field "$partial_structured_fallback_file" "ENDGATE_CHOICE_KIND")" \
   "CONTINUE_OR_STOP" \
   "packet helper falls back when structured carrier is incomplete"
+
+cat > "$duplicate_structured_fallback_file" <<'TEXT'
+{"timestamp":"2026-03-26T09:40:00.000Z","turn_id":"turn-duplicate-structured","type":"response_item","payload":{"type":"message","role":"assistant","metadata":{"endgate":{"ENDGATE_PROTOCOL_VERSION":"1","ENDGATE_STATE":"NEEDS_USER_DECISION","ENDGATE_STATE":"AUTO_CONTINUE","ENDGATE_CHOICE_KIND":"SPECIFIC_NEXT_STEP","ENDGATE_NEXT_ACTION":"REQUEST_USER_INPUT"}},"content":[{"type":"output_text","text":"This structured carrier is malformed because ENDGATE_STATE is duplicated."}]}}
+ENDGATE_PROTOCOL_VERSION: 1
+ENDGATE_STATE: TERMINAL_CHOICE
+ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
+ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
+TEXT
+
+assert_equals \
+  "$(extract_endgate_carrier_kind "$duplicate_structured_fallback_file")" \
+  "visible_tail_block" \
+  "duplicate structured carrier falls back to visible tail block"
+assert_equals \
+  "$(extract_endgate_carrier_field "$duplicate_structured_fallback_file" "ENDGATE_STATE")" \
+  "TERMINAL_CHOICE" \
+  "shared carrier extraction ignores duplicate structured canonical key"
+assert_equals \
+  "$(extract_endgate_packet_field "$duplicate_structured_fallback_file" "ENDGATE_NEXT_ACTION")" \
+  "REQUEST_USER_INPUT" \
+  "packet helper falls back when structured canonical key is duplicated"
 
 cat > "$duplicate_visible_tail_file" <<'TEXT'
 Human-readable paragraph.

@@ -77,25 +77,132 @@ extract_unique_named_tail_field() {
     '
 }
 
-extract_structured_endgate_carrier_object() {
-    local file="$1"
+extract_structured_endgate_carrier_root_kind_from_raw_json() {
+    local raw_json="$1"
 
     if ! command -v jq >/dev/null 2>&1; then
         return 0
     fi
 
-    jq -c -nR '
-        def normalized_endgate:
-            if (.type // "") == "response_item" and ((.payload.metadata.endgate // null) | type) == "object" then
-                .payload.metadata.endgate
-            elif ((.item.metadata.endgate // null) | type) == "object" then
-                .item.metadata.endgate
-            else
-                empty
-            end;
+    printf '%s\n' "$raw_json" | jq -r '
+        if (.type // "") == "response_item" and ((.payload.metadata.endgate // null) | type) == "object" then
+            "response_item"
+        elif ((.item.metadata.endgate // null) | type) == "object" then
+            "item"
+        else
+            empty
+        end
+    ' 2>/dev/null || true
+}
 
-        [inputs | (fromjson? // empty) | normalized_endgate] | last // empty
-    ' < "$file"
+extract_structured_endgate_carrier_object_from_raw_json() {
+    local raw_json="$1"
+    local root_kind="$2"
+
+    if ! command -v jq >/dev/null 2>&1; then
+        return 0
+    fi
+
+    printf '%s\n' "$raw_json" | jq -c --arg root_kind "$root_kind" '
+        if $root_kind == "response_item" then
+            .payload.metadata.endgate
+        elif $root_kind == "item" then
+            .item.metadata.endgate
+        else
+            empty
+        end
+    ' 2>/dev/null || true
+}
+
+structured_endgate_carrier_has_unique_canonical_keys_in_raw_json() {
+    local raw_json="$1"
+    local root_kind="$2"
+    local path_prefix
+
+    if ! command -v jq >/dev/null 2>&1; then
+        return 1
+    fi
+
+    case "$root_kind" in
+        response_item)
+            path_prefix='["payload","metadata","endgate"]'
+            ;;
+        item)
+            path_prefix='["item","metadata","endgate"]'
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+
+    if printf '%s\n' "$raw_json" | jq -r --stream --argjson path_prefix "$path_prefix" '
+        select(length == 2)
+        | .[0] as $path
+        | select(
+            ($path | length) == 4
+            and $path[0:3] == $path_prefix
+            and ([
+                "ENDGATE_PROTOCOL_VERSION",
+                "ENDGATE_STATE",
+                "ENDGATE_CHOICE_KIND",
+                "ENDGATE_NEXT_ACTION"
+            ] | index($path[3]) != null)
+        )
+        | $path[3]
+    ' 2>/dev/null | awk '
+        BEGIN {
+            required["ENDGATE_PROTOCOL_VERSION"] = 1
+            required["ENDGATE_STATE"] = 1
+            required["ENDGATE_CHOICE_KIND"] = 1
+            required["ENDGATE_NEXT_ACTION"] = 1
+        }
+        {
+            count[$1]++
+        }
+        END {
+            valid = 1
+            for (key in required) {
+                if (count[key] != 1) {
+                    valid = 0
+                }
+            }
+            exit(valid ? 0 : 1)
+        }
+    '; then
+        return 0
+    fi
+
+    return 1
+}
+
+extract_structured_endgate_carrier_object() {
+    local file="$1"
+    local line=""
+    local last_candidate_raw_json=""
+    local last_candidate_root_kind=""
+    local root_kind=""
+
+    if ! command -v jq >/dev/null 2>&1; then
+        return 0
+    fi
+
+    while IFS= read -r line || [ -n "$line" ]; do
+        root_kind="$(extract_structured_endgate_carrier_root_kind_from_raw_json "$line")"
+        if [ -n "$root_kind" ]; then
+            last_candidate_raw_json="$line"
+            last_candidate_root_kind="$root_kind"
+        fi
+    done < "$file"
+
+    if [ -z "$last_candidate_raw_json" ] || [ -z "$last_candidate_root_kind" ]; then
+        return 0
+    fi
+
+    if ! structured_endgate_carrier_has_unique_canonical_keys_in_raw_json "$last_candidate_raw_json" "$last_candidate_root_kind"; then
+        return 0
+    fi
+
+    extract_structured_endgate_carrier_object_from_raw_json "$last_candidate_raw_json" "$last_candidate_root_kind"
 }
 
 structured_endgate_carrier_is_complete() {
