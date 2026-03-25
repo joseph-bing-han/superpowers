@@ -254,6 +254,55 @@ First drift matrix: `Chinese / English / concise / verbose`.
   Latest local result: script landed and static validation passed in this
   Codex-only validation pass; live runner execution was not performed here.
 
+### Latest Hidden Endgate Rollout Evidence
+
+- `bash tests/shared/test-workflow-contract-helpers.sh`
+  当前证据：shared helper 回归覆盖
+  `runtime-endgate-structured-carrier-autocontinue-positive.jsonl`、
+  `runtime-endgate-structured-carrier-needs-user-decision-positive.jsonl`、
+  `runtime-endgate-structured-carrier-terminal-choice-positive.jsonl`
+  三条 structured carrier fixtures。
+  Latest local result (2026-03-26): PASS，确认 `AUTO_CONTINUE`、
+  `NEEDS_USER_DECISION`、`TERMINAL_CHOICE` 三种 `ENDGATE_STATE`
+  都有 structured carrier 覆盖，helper 会优先读取 structured carrier，
+  仅在结构化 carrier 不可用或非法时才回退到 visible tail block。
+- `bash tests/codex/test-runtime-endgate-transcript-audit.sh`
+  当前证据：runtime transcript audit 会把上述三条 structured carrier fixtures
+  分别判定为 `valid structured carrier`，同时继续区分
+  `valid tail block fallback`、`missing canonical carrier`、
+  `legacy prose leak` 等 failure mode。
+  Latest local result (2026-03-26): PASS，structured carrier 三态样本全部先走
+  carrier-first 路径通过，缺失 canonical carrier 与 prose leak 负样本继续被拒绝。
+- `bash tests/codex/test-endgate-wrapper-filter.sh`
+  当前证据：wrapper 在 PTY-backed terminal render 中会隐藏所有匹配
+  `^ENDGATE_[^:]+: ` 的终端行，同时保留普通 stdout/stderr 文本与退出码语义。
+  Latest local result (2026-03-26): PASS，确认 wrapper-hidden 行为已经覆盖：
+  canonical `ENDGATE_*` 行不会出现在用户可见终端中，`ENDGATE_123`
+  与 `ENDGATE_debug` 这类放宽规则后的单行内容也会被隐藏。
+- `bash tests/codex/test-endgate-wrapper-filter.sh`
+  当前证据：wrapper 的 carriage-refresh 与 signal-cleanup 行为不会因为隐藏协议行而退化。
+  Latest local result (2026-03-26): PASS，`\r` 局部刷新语义保持不变，
+  不会把 refresh history 展开成多行脏输出；`TERM` cleanup 会收敛 child tree，
+  wrapper 收到 `TERM` 后能及时退出并停止底层 child 进程，而不是留下孤儿进程。
+- `bash tests/codex/test-endgate-wrapper-filter.sh`
+  当前证据：sidecar debug mirror 只承担调试镜像职责，不会升级为 canonical contract。
+  Latest local result (2026-03-26): PASS，`sidecar debug mirror does not become a transcript carrier`
+  与 `sidecar debug mirror cannot satisfy the missing canonical carrier fixture`
+  两项断言同时成立，证明 sidecar-only 证据仍不能替代 transcript-local carrier。
+- `bash tests/prompt-contracts/test-machine-readable-workflow-contracts.sh`
+  `bash tests/prompt-contracts/test-nonterminal-workflow-gates.sh`
+  `bash tests/prompt-contracts/test-universal-terminal-endgate-protocol.sh`
+  当前证据：prompt-contract 文档层已和 carrier-first 规则收敛，不再把
+  “最后 4 行必须对用户可见”当成唯一路径。
+  Latest local result (2026-03-26): PASS，所有本地 workflow skills、
+  README 与 instruction bootstrap 都保持
+  `structured carrier > visible tail block fallback > sidecar debug mirror`
+  的边界。
+- `openspec validate hide-endgate-packet-from-terminal --type change --json`
+  当前证据：OpenSpec change 资产与 schema 保持一致，没有校验问题。
+  Latest local result (2026-03-26): PASS，`hide-endgate-packet-from-terminal`
+  change 校验通过，`issues` 为空。
+
 ## Runtime Endgate Transcript Audits
 
 这组审计把真实 incident 固化成可回归的 Codex transcript fixtures，用来验证
