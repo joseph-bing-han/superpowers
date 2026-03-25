@@ -255,41 +255,57 @@ print_endgate_packet_block_from_text() {
 
 print_valid_visible_endgate_packet_block() {
     local file="$1"
-    local block
 
-    block="$(print_endgate_packet_block "$file")"
-
-    if [ -z "$block" ]; then
-        return 0
-    fi
-
-    if printf '%s\n' "$block" | awk '
-        BEGIN {
+    awk '
+        NF {
+            non_empty_count++
+            non_empty_lines[non_empty_count] = $0
+        }
+        END {
             required["ENDGATE_PROTOCOL_VERSION"] = 1
             required["ENDGATE_STATE"] = 1
             required["ENDGATE_CHOICE_KIND"] = 1
             required["ENDGATE_NEXT_ACTION"] = 1
-        }
-        /^ENDGATE_[A-Z_]+: / {
-            key = substr($0, 1, index($0, ": ") - 1)
-            value = substr($0, index($0, ": ") + 2)
-            count[key]++
-            if (count[key] == 1) {
-                first_value[key] = value
+
+            if (non_empty_count < 4) {
+                exit
             }
-        }
-        END {
-            valid = 1
+
+            start = non_empty_count - 3
+
+            for (current = start; current <= non_empty_count; current++) {
+                line = non_empty_lines[current]
+
+                if (line !~ /^ENDGATE_[A-Z_]+: .*$/) {
+                    exit
+                }
+
+                key = substr(line, 1, index(line, ": ") - 1)
+                value = substr(line, index(line, ": ") + 2)
+
+                if (!(key in required)) {
+                    exit
+                }
+
+                if (value == "") {
+                    exit
+                }
+
+                count[key]++
+                lines_by_index[current] = line
+            }
+
             for (key in required) {
-                if (count[key] != 1 || first_value[key] == "") {
-                    valid = 0
+                if (count[key] != 1) {
+                    exit
                 }
             }
-            exit(valid ? 0 : 1)
+
+            for (current = start; current <= non_empty_count; current++) {
+                print lines_by_index[current]
+            }
         }
-    '; then
-        printf '%s\n' "$block"
-    fi
+    ' "$file"
 }
 
 normalize_visible_endgate_packet_to_carrier_object() {

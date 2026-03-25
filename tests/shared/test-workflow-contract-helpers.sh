@@ -148,8 +148,10 @@ tail_fallback_file="$(mktemp)"
 partial_structured_fallback_file="$(mktemp)"
 duplicate_structured_fallback_file="$(mktemp)"
 duplicate_visible_tail_file="$(mktemp)"
+trailing_prose_after_tail_file="$(mktemp)"
+trailing_extra_endgate_after_tail_file="$(mktemp)"
 priority_file="$(mktemp)"
-trap 'rm -f "$tail_fallback_file" "$partial_structured_fallback_file" "$duplicate_structured_fallback_file" "$duplicate_visible_tail_file" "$priority_file"' EXIT
+trap 'rm -f "$tail_fallback_file" "$partial_structured_fallback_file" "$duplicate_structured_fallback_file" "$duplicate_visible_tail_file" "$trailing_prose_after_tail_file" "$trailing_extra_endgate_after_tail_file" "$priority_file"' EXIT
 
 cat > "$tail_fallback_file" <<'TEXT'
 Human-readable paragraph.
@@ -234,6 +236,41 @@ assert_empty \
 assert_empty \
   "$(extract_endgate_packet_field "$duplicate_visible_tail_file" "ENDGATE_NEXT_ACTION")" \
   "duplicate visible tail key invalidates packet fallback"
+
+cat > "$trailing_prose_after_tail_file" <<'TEXT'
+Human-readable paragraph.
+
+ENDGATE_PROTOCOL_VERSION: 1
+ENDGATE_STATE: TERMINAL_CHOICE
+ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
+ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
+
+Trailing prose should invalidate visible tail fallback.
+TEXT
+
+assert_empty \
+  "$(extract_endgate_carrier_kind "$trailing_prose_after_tail_file")" \
+  "prose after canonical packet invalidates visible tail carrier kind"
+assert_empty \
+  "$(extract_endgate_packet_field "$trailing_prose_after_tail_file" "ENDGATE_STATE")" \
+  "prose after canonical packet invalidates visible tail packet extraction"
+
+cat > "$trailing_extra_endgate_after_tail_file" <<'TEXT'
+Human-readable paragraph.
+
+ENDGATE_PROTOCOL_VERSION: 1
+ENDGATE_STATE: TERMINAL_CHOICE
+ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
+ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
+ENDGATE_DEBUG: tail should be invalidated by extra endgate lines
+TEXT
+
+assert_empty \
+  "$(extract_endgate_carrier_kind "$trailing_extra_endgate_after_tail_file")" \
+  "extra endgate line after canonical packet invalidates visible tail carrier kind"
+assert_empty \
+  "$(extract_endgate_packet_field "$trailing_extra_endgate_after_tail_file" "ENDGATE_NEXT_ACTION")" \
+  "extra endgate line after canonical packet invalidates visible tail packet extraction"
 
 cat > "$priority_file" <<'TEXT'
 {"timestamp":"2026-03-26T09:00:00.000Z","turn_id":"turn-priority","type":"response_item","payload":{"type":"message","role":"assistant","metadata":{"endgate":{"ENDGATE_PROTOCOL_VERSION":"1","ENDGATE_STATE":"NEEDS_USER_DECISION","ENDGATE_CHOICE_KIND":"SPECIFIC_NEXT_STEP","ENDGATE_NEXT_ACTION":"REQUEST_USER_INPUT"}},"content":[{"type":"output_text","text":"Structured carrier should win over visible tail text."}]}}
