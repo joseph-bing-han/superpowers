@@ -233,13 +233,6 @@ is_canonical_endgate_block() {
   return 0
 }
 
-line_is_hidden_endgate_state() {
-  local line="$1"
-
-  line="${line%$'\r'}"
-  [[ "$line" =~ ^ENDGATE_STATE:\ .*$ ]]
-}
-
 startup_prefix_still_possible() {
   local buffer="$1"
   local raw_prefix=$'\004\b\b'
@@ -264,7 +257,6 @@ process_stream() {
   local candidate_buffer=""
   local ordinary_mode=0
   local -a packet_lines=()
-  local -a packet_chunks=()
 
   emit_visible_byte() {
     local char="$1"
@@ -290,23 +282,9 @@ process_stream() {
     if [ "${#packet_lines[@]}" -gt 0 ]; then
       if is_canonical_endgate_block "${packet_lines[@]}"; then
         flush_endgate_block "$stream" "${packet_lines[@]}"
-      else
-        local packet_index=0
-        local packet_chunk=""
-
-        for ((packet_index = 0; packet_index < ${#packet_chunks[@]}; packet_index++)); do
-          packet_chunk="${packet_chunks[$packet_index]}"
-
-          if line_is_hidden_endgate_state "${packet_lines[$packet_index]}"; then
-            continue
-          fi
-
-          emit_visible_text "$packet_chunk"
-        done
       fi
 
       packet_lines=()
-      packet_chunks=()
     fi
   }
 
@@ -332,7 +310,6 @@ process_stream() {
 
       if line_is_hidden_endgate "$candidate_line"; then
         packet_lines+=("$candidate_line")
-        packet_chunks+=("$candidate_buffer")
       else
         flush_hidden_packet_lines
         emit_visible_text "$candidate_buffer"
@@ -387,7 +364,6 @@ process_stream() {
 
     if [ "$ordinary_mode" -eq 0 ] && line_is_hidden_endgate "$candidate_line"; then
       packet_lines+=("$candidate_line")
-      packet_chunks+=("$candidate_buffer")
     else
       flush_hidden_packet_lines
       emit_visible_text "$candidate_buffer"
@@ -496,13 +472,16 @@ main() {
   process_stream terminal_render < "$transcript_pipe" &
   reader_pid="$!"
 
-  "$SCRIPT_BIN" -qF "$transcript_pipe" "$CODEX_BIN" "$@" >/dev/null 2>&1 &
+  exec 9<&0
+  "$SCRIPT_BIN" -qF "$transcript_pipe" "$CODEX_BIN" "$@" <&9 >/dev/null 2>&1 &
   launcher_pid="$!"
 
   wait "$launcher_pid" || launcher_rc=$?
   status="$launcher_rc"
   launcher_pid=""
+  exec 9<&-
 
+  sleep 0.1
   close_render_pipeline 0
 
   exit "$status"
