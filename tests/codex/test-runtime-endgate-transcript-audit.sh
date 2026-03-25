@@ -170,12 +170,14 @@ build_runtime_audit_turn_contexts() {
             turn_length: ($turn | length),
             task_complete_index: ([range(0; ($turn | length)) | select($turn[.].value | is_task_complete)] | first),
             has_request_user_input: any($turn[]?; .value | is_request_user_input),
+            has_auto_continue_action: any($turn[]?; .value | is_auto_continue_action),
             strict_turn_mode: (($strict_fixture == "true") or any($turn[]?; .value | is_strict_packet_mode_evidence)),
             entries: [
               range(0; ($turn | length)) as $index
               | ($turn[$index].value) as $value
               | {
                   index: $index,
+                  source_line_number: ($turn[$index].key + 1),
                   raw_entry: $value,
                   assistant_text: ($value | assistant_text),
                   transcript_text: ($value | transcript_text),
@@ -218,6 +220,7 @@ run_endgate_audit() {
     local task_complete_index
     local strict_turn_mode
     local has_request_user_input
+    local turn_has_auto_continue_action
     local last_carrier_index=""
     local last_carrier_kind=""
     local last_carrier_object=""
@@ -237,16 +240,19 @@ run_endgate_audit() {
     task_complete_index="$(printf '%s\n' "$turn_context" | jq -r '.task_complete_index // empty')"
     strict_turn_mode="$(printf '%s\n' "$turn_context" | jq -r '.strict_turn_mode')"
     has_request_user_input="$(printf '%s\n' "$turn_context" | jq -r '.has_request_user_input')"
+    turn_has_auto_continue_action="$(printf '%s\n' "$turn_context" | jq -r '.has_auto_continue_action')"
 
     for ((index = 0; index < turn_length; index++)); do
       local entry_json
+      local source_line_number
       local raw_entry
       local assistant_text
       local snapshot_file
       local carrier_object
 
       entry_json="$(printf '%s\n' "$turn_context" | jq -c ".entries[$index]")"
-      raw_entry="$(printf '%s\n' "$entry_json" | jq -c '.raw_entry')"
+      source_line_number="$(printf '%s\n' "$entry_json" | jq -r '.source_line_number')"
+      raw_entry="$(sed -n "${source_line_number}p" "$file")"
       assistant_text="$(printf '%s\n' "$entry_json" | jq -r '.assistant_text')"
       snapshot_file="$(mktemp "${TMPDIR:-/tmp}/runtime-endgate-entry.XXXXXX")"
 
@@ -374,7 +380,7 @@ run_endgate_audit() {
       continue
     fi
 
-    if [ "$strict_turn_mode" = "true" ] && { [ -n "$task_complete_index" ] || [ "$has_request_user_input" = "true" ]; }; then
+    if [ "$strict_turn_mode" = "true" ] && { [ -n "$task_complete_index" ] || [ "$has_request_user_input" = "true" ] || [ "$turn_has_auto_continue_action" = "true" ]; }; then
       results+=("$(jq -n --arg turn_id "$turn_id" '
         {
           turn_id: $turn_id,
@@ -516,6 +522,56 @@ assert_audit_passes_with_mode() {
   fi
 }
 
+write_inline_runtime_fixture() {
+  local file="$1"
+  local scenario="$2"
+
+  case "$scenario" in
+    duplicate_structured_with_visible_fallback)
+      cat <<'EOF' > "$file"
+{"timestamp":"2026-03-26T10:00:00.000Z","turn_id":"turn-duplicate-structured-visible-fallback","type":"response_item","payload":{"type":"message","role":"assistant","metadata":{"endgate":{"ENDGATE_PROTOCOL_VERSION":"1","ENDGATE_STATE":"TERMINAL_CHOICE","ENDGATE_STATE":"AUTO_CONTINUE","ENDGATE_CHOICE_KIND":"NONE","ENDGATE_NEXT_ACTION":"CONTINUE_WITH_TOOL"}},"content":[{"type":"output_text","text":"Malformed structured carrier should fall back to the visible tail block.\nENDGATE_PROTOCOL_VERSION: 1\nENDGATE_STATE: AUTO_CONTINUE\nENDGATE_CHOICE_KIND: NONE\nENDGATE_NEXT_ACTION: CONTINUE_WITH_TOOL"}]}}
+{"timestamp":"2026-03-26T10:00:02.000Z","turn_id":"turn-duplicate-structured-visible-fallback","type":"response_item","payload":{"type":"function_call","name":"exec_command","arguments":"{\"cmd\":\"bash tests/codex/test-runtime-endgate-transcript-audit.sh\"}","call_id":"call_duplicate_structured_visible_fallback_exec"}}
+{"timestamp":"2026-03-26T10:00:04.000Z","turn_id":"turn-duplicate-structured-visible-fallback","type":"response_item","payload":{"type":"function_call_output","call_id":"call_duplicate_structured_visible_fallback_exec","output":"PASS"}}
+EOF
+      ;;
+    duplicate_structured_without_fallback)
+      cat <<'EOF' > "$file"
+{"timestamp":"2026-03-26T10:10:00.000Z","turn_id":"turn-duplicate-structured-no-fallback","type":"response_item","payload":{"type":"message","role":"assistant","metadata":{"endgate":{"ENDGATE_PROTOCOL_VERSION":"1","ENDGATE_STATE":"TERMINAL_CHOICE","ENDGATE_STATE":"AUTO_CONTINUE","ENDGATE_CHOICE_KIND":"NONE","ENDGATE_NEXT_ACTION":"CONTINUE_WITH_TOOL"}},"content":[{"type":"output_text","text":"Malformed structured carrier is present here, but there is no visible fallback block."}]}}
+{"timestamp":"2026-03-26T10:10:02.000Z","turn_id":"turn-duplicate-structured-no-fallback","type":"response_item","payload":{"type":"function_call","name":"exec_command","arguments":"{\"cmd\":\"bash tests/codex/test-runtime-endgate-transcript-audit.sh\"}","call_id":"call_duplicate_structured_no_fallback_exec"}}
+{"timestamp":"2026-03-26T10:10:04.000Z","turn_id":"turn-duplicate-structured-no-fallback","type":"response_item","payload":{"type":"function_call_output","call_id":"call_duplicate_structured_no_fallback_exec","output":"PASS"}}
+EOF
+      ;;
+    *)
+      echo "FAIL: unknown inline runtime fixture scenario: $scenario"
+      exit 1
+      ;;
+  esac
+}
+
+assert_inline_runtime_fixture_passes_with_mode() {
+  local scenario="$1"
+  local expected_mode="$2"
+  local description="$3"
+  local fixture
+
+  fixture="$(mktemp "${TMPDIR:-/tmp}/runtime-endgate-${scenario}.XXXXXX")"
+  write_inline_runtime_fixture "$fixture" "$scenario"
+  assert_audit_passes_with_mode "$fixture" "$expected_mode" "$description"
+  rm -f "$fixture"
+}
+
+assert_inline_runtime_fixture_fails_with_mode() {
+  local scenario="$1"
+  local expected_mode="$2"
+  local description="$3"
+  local fixture
+
+  fixture="$(mktemp "${TMPDIR:-/tmp}/runtime-endgate-${scenario}.XXXXXX")"
+  write_inline_runtime_fixture "$fixture" "$scenario"
+  assert_audit_fails_with_mode "$fixture" "$expected_mode" "$description"
+  rm -f "$fixture"
+}
+
 if ! command -v jq >/dev/null 2>&1; then
   echo "FAIL: jq is required for runtime endgate transcript checks"
   exit 1
@@ -558,5 +614,7 @@ assert_audit_fails_with_mode "$PACKET_UNFULFILLED_FIXTURE" "missing post-carrier
 assert_audit_fails_with_mode "$ITEM_PACKET_UNFULFILLED_FIXTURE" "missing post-carrier action" "item-based packet unfulfilled fixture is rejected when no post-carrier continuation happens"
 assert_audit_fails_with_mode "$PACKET_MISSING_FIXTURE" "missing canonical carrier" "packet strict-mode fixture is rejected when the canonical carrier is missing"
 assert_audit_fails_with_mode "$STRICT_SESSION_MISSING_PACKET_FIXTURE" "missing canonical carrier" "strict-session transcript is rejected when the canonical carrier is missing"
+assert_inline_runtime_fixture_passes_with_mode "duplicate_structured_with_visible_fallback" "valid tail block fallback" "duplicate structured carrier falls back to the visible tail block instead of passing as structured"
+assert_inline_runtime_fixture_fails_with_mode "duplicate_structured_without_fallback" "missing canonical carrier" "duplicate structured carrier without a valid fallback is rejected"
 
 echo "All runtime endgate transcript audit checks passed."
