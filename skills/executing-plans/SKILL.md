@@ -29,6 +29,8 @@ Before ending a routine batch boundary, classify the batch boundary as `auto-con
   2. 继续
 - Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option
 - For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
+- If a workflow lane emits a fixed-field `endgate-state-packet`, treat the last packet plus its post-packet event window as the governing runtime contract for that boundary.
+- Earlier same-turn tool calls do not satisfy a later `endgate-state-packet`; prose invitation matching remains only a fallback safety net when no packet exists.
 - When this routine boundary reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
 - Do not produce a plain final-answer-style closeout before the terminal-choice popup.
 - A settled recommendation, final draft, or final summary is still not permission to end directly.

@@ -89,6 +89,9 @@ Use `bash tests/prompt-contracts/test-subagent-pipeline-routing.sh` as the routi
 
 - `tool events`：最强约束，直接来自工具调用本身。
 - `transcript events`：第二优先级，记录真实 session 行为。
+  对 endgate 审计而言，如果 transcript 中已经存在固定字段的
+  `endgate-state-packet`，则 packet declaration 与其后的事件窗口优先于
+  同一 turn 中更早位置的普通工具调用，也优先于 invitation prose 的句式推断。
 - `fixed machine-readable tail blocks`：用于 reviewer / implementer
   报告等稳定尾块，便于 prompt-contract 断言。
 - `prose`：只用于补充解释；当它和前三层冲突时，以前三层为准。
@@ -178,6 +181,22 @@ First drift matrix: `Chinese / English / concise / verbose`.
   `tests/codex/test-runtime-endgate-transcript-audit.sh` 放行。
   Latest local result: passed the runtime endgate audit in this Codex-only
   validation pass.
+- `tests/codex/fixtures/runtime-endgate-packet-autocontinue-positive.jsonl`
+  当前证据：packet-first auto-continue positive fixture，由
+  `tests/codex/test-runtime-endgate-transcript-audit.sh` 放行。
+  Latest local result: passed the packet-first runtime endgate audit in this
+  Codex-only validation pass.
+- `tests/codex/fixtures/runtime-endgate-packet-terminal-choice-positive.jsonl`
+  当前证据：packet-first terminal-choice positive fixture，由
+  `tests/codex/test-runtime-endgate-transcript-audit.sh` 放行。
+  Latest local result: passed the packet-first runtime endgate audit in this
+  Codex-only validation pass.
+- `tests/codex/fixtures/runtime-endgate-packet-unfulfilled-negative.jsonl`
+  当前证据：packet-first negative fixture，证明同一 turn 中 packet 之前的普通
+  工具调用不能为 packet 之后未兑现的 `AUTO_CONTINUE` 放行，由
+  `tests/codex/test-runtime-endgate-transcript-audit.sh` 拒绝。
+  Latest local result: rejected as an unfulfilled endgate-state-packet in this
+  Codex-only validation pass.
 - `tests/claude-code/test-subagent-driven-development.sh`
   当前 contract：锁定 transcript 中的 `Skill` / `Task` / `TodoWrite`
   事件，要求保留 `TASK_STATUS` / `TEST_STATUS` / `NEXT_ACTION`
@@ -206,12 +225,27 @@ Runtime Audit B: A repaired fixture that routes the next-step split through
 Runtime Audit C: A repaired fixture that directly executes an authorized
 auto-continue step must pass.
 
+Runtime Audit D: A packet-first fixture with declared `TERMINAL_CHOICE`
+followed by the real `request_user_input` popup must pass.
+
+Runtime Audit E: A packet-first fixture with declared `AUTO_CONTINUE` but no
+post-packet continuation action must fail, even if the same turn had an earlier
+ordinary tool call.
+
+Runtime Audit F: Any fixture already placed in the packet-first lane must fail
+if the transcript never emits an `endgate-state-packet`; packet-named fixtures
+are strict-mode evidence, not optional hints.
+
 ### Required Audit Evidence
 
 - 保留最小负向 incident fixture，能够稳定复现
   `prose-only next-step invitation + task_complete`。
 - 至少保留一个 `request_user_input` 修复样本和一个 `auto-continue`
   修复样本。
+- 对已经 packet 化的 lane，至少保留一个 packet-positive 样本和一个
+  packet-negative 样本。
+- 对文件名进入 packet-first lane 的 fixture，缺失 packet 本身就必须构成失败，
+  不能再退回 legacy prose fallback 放行。
 - 记录每个样本由哪一个脚本验证，以及最近一次本地验证结果。
 
 ### Latest Runtime Endgate Audit Evidence
@@ -221,6 +255,9 @@ auto-continue step must pass.
 | A | Negative incident fixture with invitation prose, direct `task_complete`, and no `request_user_input` | `tests/codex/fixtures/runtime-prose-endgate-leak-negative.jsonl` + `tests/codex/test-runtime-endgate-transcript-audit.sh` |
 | B | Repaired fixture that resolves the next-step split through `request_user_input` | `tests/codex/fixtures/runtime-prose-endgate-repaired-request-user-input.jsonl` + `tests/codex/test-runtime-endgate-transcript-audit.sh` |
 | C | Repaired fixture that shows authorized auto-continue via a real tool action | `tests/codex/fixtures/runtime-prose-endgate-repaired-autocontinue.jsonl` + `tests/codex/test-runtime-endgate-transcript-audit.sh` |
+| D | Packet-first fixture that declares `TERMINAL_CHOICE` and then emits the canonical popup | `tests/codex/fixtures/runtime-endgate-packet-terminal-choice-positive.jsonl` + `tests/codex/test-runtime-endgate-transcript-audit.sh` |
+| E | Packet-first negative fixture that declares `AUTO_CONTINUE` but never emits a post-packet continuation action | `tests/codex/fixtures/runtime-endgate-packet-unfulfilled-negative.jsonl` + `tests/codex/test-runtime-endgate-transcript-audit.sh` |
+| F | Strict packet-lane fixture that omits `endgate-state-packet` entirely and must fail on missing packet alone | `tests/codex/fixtures/runtime-endgate-packet-missing-packet-negative.jsonl` + `tests/codex/test-runtime-endgate-transcript-audit.sh` |
 
 ## Numeric Choice Smoke Tests
 

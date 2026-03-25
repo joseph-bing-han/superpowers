@@ -82,6 +82,8 @@ Before ending a reviewed task boundary, classify the reviewed task boundary as `
   1. 结束 (Recommended)
   2. 继续
 - Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option
+- If a workflow lane emits a fixed-field `endgate-state-packet`, treat the last packet plus its post-packet event window as the governing runtime contract for that boundary.
+- Earlier same-turn tool calls do not satisfy a later `endgate-state-packet`; prose invitation matching remains only a fallback safety net when no packet exists.
 - When this reviewed-task boundary reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
 - Do not produce a plain final-answer-style closeout before the terminal-choice popup.
 - A settled recommendation, final draft, or final summary is still not permission to end directly.

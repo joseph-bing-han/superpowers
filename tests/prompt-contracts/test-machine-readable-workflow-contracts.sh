@@ -243,6 +243,10 @@ assert_section_contains "### Source-of-truth priority" \
   'tool events > transcript events > fixed machine-readable tail blocks > prose' \
   "source-of-truth priority preserves the fixed ordering"
 
+assert_section_contains "### Source-of-truth priority" \
+  'endgate-state-packet.*其后的事件窗口|packet declaration.*其后的事件窗口|优先于 invitation prose|优先于.*句式推断' \
+  "source-of-truth priority documents packet-first endgate validation inside transcript evidence"
+
 assert_section_contains "### Repository audit and fragility tiers" \
   'P0.*P1.*P2|P0 / P1 / P2' \
   "repository audit section defines the three fragility tiers"
@@ -314,6 +318,12 @@ assert_file_section_contains_literal "docs/README.codex.md" \
   "## Autonomous Continuation" \
   "$CANONICAL_SENTENCE" \
   "Codex README mirrors the canonical machine-contract sentence in workflow guidance"
+
+assert_file_section_contains "docs/README.codex.md" \
+  "## Autonomous Continuation" \
+  'endgate-state-packet.*last packet forward|packet declaration.*primary runtime contract' \
+  "Codex README documents packet-first runtime endgate handling" \
+  '^## '
 
 assert_file_section_contains_literal "docs/testing.md" \
   "### Required Evidence" \

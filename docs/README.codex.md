@@ -101,6 +101,8 @@ If the user asked for end-to-end completion, Superpowers should keep advancing t
   2. 继续
 - Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
 - For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
+- If a workflow lane emits a fixed-field `endgate-state-packet`, validate that boundary from the last packet forward; earlier same-turn tool calls do not satisfy a later endgate declaration.
+- When an `endgate-state-packet` exists, treat packet declaration plus the post-packet event sequence as the primary runtime contract; invitation prose remains only a fallback safety net for legacy lanes.
 - When the turn reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
 - Do not produce a plain final-answer-style closeout before the terminal-choice popup.
 - A settled recommendation, final draft, or final summary is still not permission to end directly.

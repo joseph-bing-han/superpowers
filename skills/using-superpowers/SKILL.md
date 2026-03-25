@@ -132,6 +132,8 @@ If the user asked for end-to-end completion and no clarification is needed, keep
   2. 继续
 - Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option
 - For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
+- If a workflow lane emits a fixed-field `endgate-state-packet`, treat the last packet plus its post-packet event window as the governing runtime contract for that boundary.
+- Earlier same-turn tool calls do not satisfy a later `endgate-state-packet`; prose invitation matching remains only a fallback safety net when no packet exists.
 - When the workflow reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
 - Do not produce a plain final-answer-style closeout before the terminal-choice popup.
 - A settled recommendation, current recommendation, final draft, final summary, or "this is the right direction" statement is still not permission to end directly.
@@ -145,6 +147,7 @@ If the user asked for end-to-end completion and no clarification is needed, keep
 - Non-terminal workflow stages must not end with a prose-only follow-up or a declarative prose-only next-step proposal such as `if you agree`, `if this direction looks good`, `the next best step is X`, `next I would do X`, or `I can directly prepare X next`
 - This also includes judgment-framed, comparative, or recommendation-framed declarative next-step proposals, including Chinese variants such as `如果按我的判断，下一步应该先……`, `下一步最值得做的不是 A，而是 B`, `接下来更值得做的是……`, or `我建议先……`
 - A concrete leak example is `如果你同意，我下一步可以直接按这个推荐方案 A 开始修。`
+- Another concrete leak example is `如果你下一步是要把剩余逻辑也完整同步过去，我可以继续接着做。`
 - That pattern must resolve to either `request_user_input` or `auto-continue`, never `task_complete`
 - A non-terminal turn must never end with `task_complete` after only a summary, recommendation, judgment, comparison, or suggestion about what to do next
 - If you can already describe the next safe step concretely, do it instead of narrating it and stopping
@@ -219,4 +222,5 @@ If this skill reaches a terminal boundary where the current request appears comp
 - Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
 - Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
 - Concrete invitation prose such as `如果你同意，我下一步可以直接按这个推荐方案 A 开始修。` must resolve through `request_user_input` or `auto-continue`, never `task_complete`.
+- Concrete invitation prose such as `如果你下一步是要把剩余逻辑也完整同步过去，我可以继续接着做。` must also resolve through `request_user_input` or `auto-continue`, never `task_complete`.
 - If the next safe step is already implied, auto-continue instead of asking the user to type a free-form continuation or ending message.

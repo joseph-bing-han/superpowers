@@ -327,6 +327,8 @@ Next skills:
   2. 继续
 - 额外文本需求必须走客户端自动追加的 `Other` / notes 路径，不要再在选项列表里重复增加同类入口
 - For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
+- If a workflow lane emits a fixed-field `endgate-state-packet`, treat the last packet plus its post-packet event window as the governing runtime contract for that boundary.
+- Earlier same-turn tool calls do not satisfy a later `endgate-state-packet`; prose invitation matching remains only a fallback safety net when no packet exists.
 
 当 handoff 进入 `terminal-choice` 时，这个 turn 的直接下一个动作就是弹出 `request_user_input`，不能先写一段自由文本终稿再结束。
 
