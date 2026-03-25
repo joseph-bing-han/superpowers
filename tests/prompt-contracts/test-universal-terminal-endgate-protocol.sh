@@ -94,6 +94,18 @@ assert_section_has_endgate_packet_template() {
   assert_section_contains "$file" "$heading" 'endgate-state-packet|strict packet mode|严格 packet 模式' "$description_prefix explicitly treats packetized endgate as mandatory" "$stop_pattern"
 }
 
+assert_section_uses_canonical_carrier_model() {
+  local file="$1"
+  local heading="$2"
+  local description_prefix="$3"
+  local stop_pattern="${4:-^(##|###) }"
+
+  assert_section_contains "$file" "$heading" 'canonical machine-readable carrier|canonical carrier' "$description_prefix defines strict packet mode around canonical carriers" "$stop_pattern"
+  assert_section_contains "$file" "$heading" 'structured carrier.*preferred|prefer (a )?structured carrier|structured carrier.*优先|优先.*structured carrier' "$description_prefix prefers structured carriers when available" "$stop_pattern"
+  assert_section_contains "$file" "$heading" 'visible tail block.*fallback|tail block.*only a fallback|用户可见.*tail block.*回退' "$description_prefix limits visible tail blocks to fallback-only status" "$stop_pattern"
+  assert_section_not_contains "$file" "$heading" 'last 4 non-empty lines before the next machine action must be (the|that) canonical `ENDGATE_\*` packet' "$description_prefix no longer requires a user-visible tail block as the only canonical path" "$stop_pattern"
+}
+
 SKILL_FILES=(
   "skills/dispatching-parallel-agents/SKILL.md"
   "skills/executing-plans/SKILL.md"
@@ -133,6 +145,12 @@ for file in "${SKILL_FILES[@]}"; do
     '^## '
 
   assert_section_has_endgate_packet_template \
+    "$file" \
+    "## Terminal Endgate Protocol" \
+    "$file terminal protocol" \
+    '^## '
+
+  assert_section_uses_canonical_carrier_model \
     "$file" \
     "## Terminal Endgate Protocol" \
     "$file terminal protocol" \

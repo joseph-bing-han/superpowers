@@ -29,9 +29,11 @@ Before ending a routine batch boundary, classify the batch boundary as `auto-con
   2. 继续
 - Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option
 - For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
-- Every routine boundary in this repository uses `endgate-state-packet`; treat the last packet plus its post-packet event window as the governing runtime contract for that boundary.
-- Earlier same-turn tool calls do not satisfy a later `endgate-state-packet`; prose invitation matching remains only a fallback safety net when no packet exists.
-- At every routine boundary in this repository, emit this exact packet immediately before the next machine action:
+- Every routine boundary in this repository is carrier-backed; treat the last canonical carrier plus its post-carrier event window as the governing runtime contract for that boundary.
+- Earlier same-turn tool calls do not satisfy a later canonical carrier; prose invitation matching remains only a fallback safety net when no carrier exists.
+- In strict packet mode, a canonical machine-readable carrier must exist before the next machine action.
+- Prefer a structured carrier when the runtime supports it; a user-visible tail block remains only a fallback.
+- At every routine boundary in this repository, ensure the canonical machine-readable carrier contains this exact packet before the next machine action:
 ```text
 ENDGATE_PROTOCOL_VERSION: 1
 ENDGATE_STATE: AUTO_CONTINUE | NEEDS_USER_DECISION | TERMINAL_CHOICE
@@ -42,9 +44,9 @@ ENDGATE_NEXT_ACTION: CONTINUE_WITH_TOOL | REQUEST_USER_INPUT
   - `AUTO_CONTINUE` -> `NONE` + `CONTINUE_WITH_TOOL`
   - `NEEDS_USER_DECISION` -> `SPECIFIC_NEXT_STEP` + `REQUEST_USER_INPUT`
   - `TERMINAL_CHOICE` -> `CONTINUE_OR_STOP` + `REQUEST_USER_INPUT`
-- `AUTO_CONTINUE`: emit the packet, then immediately execute the next concrete task.
-- `NEEDS_USER_DECISION`: emit the packet, then immediately call `request_user_input` with the concrete blocker-resolution or next-step options.
-- `TERMINAL_CHOICE`: emit the packet, then immediately call `request_user_input` with only `结束 (Recommended)` and `继续`.
+- `AUTO_CONTINUE`: ensure the canonical carrier records this packet, then immediately execute the next concrete task.
+- `NEEDS_USER_DECISION`: ensure the canonical carrier records this packet, then immediately call `request_user_input` with the concrete blocker-resolution or next-step options.
+- `TERMINAL_CHOICE`: ensure the canonical carrier records this packet, then immediately call `request_user_input` with only `结束 (Recommended)` and `继续`.
 - When this routine boundary reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
 - Do not produce a plain final-answer-style closeout before the terminal-choice popup.
 - A settled recommendation, final draft, or final summary is still not permission to end directly.
@@ -129,15 +131,16 @@ Example:
 
 If this skill reaches a terminal boundary where the current request appears complete:
 - This skill must not end the conversation directly with prose, `task_complete`, or a typed free-form prompt.
-- Treat this terminal boundary as strict `endgate-state-packet` territory; packet emission is mandatory, not optional guidance.
-- Emit this exact packet immediately before the next machine action:
+- Treat this terminal boundary as strict `endgate-state-packet` territory; a canonical machine-readable carrier is mandatory, not optional guidance.
+- Ensure the canonical machine-readable carrier contains this exact packet before the next machine action:
 ```text
 ENDGATE_PROTOCOL_VERSION: 1
 ENDGATE_STATE: TERMINAL_CHOICE
 ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
 ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
 ```
-- The last 4 non-empty lines before the next machine action must be that canonical `ENDGATE_*` packet.
+- In strict packet mode, a canonical machine-readable carrier must exist before the next machine action.
+- Prefer a structured carrier when the runtime supports it; a user-visible tail block remains only a fallback.
 - Route true completion through `terminal-choice`.
 - The very next action must be `request_user_input`.
 - In Codex tool-backed terminal-choice popups, author only:

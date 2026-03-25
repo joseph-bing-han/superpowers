@@ -187,15 +187,16 @@ From debugging session (2025-10-03):
 
 If this skill reaches a terminal boundary where the current request appears complete:
 - This skill must not end the conversation directly with prose, `task_complete`, or a typed free-form prompt.
-- Treat this terminal boundary as strict `endgate-state-packet` territory; packet emission is mandatory, not optional guidance.
-- Emit this exact packet immediately before the next machine action:
+- Treat this terminal boundary as strict `endgate-state-packet` territory; a canonical machine-readable carrier is mandatory, not optional guidance.
+- Ensure the canonical machine-readable carrier contains this exact packet before the next machine action:
 ```text
 ENDGATE_PROTOCOL_VERSION: 1
 ENDGATE_STATE: TERMINAL_CHOICE
 ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
 ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
 ```
-- The last 4 non-empty lines before the next machine action must be that canonical `ENDGATE_*` packet.
+- In strict packet mode, a canonical machine-readable carrier must exist before the next machine action.
+- Prefer a structured carrier when the runtime supports it; a user-visible tail block remains only a fallback.
 - Route true completion through `terminal-choice`.
 - The very next action must be `request_user_input`.
 - In Codex tool-backed terminal-choice popups, author only:

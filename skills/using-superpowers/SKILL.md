@@ -21,8 +21,9 @@ Before any workflow turn ends:
 - This includes value-framed endings such as `如果你愿意，我下一步最有价值的不是继续泛讨论，而是直接……`.
 - A completed assessment, audit, comparison, review, or research report is still a terminal boundary; a bare `结论`, `最终判断`, `我的推荐`, or `这轮我没有改代码，只做了……` closeout is not enough.
 - Every workflow boundary in this repository uses `endgate-state-packet`; this repository is in strict packet mode.
+- In strict packet mode, a canonical machine-readable carrier must exist before the next machine action.
+- If the runtime supports a structured carrier, prefer a structured carrier over a user-visible tail block; the tail block is not required and remains only a fallback.
 - If the boundary is non-terminal, continue automatically or call `request_user_input`; never end with `task_complete`.
-- Therefore, the last 4 non-empty lines before the next machine action must be the canonical `ENDGATE_*` packet.
 </ENDGATE-HARD-RULE>
 
 ## Instruction Priority
@@ -142,9 +143,11 @@ If the user asked for end-to-end completion and no clarification is needed, keep
   2. 继续
 - Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option
 - For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
-- Every workflow boundary in this repository is packetized; treat the last packet plus its post-packet event window as the governing runtime contract for that boundary.
-- Earlier same-turn tool calls do not satisfy a later `endgate-state-packet`; prose invitation matching remains only a fallback safety net when no packet exists.
-- At every workflow boundary in this repository, emit this exact packet immediately before the next machine action:
+- Every workflow boundary in this repository is carrier-backed; treat the last canonical carrier plus its post-carrier event window as the governing runtime contract for that boundary.
+- Earlier same-turn tool calls do not satisfy a later canonical carrier; prose invitation matching remains only a fallback safety net when no carrier exists.
+- In strict packet mode, a canonical machine-readable carrier must exist before the next machine action.
+- Prefer a structured carrier when the runtime supports it; a user-visible tail block remains only a fallback.
+- At every workflow boundary in this repository, ensure the canonical machine-readable carrier contains this exact packet before the next machine action:
 ```text
 ENDGATE_PROTOCOL_VERSION: 1
 ENDGATE_STATE: AUTO_CONTINUE | NEEDS_USER_DECISION | TERMINAL_CHOICE
@@ -155,9 +158,9 @@ ENDGATE_NEXT_ACTION: CONTINUE_WITH_TOOL | REQUEST_USER_INPUT
   - `AUTO_CONTINUE` -> `NONE` + `CONTINUE_WITH_TOOL`
   - `NEEDS_USER_DECISION` -> `SPECIFIC_NEXT_STEP` + `REQUEST_USER_INPUT`
   - `TERMINAL_CHOICE` -> `CONTINUE_OR_STOP` + `REQUEST_USER_INPUT`
-- `AUTO_CONTINUE`: emit the packet, then immediately take the concrete continuation action with the relevant tool.
-- `NEEDS_USER_DECISION`: emit the packet, then immediately call `request_user_input` with the concrete next-step options.
-- `TERMINAL_CHOICE`: emit the packet, then immediately call `request_user_input` with only `结束 (Recommended)` and `继续`.
+- `AUTO_CONTINUE`: ensure the canonical carrier records this packet, then immediately take the concrete continuation action with the relevant tool.
+- `NEEDS_USER_DECISION`: ensure the canonical carrier records this packet, then immediately call `request_user_input` with the concrete next-step options.
+- `TERMINAL_CHOICE`: ensure the canonical carrier records this packet, then immediately call `request_user_input` with only `结束 (Recommended)` and `继续`.
 - When the workflow reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
 - Do not produce a plain final-answer-style closeout before the terminal-choice popup.
 - A completed assessment, audit, comparison, review, or research report is still a terminal boundary. After delivering that report, emit the `TERMINAL_CHOICE` packet and immediately call `request_user_input`; a bare closeout such as `结论`, `最终判断`, `我的推荐`, or `这轮我没有改代码，只做了……` is still a protocol violation if it ends the turn directly.

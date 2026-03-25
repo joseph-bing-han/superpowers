@@ -43,6 +43,34 @@ assert_section_contains() {
   assert_file_section_contains "docs/testing.md" "$heading" "$pattern" "$description" "$stop_pattern"
 }
 
+assert_section_not_contains() {
+  local heading="$1"
+  local pattern="$2"
+  local description="$3"
+  local stop_pattern="${4:-^(##|###) }"
+  local target_file="$REPO_ROOT/docs/testing.md"
+  local content
+
+  content="$(extract_section "$target_file" "$heading" "$stop_pattern")"
+
+  if [[ -z "$content" ]]; then
+    echo "FAIL: $description"
+    echo "  File: docs/testing.md"
+    echo "  Missing section: $heading"
+    exit 1
+  fi
+
+  if printf '%s' "$content" | normalize_stream | rg -qi -- "$pattern"; then
+    echo "FAIL: $description"
+    echo "  File: docs/testing.md"
+    echo "  Section: $heading"
+    echo "  Forbidden pattern: $pattern"
+    exit 1
+  else
+    echo "PASS: $description"
+  fi
+}
+
 assert_file_section_contains() {
   local relative_file="$1"
   local heading="$2"
@@ -229,23 +257,63 @@ assert_file_has_exact_tail_block() {
   fi
 }
 
+assert_file_contains_pattern() {
+  local relative_file="$1"
+  local pattern="$2"
+  local description="$3"
+  local target_file="$REPO_ROOT/$relative_file"
+
+  if rg -qi -- "$pattern" "$target_file"; then
+    echo "PASS: $description"
+  else
+    echo "FAIL: $description"
+    echo "  File: $relative_file"
+    echo "  Pattern: $pattern"
+    exit 1
+  fi
+}
+
+assert_file_not_contains_pattern() {
+  local relative_file="$1"
+  local pattern="$2"
+  local description="$3"
+  local target_file="$REPO_ROOT/$relative_file"
+
+  if rg -qi -- "$pattern" "$target_file"; then
+    echo "FAIL: $description"
+    echo "  File: $relative_file"
+    echo "  Forbidden pattern: $pattern"
+    exit 1
+  else
+    echo "PASS: $description"
+  fi
+}
+
 assert_section_contains "## Machine-Readable Workflow Contracts" \
   'branch-local contract snapshot|rollout snapshot' \
   "machine-readable contract section is explicitly framed as a branch-local or rollout snapshot" \
   '^## '
 
 assert_section_contains "## Machine-Readable Workflow Contracts" \
-  'close-runtime-prose-endgate-leaks' \
+  'hide-endgate-packet-from-terminal' \
   "machine-readable contract section names the current change scope" \
   '^## '
 
 assert_section_contains "### Source-of-truth priority" \
+  'tool events > transcript events > canonical machine-readable carriers > prose' \
+  "source-of-truth priority preserves the carrier-first ordering"
+
+assert_section_not_contains "### Source-of-truth priority" \
   'tool events > transcript events > fixed machine-readable tail blocks > prose' \
-  "source-of-truth priority preserves the fixed ordering"
+  "source-of-truth priority no longer treats visible tail blocks as the only canonical layer"
 
 assert_section_contains "### Source-of-truth priority" \
-  'endgate-state-packet.*其后的事件窗口|packet declaration.*其后的事件窗口|优先于 invitation prose|优先于.*句式推断' \
-  "source-of-truth priority documents packet-first endgate validation inside transcript evidence"
+  'structured carrier.*优先|prefer structured carrier|visible tail block.*fallback|tail block.*only a fallback|canonical machine-readable carrier' \
+  "source-of-truth priority documents structured-carrier priority and visible tail fallback"
+
+assert_section_contains "### Source-of-truth priority" \
+  'canonical carrier.*其后的事件窗口|post-carrier event window|packet declaration.*其后的事件窗口|优先于 invitation prose|优先于.*句式推断' \
+  "source-of-truth priority documents carrier-first endgate validation inside transcript evidence"
 
 assert_section_contains "### Repository audit and fragility tiers" \
   'P0.*P1.*P2|P0 / P1 / P2' \
@@ -256,6 +324,11 @@ assert_section_contains "## Machine-Readable Workflow Contracts" \
   "machine-readable contract section covers checkpoint, handoff, and terminal-choice flows" \
   '^## '
 
+assert_section_contains "## Machine-Readable Workflow Contracts" \
+  'all local workflow skills|所有本地 workflow skills' \
+  "machine-readable contract section scopes the carrier-first rule across all local workflow skills" \
+  '^## '
+
 assert_section_contains "### Workflow Node / Contract Carrier / Verification Matrix" \
   'Workflow Node / Contract Carrier / Verification Matrix|Workflow Node.*Contract Carrier.*Verification.*Status' \
   "verification matrix heading is present in the scoped section"
@@ -264,6 +337,11 @@ assert_file_line_contains_literal "docs/testing.md" \
   '| checkpoint / handoff / terminal-choice flows |' \
   'prompt-contract + Codex fixture tests (`tests/codex/test-request-user-input-transcript-fixtures.sh`, `tests/codex/test-runtime-endgate-transcript-audit.sh`)' \
   "checkpoint, handoff, and terminal-choice row keeps both the current prompt-contract evidence and the Codex fixture evidence path"
+
+assert_file_line_contains_literal "docs/testing.md" \
+  '| checkpoint / handoff / terminal-choice flows |' \
+  'canonical machine-readable carriers + request_user_input call + transcript event' \
+  "checkpoint, handoff, and terminal-choice row records the canonical carrier plus transcript evidence path"
 
 assert_file_line_contains_literal "docs/testing.md" \
   '| checkpoint / handoff / terminal-choice flows |' \
@@ -321,14 +399,26 @@ assert_file_section_contains_literal "docs/README.codex.md" \
 
 assert_file_section_contains "docs/README.codex.md" \
   "## Autonomous Continuation" \
-  'endgate-state-packet.*last packet forward|packet declaration.*primary runtime contract' \
-  "Codex README documents packet-first runtime endgate handling" \
+  'canonical carrier.*last canonical carrier forward|post-carrier event sequence|endgate-state-packet.*last packet forward|packet declaration.*primary runtime contract' \
+  "Codex README documents carrier-first runtime endgate handling" \
   '^## '
 
 assert_file_section_contains_literal "docs/testing.md" \
   "### Required Evidence" \
   'assistant-authored payload 只包含 `结束 (Recommended)`、`继续`；客户端 UI 会自动追加 `Other` / notes path 作为自由输入兜底，不应把它记录成 assistant-authored `3`。' \
   "terminal-choice evidence guidance separates the authored popup payload from the client UI fallback"
+
+assert_file_contains_pattern ".codex/instruction.md" \
+  'canonical machine-readable carrier' \
+  "Codex instruction bootstrap defines strict packet mode around canonical machine-readable carriers"
+
+assert_file_contains_pattern ".codex/instruction.md" \
+  'structured carrier.*not required|structured carrier.*not mandatory|structured carrier.*不强制|visible tail block.*fallback|tail block.*fallback' \
+  "Codex instruction bootstrap prioritizes structured carriers and limits visible tail blocks to fallback"
+
+assert_file_not_contains_pattern ".codex/instruction.md" \
+  'last 4 non-empty lines before the next machine action must be (the|that) canonical `ENDGATE_\*` packet' \
+  "Codex instruction bootstrap no longer defines strict packet mode as a user-visible tail block only"
 
 assert_file_has_exact_tail_block "skills/brainstorming/spec-document-reviewer-prompt.md" \
   $'Keep the field names exactly as written.\nFor `REVIEW_VERDICT` and `NEXT_ACTION`, choose exactly one allowed token and do not repeat the pipe-delimited schema.\nReplace `BLOCKING_ISSUE_COUNT` with digits only.\nREVIEW_VERDICT: APPROVED | CHANGES_REQUIRED\nBLOCKING_ISSUE_COUNT: non-negative integer\nNEXT_ACTION: CONTINUE | REVISE | STOP\n```' \

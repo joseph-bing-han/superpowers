@@ -76,29 +76,32 @@ Use `bash tests/prompt-contracts/test-subagent-pipeline-routing.sh` as the routi
 避免后续只靠 prose 解释导致契约漂移。
 
 这是一份当前 change 的 branch-local contract snapshot，也是 rollout snapshot，
-只描述 `close-runtime-prose-endgate-leaks` 在本分支上的契约冻结状态，
+只描述 `hide-endgate-packet-from-terminal` 在本分支上的契约冻结状态，
 不把后续任务的计划证据误写成“仓库里已经存在的实现”。
 
 ### Source-of-truth priority
 
 当前 source-of-truth priority 固定为
-`tool events / transcript events / fixed machine-readable tail blocks / prose`。
+`tool events / transcript events / canonical machine-readable carriers / prose`。
 
 同一顺序也可以写成
-`tool events > transcript events > fixed machine-readable tail blocks > prose`。
+`tool events > transcript events > canonical machine-readable carriers > prose`。
 
 - `tool events`：最强约束，直接来自工具调用本身。
 - `transcript events`：第二优先级，记录真实 session 行为。
-  对 endgate 审计而言，如果 transcript 中已经存在固定字段的
-  `endgate-state-packet`，则 packet declaration 与其后的事件窗口优先于
-  同一 turn 中更早位置的普通工具调用，也优先于 invitation prose 的句式推断。
-- `fixed machine-readable tail blocks`：用于 reviewer / implementer
-  报告等稳定尾块，便于 prompt-contract 断言。
+  对 endgate 审计而言，如果 transcript 中已经存在 canonical carrier，
+  则 carrier declaration 与其后的事件窗口优先于同一 turn 中更早位置的普通工具调用，
+  也优先于 invitation prose 的句式推断。
+- `canonical machine-readable carriers`：覆盖所有本地 workflow skills 的 canonical contract。
+  运行时优先消费 structured carrier；只有在 structured carrier 不可用时，
+  用户可见 tail block 才能作为 fallback。reviewer / implementer 这类稳定尾块
+  仍然属于这一层里的具体 carrier 形态。
 - `prose`：只用于补充解释；当它和前三层冲突时，以前三层为准。
 
-当前仓库的本地 workflow skills 已进入 strict packet mode：
+当前仓库的所有本地 workflow skills 已进入 strict packet mode：
 
-- 每个 workflow boundary 都必须先发出 canonical `endgate-state-packet`
+- 每个 workflow boundary 都必须在下一个机器动作前暴露 canonical machine-readable carrier
+- structured carrier 是首选路径；用户可见 tail block 只保留为 fallback
 - prose fallback 只保留给历史 incident fixtures 与迁移兼容路径
 - 对本地 skills 的当前 canonical guidance，缺失 packet 不应再被视为可接受分支
 
@@ -111,7 +114,7 @@ Use `bash tests/prompt-contracts/test-subagent-pipeline-routing.sh` as the routi
 - `P2`：较稳定层，可以继续依赖现有测试与文档，只需要在仓库审计中
   明确归档位置。
 
-Change-scoped snapshot: `close-runtime-prose-endgate-leaks`.
+Change-scoped snapshot: `hide-endgate-packet-from-terminal`.
 
 Covered node families:
 
@@ -126,7 +129,7 @@ Covered node families:
 | Workflow Node | Contract Carrier | Verification | Status |
 | --- | --- | --- | --- |
 | reviewer / implementer reports | fixed machine-readable tail blocks + transcript events | prompt-contract + Claude tests | in scope |
-| checkpoint / handoff / terminal-choice flows | request_user_input call + transcript event | prompt-contract + Codex fixture tests (`tests/codex/test-request-user-input-transcript-fixtures.sh`, `tests/codex/test-runtime-endgate-transcript-audit.sh`) | in scope; transcript fixture evidence landed on this branch |
+| checkpoint / handoff / terminal-choice flows | canonical machine-readable carriers + request_user_input call + transcript event | prompt-contract + Codex fixture tests (`tests/codex/test-request-user-input-transcript-fixtures.sh`, `tests/codex/test-runtime-endgate-transcript-audit.sh`) | in scope; transcript fixture evidence landed on this branch |
 | OpenCode tool loading | raw marker / tool payload | `tests/opencode/test-tools.sh` | in scope |
 | skill-triggering discovery | existing Skill tool event transcript | `tests/skill-triggering/*.sh` | audited, out-of-scope for this change because they already assert Skill tool events |
 
@@ -138,8 +141,8 @@ First drift matrix: `Chinese / English / concise / verbose`.
 | --- | --- | --- |
 | Chinese | concise | 防止简体中文短回复把 machine-readable carrier 缩成纯 prose |
 | Chinese | verbose | 防止中文详细说明覆盖既有 transcript / tail-block contract |
-| English | concise | 防止英文短回复丢失固定 marker、raw payload 或 tail block |
-| English | verbose | 防止英文长说明重写 source-of-truth priority 或 verification map |
+| English | concise | 防止英文短回复丢失 canonical carrier、raw payload 或 fallback tail block |
+| English | verbose | 防止英文长说明重写 source-of-truth priority 或 carrier/fallback verification map |
 
 ### Drift Matrix Protocol
 

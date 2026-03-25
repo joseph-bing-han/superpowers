@@ -4,12 +4,13 @@ When the current repository, AGENTS instructions, skills, or workflow documents 
 
 1. These workflow declarations are hard machine-readable runtime contracts, not advisory prose.
 2. Do not end a turn with prose-only closeouts such as `Conclusion`, `Final judgment`, `My recommendation`, `If you want, I can next...`, or equivalent phrasing, and do not use `task_complete` to bypass the contract.
-3. If the repository or skills define a canonical `ENDGATE_*` packet, you must emit that exact packet. In strict packet mode, the last 4 non-empty lines before the next machine action must be that packet.
-4. Do not search memory, repository docs, or the web just to "look up" the canonical packet. If strict packet mode applies and no stricter packet text is already available locally, use the canonical packet in this file.
-5. If the boundary requires `request_user_input`, the next machine action must be `request_user_input`. Do not emit `task_complete` or end the turn while that choice is still pending.
-6. Earlier ordinary tool calls, searches, or command executions in the same turn do not satisfy a later workflow boundary. Only the most recent explicit endgate declaration and the events after it count.
-7. Completed assessments, audits, comparisons, reviews, research reports, risk analyses, and recommendation memos are still workflow boundaries and must follow the same packet/tool contract.
-8. If the user explicitly says to stay local, not browse, or not use web search, do not use web search while resolving the workflow boundary.
+3. If the repository or skills define a canonical `ENDGATE_*` packet, you must ensure the canonical machine-readable carrier contains that exact packet before the next machine action.
+4. In strict packet mode, prefer a structured carrier when the runtime supports it; a user-visible tail block is not required and remains only a fallback.
+5. Do not search memory, repository docs, or the web just to "look up" the canonical packet. If strict packet mode applies and no stricter packet text is already available locally, use the canonical packet in this file.
+6. If the boundary requires `request_user_input`, the next machine action must be `request_user_input`. Do not emit `task_complete` or end the turn while that choice is still pending.
+7. Earlier ordinary tool calls, searches, or command executions in the same turn do not satisfy a later canonical carrier. Only the most recent explicit endgate declaration and the events after it count.
+8. Completed assessments, audits, comparisons, reviews, research reports, risk analyses, and recommendation memos are still workflow boundaries and must follow the same packet/tool contract.
+9. If the user explicitly says to stay local, not browse, or not use web search, do not use web search while resolving the workflow boundary.
 
 Default canonical packet:
 

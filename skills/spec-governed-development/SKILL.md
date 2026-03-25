@@ -327,9 +327,11 @@ Next skills:
   2. 继续
 - 额外文本需求必须走客户端自动追加的 `Other` / notes 路径，不要再在选项列表里重复增加同类入口
 - For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
-- Every governance handoff in this repository uses `endgate-state-packet`; treat the last packet plus its post-packet event window as the governing runtime contract for that boundary.
-- Earlier same-turn tool calls do not satisfy a later `endgate-state-packet`; prose invitation matching remains only a fallback safety net when no packet exists.
-- 每个治理 handoff 都必须先输出下面这份固定 packet，再执行下一个机器动作：
+- Every governance handoff in this repository is carrier-backed; treat the last canonical carrier plus its post-carrier event window as the governing runtime contract for that boundary.
+- Earlier same-turn tool calls do not satisfy a later canonical carrier; prose invitation matching remains only a fallback safety net when no carrier exists.
+- 严格 packet 模式要求：在下一个机器动作前必须存在 canonical machine-readable carrier。
+- 若运行时支持 structured carrier，优先使用它；不强制用户可见 tail block；用户可见 tail block 只保留为 fallback。
+- 每个治理 handoff 都必须确保 canonical machine-readable carrier 在下一个机器动作前包含下面这份固定 packet：
 ```text
 ENDGATE_PROTOCOL_VERSION: 1
 ENDGATE_STATE: AUTO_CONTINUE | NEEDS_USER_DECISION | TERMINAL_CHOICE
@@ -340,9 +342,9 @@ ENDGATE_NEXT_ACTION: CONTINUE_WITH_TOOL | REQUEST_USER_INPUT
   - `AUTO_CONTINUE` -> `NONE` + `CONTINUE_WITH_TOOL`
   - `NEEDS_USER_DECISION` -> `SPECIFIC_NEXT_STEP` + `REQUEST_USER_INPUT`
   - `TERMINAL_CHOICE` -> `CONTINUE_OR_STOP` + `REQUEST_USER_INPUT`
-- `AUTO_CONTINUE`：先输出 packet，再立刻进入已经明确的下一个 skill 或工具动作。
-- `NEEDS_USER_DECISION`：先输出 packet，再立刻调用 `request_user_input` 呈现具体分支选项。
-- `TERMINAL_CHOICE`：先输出 packet，再立刻调用 `request_user_input`，且只提供 `结束 (Recommended)` 与 `继续`。
+- `AUTO_CONTINUE`：先确保 canonical carrier 记录这份 packet，再立刻进入已经明确的下一个 skill 或工具动作。
+- `NEEDS_USER_DECISION`：先确保 canonical carrier 记录这份 packet，再立刻调用 `request_user_input` 呈现具体分支选项。
+- `TERMINAL_CHOICE`：先确保 canonical carrier 记录这份 packet，再立刻调用 `request_user_input`，且只提供 `结束 (Recommended)` 与 `继续`。
 
 当 handoff 进入 `terminal-choice` 时，这个 turn 的直接下一个动作就是弹出 `request_user_input`，不能先写一段自由文本终稿再结束。
 
@@ -395,15 +397,16 @@ ENDGATE_NEXT_ACTION: CONTINUE_WITH_TOOL | REQUEST_USER_INPUT
 
 If this skill reaches a terminal boundary where the current request appears complete:
 - This skill must not end the conversation directly with prose, `task_complete`, or a typed free-form prompt.
-- Treat this terminal boundary as strict `endgate-state-packet` territory; packet emission is mandatory, not optional guidance.
-- Emit this exact packet immediately before the next machine action:
+- Treat this terminal boundary as strict `endgate-state-packet` territory; a canonical machine-readable carrier is mandatory, not optional guidance.
+- Ensure the canonical machine-readable carrier contains this exact packet before the next machine action:
 ```text
 ENDGATE_PROTOCOL_VERSION: 1
 ENDGATE_STATE: TERMINAL_CHOICE
 ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
 ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
 ```
-- The last 4 non-empty lines before the next machine action must be that canonical `ENDGATE_*` packet.
+- In strict packet mode, a canonical machine-readable carrier must exist before the next machine action.
+- Prefer a structured carrier when the runtime supports it; a user-visible tail block remains only a fallback.
 - Route true completion through `terminal-choice`.
 - The very next action must be `request_user_input`.
 - In Codex tool-backed terminal-choice popups, author only:
