@@ -1,0 +1,5 @@
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_structured_decision_message","type":"agent_message","text":"The next step needs a concrete user choice, so the structured carrier is emitted here.","metadata":{"endgate":{"ENDGATE_PROTOCOL_VERSION":"1","ENDGATE_STATE":"NEEDS_USER_DECISION","ENDGATE_CHOICE_KIND":"SPECIFIC_NEXT_STEP","ENDGATE_NEXT_ACTION":"REQUEST_USER_INPUT"}}}}
+{"type":"item.started","item":{"id":"item_structured_decision_popup","type":"tool_call","tool":"request_user_input","arguments":{"questions":[{"header":"Next step","id":"decision_path","question":"Choose the next direction.","options":[{"label":"Apply the audit update (Recommended)","description":"Update the runtime audit first."},{"label":"Update documentation first","description":"Handle the docs before the runtime audit."}]}]}}}
+{"type":"item.completed","item":{"id":"item_structured_decision_popup","type":"tool_call","tool":"request_user_input","output":"{\"answers\":{\"decision_path\":{\"answers\":[\"Apply the audit update (Recommended)\"]}}}","status":"completed"}}
+{"type":"turn.completed","usage":{"input_tokens":14,"cached_input_tokens":0,"output_tokens":22}}
