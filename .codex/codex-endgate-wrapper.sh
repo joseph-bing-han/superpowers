@@ -180,8 +180,18 @@ sanitize_terminal_line() {
 
   line="${line%$'\r'}"
 
-  while [[ "$line" == $'\004\b\b'* ]]; do
-    line="${line#$'\004\b\b'}"
+  while true; do
+    case "$line" in
+      $'\004\b\b'*)
+        line="${line#$'\004\b\b'}"
+        ;;
+      '^D'$'\b\b'*)
+        line="${line#'^D'$'\b\b'}"
+        ;;
+      *)
+        break
+        ;;
+    esac
   done
 
   printf '%s' "$line"

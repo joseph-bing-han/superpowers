@@ -78,6 +78,28 @@ assert_file_empty() {
   fi
 }
 
+assert_file_exact_text() {
+  local file="$1"
+  local expected="$2"
+  local description="$3"
+  local actual=""
+
+  actual="$(cat "$file")"
+
+  if [[ "$actual" == "$expected" ]]; then
+    echo "PASS: $description"
+  else
+    echo "FAIL: $description"
+    echo "  Expected:"
+    printf '%s\n' "$expected"
+    echo "  Actual:"
+    printf '%s\n' "$actual"
+    echo "  Actual hex:"
+    od -An -tx1 -v "$file"
+    exit 1
+  fi
+}
+
 assert_contains() {
   local file="$1"
   local pattern="$2"
@@ -239,6 +261,18 @@ assert_contains "$stdout_file" "Visible stdout after packet" "wrapper keeps norm
 assert_contains "$stdout_file" "Visible stderr before packet" "wrapper keeps normal stderr text before packet lines in the terminal render"
 assert_contains "$stdout_file" "Visible stderr after packet" "wrapper keeps normal stderr text after packet lines in the terminal render"
 assert_not_contains_regex "$stdout_file" '^ENDGATE_[A-Z_]+: ' "wrapper removes packet lines from visible stdout"
+assert_file_exact_text \
+  "$stdout_file" \
+  "$(cat <<'TEXT'
+stdout_tty=yes
+stderr_tty=yes
+Visible stdout before packet
+Visible stdout after packet
+Visible stderr before packet
+Visible stderr after packet
+TEXT
+)" \
+  "wrapper does not prepend ^D\\b\\b or other dirty prefix bytes to normal terminal text"
 assert_file_empty "$stderr_file" "wrapper does not leak filtered terminal render to stderr"
 
 CODEX_BIN="$mock_codex" \
@@ -271,6 +305,14 @@ assert_contains "$stdout_file" "Visible stderr without protocol lines" "wrapper 
 assert_not_exists "$no_packet_runtime_dir/endgate-state.jsonl" "wrapper does not generate a debug mirror when no packet block exists"
 assert_not_exists "$no_packet_runtime_dir/latest-endgate.json" "wrapper does not create a latest snapshot when no packet block exists"
 assert_not_contains_regex "$stdout_file" '^ENDGATE_[A-Z_]+: ' "wrapper never invents canonical packet lines in stdout"
+assert_file_exact_text \
+  "$stdout_file" \
+  "$(cat <<'TEXT'
+Visible stdout without protocol lines
+Visible stderr without protocol lines
+TEXT
+)" \
+  "wrapper keeps ordinary stdout and stderr text byte-clean when no packet exists"
 assert_file_empty "$stderr_file" "wrapper keeps the visible render on the PTY-backed terminal stream when no packet exists"
 
 exit_code=0
