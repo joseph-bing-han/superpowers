@@ -175,79 +175,245 @@ flush_endgate_block() {
   write_debug_mirror "$stream" "$@"
 }
 
-sanitize_terminal_line() {
+line_can_still_be_endgate_candidate() {
   local line="$1"
+  local prefix="ENDGATE_"
 
   line="${line%$'\r'}"
 
-  while true; do
-    case "$line" in
-      $'\004\b\b'*)
-        line="${line#$'\004\b\b'}"
-        ;;
-      '^D'$'\b\b'*)
-        line="${line#'^D'$'\b\b'}"
-        ;;
-      *)
-        break
-        ;;
-    esac
-  done
+  if [ -z "$line" ]; then
+    return 0
+  fi
 
-  printf '%s' "$line"
+  if [[ "$prefix" == "$line"* ]]; then
+    return 0
+  fi
+
+  [[ "$line" == ENDGATE_* ]]
+}
+
+line_is_hidden_endgate() {
+  local line="$1"
+
+  line="${line%$'\r'}"
+  [[ "$line" =~ ^ENDGATE_[A-Z_]+:\ .*$ ]]
+}
+
+startup_prefix_still_possible() {
+  local buffer="$1"
+  local raw_prefix=$'\004\b\b'
+  local rendered_prefix='^D'$'\b\b'
+
+  [[ "$raw_prefix" == "$buffer"* ]] || [[ "$rendered_prefix" == "$buffer"* ]]
+}
+
+startup_prefix_is_complete() {
+  local buffer="$1"
+  local raw_prefix=$'\004\b\b'
+  local rendered_prefix='^D'$'\b\b'
+
+  [[ "$buffer" == "$raw_prefix" || "$buffer" == "$rendered_prefix" ]]
 }
 
 process_stream() {
   local stream="$1"
   local line=""
-  local normalized_line=""
+  local startup_buffer=""
+  local startup_filter_active=1
+  local candidate_buffer=""
+  local ordinary_mode=0
+  local emit_pending_cr=0
   local -a packet_lines=()
 
-  while IFS= read -r line || [ -n "$line" ]; do
-    normalized_line="$(sanitize_terminal_line "$line")"
+  emit_visible_byte() {
+    local char="$1"
 
-    case "$normalized_line" in
-      ENDGATE_[A-Z_]*:*)
-        packet_lines+=("$normalized_line")
-        ;;
-      *)
-        if [ "${#packet_lines[@]}" -gt 0 ]; then
-          flush_endgate_block "$stream" "${packet_lines[@]}"
-          packet_lines=()
-        fi
-        emit_visible_line "$stream" "$normalized_line"
-        ;;
-    esac
+    if [ "$char" = $'\r' ]; then
+      emit_pending_cr=1
+      return 0
+    fi
+
+    if [ "$emit_pending_cr" -eq 1 ]; then
+      if [ "$char" = $'\n' ]; then
+        emit_pending_cr=0
+        printf '\n'
+        return 0
+      fi
+
+      printf '\n'
+      emit_pending_cr=0
+    fi
+
+    printf '%s' "$char"
+  }
+
+  emit_visible_text() {
+    local text="$1"
+    local index=0
+    local char=""
+
+    for ((index = 0; index < ${#text}; index++)); do
+      char="${text:index:1}"
+      emit_visible_byte "$char"
+    done
+  }
+
+  flush_visible_cr() {
+    if [ "$emit_pending_cr" -eq 1 ]; then
+      printf '\n'
+      emit_pending_cr=0
+    fi
+  }
+
+  flush_hidden_packet_lines() {
+    if [ "${#packet_lines[@]}" -gt 0 ]; then
+      flush_endgate_block "$stream" "${packet_lines[@]}"
+      packet_lines=()
+    fi
+  }
+
+  process_render_char() {
+    local char="$1"
+    local candidate_line=""
+
+    if [ "$ordinary_mode" -eq 1 ]; then
+      emit_visible_byte "$char"
+
+      if [ "$char" = $'\r' ] || [ "$char" = $'\n' ]; then
+        ordinary_mode=0
+      fi
+
+      return 0
+    fi
+
+    candidate_buffer+="$char"
+
+    if [ "$char" = $'\r' ] || [ "$char" = $'\n' ]; then
+      candidate_line="${candidate_buffer%$'\n'}"
+      candidate_line="${candidate_line%$'\r'}"
+
+      if line_is_hidden_endgate "$candidate_line"; then
+        packet_lines+=("$candidate_line")
+      else
+        flush_hidden_packet_lines
+        emit_visible_text "$candidate_buffer"
+      fi
+
+      candidate_buffer=""
+      ordinary_mode=0
+      return 0
+    fi
+
+    if ! line_can_still_be_endgate_candidate "$candidate_buffer"; then
+      flush_hidden_packet_lines
+      emit_visible_text "$candidate_buffer"
+      candidate_buffer=""
+      ordinary_mode=1
+    fi
+  }
+
+  while IFS= read -r -n 1 line || [ -n "$line" ]; do
+    if [ "$startup_filter_active" -eq 1 ]; then
+      startup_buffer+="$line"
+
+      if startup_prefix_is_complete "$startup_buffer"; then
+        startup_buffer=""
+        continue
+      fi
+
+      if startup_prefix_still_possible "$startup_buffer"; then
+        continue
+      fi
+
+      startup_filter_active=0
+
+      while [ -n "$startup_buffer" ]; do
+        process_render_char "${startup_buffer:0:1}"
+        startup_buffer="${startup_buffer:1}"
+      done
+      continue
+    fi
+
+    process_render_char "$line"
   done
 
-  if [ "${#packet_lines[@]}" -gt 0 ]; then
-    flush_endgate_block "$stream" "${packet_lines[@]}"
+  while [ -n "$startup_buffer" ]; do
+    startup_filter_active=0
+    process_render_char "${startup_buffer:0:1}"
+    startup_buffer="${startup_buffer:1}"
+  done
+
+  if [ -n "$candidate_buffer" ]; then
+    local candidate_line="${candidate_buffer%$'\r'}"
+
+    if [ "$ordinary_mode" -eq 0 ] && line_is_hidden_endgate "$candidate_line"; then
+      packet_lines+=("$candidate_line")
+    else
+      flush_hidden_packet_lines
+      emit_visible_text "$candidate_buffer"
+    fi
+
+    candidate_buffer=""
+  else
+    if [ "$ordinary_mode" -eq 1 ]; then
+      ordinary_mode=0
+    fi
   fi
+
+  flush_hidden_packet_lines
+  flush_visible_cr
 }
 
 main() {
-  local pipe_dir=""
+  local runtime_dir=""
   local transcript_pipe=""
+  local keepalive_pid=""
   local reader_pid=""
   local status=0
+  local launcher_rc=0
 
-  pipe_dir="$(mktemp -d "${TMPDIR:-/tmp}/codex-endgate-wrapper.XXXXXX")"
-  transcript_pipe="$pipe_dir/transcript.pipe"
+  runtime_dir="$(mktemp -d "${TMPDIR:-/tmp}/codex-endgate-wrapper.XXXXXX")"
+  transcript_pipe="$runtime_dir/terminal-render.pipe"
 
   cleanup() {
-    rm -rf "$pipe_dir"
+    if [ -n "$keepalive_pid" ]; then
+      kill "$keepalive_pid" >/dev/null 2>&1 || true
+      wait "$keepalive_pid" >/dev/null 2>&1 || true
+      keepalive_pid=""
+    fi
+
+    if [ -n "$reader_pid" ]; then
+      wait "$reader_pid" >/dev/null 2>&1 || true
+      reader_pid=""
+    fi
+
+    rm -rf "$runtime_dir"
   }
 
-  trap cleanup EXIT
+  trap cleanup EXIT INT TERM
 
   mkfifo "$transcript_pipe"
+
+  tail -f /dev/null > "$transcript_pipe" &
+  keepalive_pid="$!"
 
   process_stream terminal_render < "$transcript_pipe" &
   reader_pid="$!"
 
-  "$SCRIPT_BIN" -qF "$transcript_pipe" "$CODEX_BIN" "$@" >/dev/null 2>&1 || status=$?
+  "$SCRIPT_BIN" -qF "$transcript_pipe" "$CODEX_BIN" "$@" >/dev/null 2>&1 || launcher_rc=$?
+  status="$launcher_rc"
 
-  wait "$reader_pid" || true
+  if [ -n "$keepalive_pid" ]; then
+    kill "$keepalive_pid" >/dev/null 2>&1 || true
+    wait "$keepalive_pid" >/dev/null 2>&1 || true
+    keepalive_pid=""
+  fi
+
+  if [ -n "$reader_pid" ]; then
+    wait "$reader_pid" >/dev/null 2>&1 || true
+    reader_pid=""
+  fi
+
   exit "$status"
 }
 

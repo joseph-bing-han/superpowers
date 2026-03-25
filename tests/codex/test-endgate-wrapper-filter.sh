@@ -160,6 +160,73 @@ assert_jsonl_jq_true() {
   fi
 }
 
+assert_process_exits_quickly_with_status() {
+  local pid="$1"
+  local expected_status="$2"
+  local description="$3"
+  local timeout_ticks="${4:-20}"
+  local tick=0
+  local status=""
+
+  for ((tick = 0; tick < timeout_ticks; tick++)); do
+    if ! kill -0 "$pid" >/dev/null 2>&1; then
+      if wait "$pid"; then
+        status=0
+      else
+        status=$?
+      fi
+      break
+    fi
+
+    sleep 0.1
+  done
+
+  if [[ -z "$status" ]]; then
+    echo "FAIL: $description"
+    echo "  Process did not exit within $((timeout_ticks / 10)) seconds"
+    kill "$pid" >/dev/null 2>&1 || true
+    wait "$pid" >/dev/null 2>&1 || true
+    exit 1
+  fi
+
+  if [[ "$status" == "$expected_status" ]]; then
+    echo "PASS: $description"
+  else
+    echo "FAIL: $description"
+    echo "  Expected status: $expected_status"
+    echo "  Actual status: $status"
+    exit 1
+  fi
+}
+
+assert_file_contains_within() {
+  local file="$1"
+  local pattern="$2"
+  local description="$3"
+  local timeout_ticks="${4:-20}"
+  local tick=0
+
+  for ((tick = 0; tick < timeout_ticks; tick++)); do
+    if [[ -f "$file" ]] && rg -q --fixed-strings "$pattern" "$file"; then
+      echo "PASS: $description"
+      return 0
+    fi
+
+    sleep 0.1
+  done
+
+  echo "FAIL: $description"
+  echo "  Missing pattern within timeout: $pattern"
+  echo "  File: $file"
+  if [[ -f "$file" ]]; then
+    echo "  Current contents:"
+    cat "$file"
+    echo "  Current hex:"
+    od -An -tx1 -v "$file"
+  fi
+  exit 1
+}
+
 create_mock_codex() {
   local file="$1"
 
@@ -222,6 +289,11 @@ case "$scenario" in
     printf 'Visible stdout without protocol lines\n'
     printf 'Visible stderr without protocol lines\n' >&2
     ;;
+  prompt_before_input)
+    printf 'Prompt> '
+    IFS= read -r answer
+    printf '\nReceived: %s\n' "$answer"
+    ;;
   exit_code_27)
     printf 'Command exits with a non-zero code\n'
     exit 27
@@ -241,6 +313,11 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 1
 fi
 
+if ! command -v expect >/dev/null 2>&1; then
+  echo "FAIL: expect is required for PTY-backed wrapper prompt checks"
+  exit 1
+fi
+
 assert_file_exists "$WRAPPER" "wrapper script exists"
 assert_file_exists "$MISSING_PACKET_FIXTURE" "missing-packet fixture exists"
 
@@ -249,7 +326,12 @@ stdout_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-stdout.XXXXXX")"
 stderr_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-stderr.XXXXXX")"
 runtime_dir="$(mktemp -d "${TMPDIR:-/tmp}/wrapper-runtime.XXXXXX")"
 no_packet_runtime_dir="$(mktemp -d "${TMPDIR:-/tmp}/wrapper-runtime-empty.XXXXXX")"
-trap 'rm -f "$mock_codex" "$stdout_file" "$stderr_file"; rm -rf "$runtime_dir" "$no_packet_runtime_dir"' EXIT
+prompt_stdout_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-prompt-stdout.XXXXXX")"
+prompt_stderr_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-prompt-stderr.XXXXXX")"
+failure_stdout_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-failure-stdout.XXXXXX")"
+failure_stderr_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-failure-stderr.XXXXXX")"
+prompt_expect_script="$(mktemp "${TMPDIR:-/tmp}/wrapper-prompt-expect.XXXXXX")"
+trap 'rm -f "$mock_codex" "$stdout_file" "$stderr_file" "$prompt_stdout_file" "$prompt_stderr_file" "$failure_stdout_file" "$failure_stderr_file" "$prompt_expect_script"; rm -rf "$runtime_dir" "$no_packet_runtime_dir"' EXIT
 
 create_mock_codex "$mock_codex"
 
@@ -323,6 +405,61 @@ else
   exit_code="$?"
 fi
 assert_equals "$exit_code" "27" "wrapper preserves the underlying codex exit code"
+
+SCRIPT_BIN=false CODEX_BIN="$mock_codex" bash "$WRAPPER" no_packet_text >"$failure_stdout_file" 2>"$failure_stderr_file" &
+failure_pid="$!"
+assert_process_exits_quickly_with_status \
+  "$failure_pid" \
+  "1" \
+  "wrapper fails fast when the PTY launcher cannot start instead of hanging"
+
+cat >"$prompt_expect_script" <<'EXPECT'
+log_user 0
+set timeout 3
+set wrapper [lindex $argv 0]
+set mock_bin [lindex $argv 1]
+
+spawn -noecho env CODEX_BIN=$mock_bin bash $wrapper prompt_before_input
+expect {
+  -re {Prompt> } {
+    puts "PROMPT_SEEN"
+  }
+  timeout {
+    puts "PROMPT_TIMEOUT"
+    exit 1
+  }
+}
+
+send -- "blue\r"
+
+expect {
+  -re {Received: blue} {
+    puts "RECEIVED_OK"
+  }
+  timeout {
+    puts "RECEIVED_TIMEOUT"
+    exit 1
+  }
+}
+
+expect eof
+EXPECT
+
+if expect "$prompt_expect_script" "$WRAPPER" "$mock_codex" >"$prompt_stdout_file" 2>"$prompt_stderr_file"; then
+  prompt_status=0
+else
+  prompt_status=$?
+fi
+assert_equals "$prompt_status" "0" "prompt scenario exits successfully after receiving input"
+assert_file_exact_text \
+  "$prompt_stdout_file" \
+  "$(cat <<'TEXT'
+PROMPT_SEEN
+RECEIVED_OK
+TEXT
+)" \
+  "wrapper shows a no-newline prompt before input and completes after the reply is sent"
+assert_file_empty "$prompt_stderr_file" "prompt scenario does not leak terminal render to stderr"
 
 cat > "$runtime_dir/endgate-state.jsonl" <<'JSONL'
 {"debug_mirror":true,"source":"codex-endgate-wrapper","carrier":{"ENDGATE_PROTOCOL_VERSION":"1","ENDGATE_STATE":"TERMINAL_CHOICE","ENDGATE_CHOICE_KIND":"CONTINUE_OR_STOP","ENDGATE_NEXT_ACTION":"REQUEST_USER_INPUT"}}
