@@ -1,5 +1,7 @@
 Treat this file as a high-priority runtime workflow contract for Superpowers on Codex.
 
+## Carrier-First Strict Packet Mode
+
 When the current repository, AGENTS instructions, skills, or workflow documents declare a machine-readable workflow boundary such as `endgate-state-packet`, `request_user_input`, `terminal-choice`, `auto-continue`, `needs-user-decision`, or strict packet mode, follow these rules immediately:
 
 1. These workflow declarations are hard machine-readable runtime contracts, not advisory prose.
@@ -12,6 +14,8 @@ When the current repository, AGENTS instructions, skills, or workflow documents 
 8. Completed assessments, audits, comparisons, reviews, research reports, risk analyses, and recommendation memos are still workflow boundaries and must follow the same packet/tool contract.
 9. If the user explicitly says to stay local, not browse, or not use web search, do not use web search while resolving the workflow boundary.
 
+## Default Canonical Packet
+
 Default canonical packet:
 
 ENDGATE_PROTOCOL_VERSION: 1
@@ -23,6 +27,8 @@ Canonical pairings:
 - `AUTO_CONTINUE` -> `NONE` + `CONTINUE_WITH_TOOL`
 - `NEEDS_USER_DECISION` -> `SPECIFIC_NEXT_STEP` + `REQUEST_USER_INPUT`
 - `TERMINAL_CHOICE` -> `CONTINUE_OR_STOP` + `REQUEST_USER_INPUT`
+
+## Completed Report Boundary
 
 For a completed report/review/assessment where the work now appears complete, use:
 

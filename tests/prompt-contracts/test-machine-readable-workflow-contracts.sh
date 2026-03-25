@@ -3,6 +3,10 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CANONICAL_SENTENCE='For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.'
+CANONICAL_CARRIER_PATTERN='canonical machine-readable carrier|canonical carrier'
+STRUCTURED_CARRIER_PRIORITY_PATTERN='prefer (a )?structured carrier|structured carrier.*优先|优先.*structured carrier'
+VISIBLE_TAIL_FALLBACK_PATTERN='visible tail block.*fallback|tail block.*only a fallback|用户可见.*tail block.*fallback|用户可见.*tail block.*回退'
+LEGACY_VISIBLE_TAIL_ONLY_DRIFT_PATTERN='final four lines|visible to the user|must still appear in the tail|最后[[:space:]]*4 行|对用户可见|必须显示在末尾|last 4 non-empty lines before the next machine action must be (the|that) canonical `ENDGATE_\*` packet'
 
 normalize_stream() {
   tr '\r\n\t' '   ' | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//'
@@ -97,6 +101,35 @@ assert_file_section_contains() {
     echo "  Section: $heading"
     echo "  Pattern: $pattern"
     exit 1
+  fi
+}
+
+assert_file_section_not_contains() {
+  local relative_file="$1"
+  local heading="$2"
+  local pattern="$3"
+  local description="$4"
+  local stop_pattern="${5:-^(##|###) }"
+  local target_file="$REPO_ROOT/$relative_file"
+  local content
+
+  content="$(extract_section "$target_file" "$heading" "$stop_pattern")"
+
+  if [[ -z "$content" ]]; then
+    echo "FAIL: $description"
+    echo "  File: $relative_file"
+    echo "  Missing section: $heading"
+    exit 1
+  fi
+
+  if printf '%s' "$content" | normalize_stream | rg -qi -- "$pattern"; then
+    echo "FAIL: $description"
+    echo "  File: $relative_file"
+    echo "  Section: $heading"
+    echo "  Forbidden pattern: $pattern"
+    exit 1
+  else
+    echo "PASS: $description"
   fi
 }
 
@@ -308,8 +341,20 @@ assert_section_not_contains "### Source-of-truth priority" \
   "source-of-truth priority no longer treats visible tail blocks as the only canonical layer"
 
 assert_section_contains "### Source-of-truth priority" \
-  'structured carrier.*优先|prefer structured carrier|visible tail block.*fallback|tail block.*only a fallback|canonical machine-readable carrier' \
-  "source-of-truth priority documents structured-carrier priority and visible tail fallback"
+  "$CANONICAL_CARRIER_PATTERN" \
+  "source-of-truth priority declares the canonical carrier layer"
+
+assert_section_contains "### Source-of-truth priority" \
+  "$STRUCTURED_CARRIER_PRIORITY_PATTERN" \
+  "source-of-truth priority documents structured-carrier priority"
+
+assert_section_contains "### Source-of-truth priority" \
+  "$VISIBLE_TAIL_FALLBACK_PATTERN" \
+  "source-of-truth priority documents visible tail fallback"
+
+assert_section_not_contains "### Source-of-truth priority" \
+  "$LEGACY_VISIBLE_TAIL_ONLY_DRIFT_PATTERN" \
+  "source-of-truth priority rejects legacy visible-tail-only drift"
 
 assert_section_contains "### Source-of-truth priority" \
   'canonical carrier.*其后的事件窗口|post-carrier event window|packet declaration.*其后的事件窗口|优先于 invitation prose|优先于.*句式推断' \
@@ -408,17 +453,29 @@ assert_file_section_contains_literal "docs/testing.md" \
   'assistant-authored payload 只包含 `结束 (Recommended)`、`继续`；客户端 UI 会自动追加 `Other` / notes path 作为自由输入兜底，不应把它记录成 assistant-authored `3`。' \
   "terminal-choice evidence guidance separates the authored popup payload from the client UI fallback"
 
-assert_file_contains_pattern ".codex/instruction.md" \
-  'canonical machine-readable carrier' \
-  "Codex instruction bootstrap defines strict packet mode around canonical machine-readable carriers"
+assert_file_section_contains ".codex/instruction.md" \
+  "## Carrier-First Strict Packet Mode" \
+  "$CANONICAL_CARRIER_PATTERN" \
+  "Codex instruction bootstrap defines strict packet mode around canonical machine-readable carriers" \
+  '^## '
 
-assert_file_contains_pattern ".codex/instruction.md" \
-  'structured carrier.*not required|structured carrier.*not mandatory|structured carrier.*不强制|visible tail block.*fallback|tail block.*fallback' \
-  "Codex instruction bootstrap prioritizes structured carriers and limits visible tail blocks to fallback"
+assert_file_section_contains ".codex/instruction.md" \
+  "## Carrier-First Strict Packet Mode" \
+  "$STRUCTURED_CARRIER_PRIORITY_PATTERN" \
+  "Codex instruction bootstrap explicitly prefers structured carriers when available" \
+  '^## '
 
-assert_file_not_contains_pattern ".codex/instruction.md" \
-  'last 4 non-empty lines before the next machine action must be (the|that) canonical `ENDGATE_\*` packet' \
-  "Codex instruction bootstrap no longer defines strict packet mode as a user-visible tail block only"
+assert_file_section_contains ".codex/instruction.md" \
+  "## Carrier-First Strict Packet Mode" \
+  "$VISIBLE_TAIL_FALLBACK_PATTERN" \
+  "Codex instruction bootstrap explicitly limits visible tail blocks to fallback" \
+  '^## '
+
+assert_file_section_not_contains ".codex/instruction.md" \
+  "## Carrier-First Strict Packet Mode" \
+  "$LEGACY_VISIBLE_TAIL_ONLY_DRIFT_PATTERN" \
+  "Codex instruction bootstrap rejects legacy visible-tail-only wording" \
+  '^## '
 
 assert_file_has_exact_tail_block "skills/brainstorming/spec-document-reviewer-prompt.md" \
   $'Keep the field names exactly as written.\nFor `REVIEW_VERDICT` and `NEXT_ACTION`, choose exactly one allowed token and do not repeat the pipe-delimited schema.\nReplace `BLOCKING_ISSUE_COUNT` with digits only.\nREVIEW_VERDICT: APPROVED | CHANGES_REQUIRED\nBLOCKING_ISSUE_COUNT: non-negative integer\nNEXT_ACTION: CONTINUE | REVISE | STOP\n```' \

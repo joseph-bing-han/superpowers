@@ -2,6 +2,10 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+CANONICAL_CARRIER_PATTERN='canonical machine-readable carrier|canonical carrier'
+STRUCTURED_CARRIER_PRIORITY_PATTERN='prefer (a )?structured carrier|structured carrier.*优先|优先.*structured carrier'
+VISIBLE_TAIL_FALLBACK_PATTERN='visible tail block.*fallback|tail block.*only a fallback|用户可见.*tail block.*fallback|用户可见.*tail block.*回退'
+LEGACY_VISIBLE_TAIL_ONLY_DRIFT_PATTERN='final four lines|visible to the user|must still appear in the tail|最后[[:space:]]*4 行|对用户可见|必须显示在末尾|last 4 non-empty lines before the next machine action must be (the|that) canonical `ENDGATE_\*` packet'
 
 normalize_stream() {
   tr '\r\n\t' '   ' | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//'
@@ -100,10 +104,10 @@ assert_section_uses_canonical_carrier_model() {
   local description_prefix="$3"
   local stop_pattern="${4:-^(##|###) }"
 
-  assert_section_contains "$file" "$heading" 'canonical machine-readable carrier|canonical carrier' "$description_prefix defines strict packet mode around canonical carriers" "$stop_pattern"
-  assert_section_contains "$file" "$heading" 'structured carrier.*preferred|prefer (a )?structured carrier|structured carrier.*优先|优先.*structured carrier' "$description_prefix prefers structured carriers when available" "$stop_pattern"
-  assert_section_contains "$file" "$heading" 'visible tail block.*fallback|tail block.*only a fallback|用户可见.*tail block.*回退' "$description_prefix limits visible tail blocks to fallback-only status" "$stop_pattern"
-  assert_section_not_contains "$file" "$heading" 'last 4 non-empty lines before the next machine action must be (the|that) canonical `ENDGATE_\*` packet' "$description_prefix no longer requires a user-visible tail block as the only canonical path" "$stop_pattern"
+  assert_section_contains "$file" "$heading" "$CANONICAL_CARRIER_PATTERN" "$description_prefix declares the canonical carrier requirement" "$stop_pattern"
+  assert_section_contains "$file" "$heading" "$STRUCTURED_CARRIER_PRIORITY_PATTERN" "$description_prefix prefers structured carriers when available" "$stop_pattern"
+  assert_section_contains "$file" "$heading" "$VISIBLE_TAIL_FALLBACK_PATTERN" "$description_prefix limits visible tail blocks to fallback-only status" "$stop_pattern"
+  assert_section_not_contains "$file" "$heading" "$LEGACY_VISIBLE_TAIL_ONLY_DRIFT_PATTERN" "$description_prefix rejects legacy visible-tail-only wording" "$stop_pattern"
 }
 
 SKILL_FILES=(
