@@ -108,6 +108,7 @@ bash ~/.codex/superpowers/.codex/codex-endgate-wrapper.sh --help
 - 它**不会**替换你原本默认的 `codex` 入口
 - 长期标准仍然是**原生 structured carrier**
 - wrapper 只负责过滤 terminal render，不负责定义 canonical contract
+- wrapper 会保持底层 `codex` 运行在 PTY/TTY 语义里，而不是把它降级成普通 pipe
 
 如果你想把被隐藏的 packet 额外镜像到本地 sidecar 文件用于调试，可以显式开启：
 

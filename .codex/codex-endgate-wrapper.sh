@@ -9,6 +9,7 @@ DEFAULT_RUNTIME_DIR="$WRAPPER_DIR/.runtime"
 CODEX_BIN="${CODEX_BIN:-codex}"
 CODEX_ENDGATE_RUNTIME_DIR="${CODEX_ENDGATE_RUNTIME_DIR:-$DEFAULT_RUNTIME_DIR}"
 CODEX_ENDGATE_WRITE_DEBUG_MIRROR="${CODEX_ENDGATE_WRITE_DEBUG_MIRROR:-0}"
+SCRIPT_BIN="${SCRIPT_BIN:-script}"
 
 is_truthy() {
   case "${1:-}" in
@@ -174,6 +175,18 @@ flush_endgate_block() {
   write_debug_mirror "$stream" "$@"
 }
 
+sanitize_terminal_line() {
+  local line="$1"
+
+  line="${line%$'\r'}"
+
+  while [[ "$line" == $'\004\b\b'* ]]; do
+    line="${line#$'\004\b\b'}"
+  done
+
+  printf '%s' "$line"
+}
+
 process_stream() {
   local stream="$1"
   local line=""
@@ -181,7 +194,7 @@ process_stream() {
   local -a packet_lines=()
 
   while IFS= read -r line || [ -n "$line" ]; do
-    normalized_line="${line%$'\r'}"
+    normalized_line="$(sanitize_terminal_line "$line")"
 
     case "$normalized_line" in
       ENDGATE_[A-Z_]*:*)
@@ -204,15 +217,12 @@ process_stream() {
 
 main() {
   local pipe_dir=""
-  local stdout_pipe=""
-  local stderr_pipe=""
-  local stdout_pid=""
-  local stderr_pid=""
+  local transcript_pipe=""
+  local reader_pid=""
   local status=0
 
   pipe_dir="$(mktemp -d "${TMPDIR:-/tmp}/codex-endgate-wrapper.XXXXXX")"
-  stdout_pipe="$pipe_dir/stdout.pipe"
-  stderr_pipe="$pipe_dir/stderr.pipe"
+  transcript_pipe="$pipe_dir/transcript.pipe"
 
   cleanup() {
     rm -rf "$pipe_dir"
@@ -220,18 +230,14 @@ main() {
 
   trap cleanup EXIT
 
-  mkfifo "$stdout_pipe" "$stderr_pipe"
+  mkfifo "$transcript_pipe"
 
-  process_stream stdout < "$stdout_pipe" &
-  stdout_pid="$!"
+  process_stream terminal_render < "$transcript_pipe" &
+  reader_pid="$!"
 
-  process_stream stderr < "$stderr_pipe" >&2 &
-  stderr_pid="$!"
+  "$SCRIPT_BIN" -qF "$transcript_pipe" "$CODEX_BIN" "$@" >/dev/null 2>&1 || status=$?
 
-  "$CODEX_BIN" "$@" > "$stdout_pipe" 2> "$stderr_pipe" || status=$?
-
-  wait "$stdout_pid" || true
-  wait "$stderr_pid" || true
+  wait "$reader_pid" || true
   exit "$status"
 }
 

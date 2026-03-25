@@ -63,6 +63,21 @@ assert_not_exists() {
   fi
 }
 
+assert_file_empty() {
+  local file="$1"
+  local description="$2"
+
+  if [[ ! -s "$file" ]]; then
+    echo "PASS: $description"
+  else
+    echo "FAIL: $description"
+    echo "  Expected empty file: $file"
+    echo "  Actual contents:"
+    cat "$file"
+    exit 1
+  fi
+}
+
 assert_contains() {
   local file="$1"
   local pattern="$2"
@@ -135,6 +150,18 @@ shift || true
 
 case "$scenario" in
   redact_stdout_and_stderr)
+    if [ -t 1 ]; then
+      printf 'stdout_tty=yes\n'
+    else
+      printf 'stdout_tty=no\n'
+    fi
+
+    if [ -t 2 ]; then
+      printf 'stderr_tty=yes\n'
+    else
+      printf 'stderr_tty=no\n'
+    fi
+
     printf 'Visible stdout before packet\n'
     printf '%s\n' \
       'ENDGATE_PROTOCOL_VERSION: 1' \
@@ -205,12 +232,14 @@ trap 'rm -f "$mock_codex" "$stdout_file" "$stderr_file"; rm -rf "$runtime_dir" "
 create_mock_codex "$mock_codex"
 
 CODEX_BIN="$mock_codex" bash "$WRAPPER" redact_stdout_and_stderr >"$stdout_file" 2>"$stderr_file"
+assert_contains "$stdout_file" "stdout_tty=yes" "wrapper keeps the underlying stdout attached to a PTY"
+assert_contains "$stdout_file" "stderr_tty=yes" "wrapper keeps the underlying stderr attached to a PTY"
 assert_contains "$stdout_file" "Visible stdout before packet" "wrapper keeps normal stdout text before packet lines"
 assert_contains "$stdout_file" "Visible stdout after packet" "wrapper keeps normal stdout text after packet lines"
-assert_contains "$stderr_file" "Visible stderr before packet" "wrapper keeps normal stderr text before packet lines"
-assert_contains "$stderr_file" "Visible stderr after packet" "wrapper keeps normal stderr text after packet lines"
+assert_contains "$stdout_file" "Visible stderr before packet" "wrapper keeps normal stderr text before packet lines in the terminal render"
+assert_contains "$stdout_file" "Visible stderr after packet" "wrapper keeps normal stderr text after packet lines in the terminal render"
 assert_not_contains_regex "$stdout_file" '^ENDGATE_[A-Z_]+: ' "wrapper removes packet lines from visible stdout"
-assert_not_contains_regex "$stderr_file" '^ENDGATE_[A-Z_]+: ' "wrapper removes packet lines from visible stderr"
+assert_file_empty "$stderr_file" "wrapper does not leak filtered terminal render to stderr"
 
 CODEX_BIN="$mock_codex" \
 CODEX_ENDGATE_WRITE_DEBUG_MIRROR=1 \
@@ -238,11 +267,11 @@ CODEX_ENDGATE_WRITE_DEBUG_MIRROR=1 \
 CODEX_ENDGATE_RUNTIME_DIR="$no_packet_runtime_dir" \
 bash "$WRAPPER" no_packet_text >"$stdout_file" 2>"$stderr_file"
 assert_contains "$stdout_file" "Visible stdout without protocol lines" "wrapper keeps ordinary stdout text when no packet exists"
-assert_contains "$stderr_file" "Visible stderr without protocol lines" "wrapper keeps ordinary stderr text when no packet exists"
+assert_contains "$stdout_file" "Visible stderr without protocol lines" "wrapper keeps ordinary stderr text when no packet exists"
 assert_not_exists "$no_packet_runtime_dir/endgate-state.jsonl" "wrapper does not generate a debug mirror when no packet block exists"
 assert_not_exists "$no_packet_runtime_dir/latest-endgate.json" "wrapper does not create a latest snapshot when no packet block exists"
 assert_not_contains_regex "$stdout_file" '^ENDGATE_[A-Z_]+: ' "wrapper never invents canonical packet lines in stdout"
-assert_not_contains_regex "$stderr_file" '^ENDGATE_[A-Z_]+: ' "wrapper never invents canonical packet lines in stderr"
+assert_file_empty "$stderr_file" "wrapper keeps the visible render on the PTY-backed terminal stream when no packet exists"
 
 exit_code=0
 if CODEX_BIN="$mock_codex" bash "$WRAPPER" exit_code_27 >"$stdout_file" 2>"$stderr_file"; then
