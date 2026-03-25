@@ -1,0 +1,5 @@
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_packet_autocontinue_message","type":"agent_message","text":"analysis is complete and the next safe step is already authorized.\nENDGATE_PROTOCOL_VERSION: 1\nENDGATE_STATE: AUTO_CONTINUE\nENDGATE_CHOICE_KIND: NONE\nENDGATE_NEXT_ACTION: CONTINUE_WITH_TOOL"}}
+{"type":"item.started","item":{"id":"item_packet_autocontinue_command","type":"command_execution","command":"/bin/zsh -lc 'bash tests/codex/test-runtime-endgate-transcript-audit.sh'","aggregated_output":"","exit_code":null,"status":"in_progress"}}
+{"type":"item.completed","item":{"id":"item_packet_autocontinue_command","type":"command_execution","command":"/bin/zsh -lc 'bash tests/codex/test-runtime-endgate-transcript-audit.sh'","aggregated_output":"PASS","exit_code":0,"status":"completed"}}
+{"type":"turn.completed","usage":{"input_tokens":12,"cached_input_tokens":0,"output_tokens":18}}

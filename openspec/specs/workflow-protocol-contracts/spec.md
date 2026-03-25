@@ -169,6 +169,23 @@ review、execution handoff 与类似决策节点 MUST 使用稳定的 verdict �
 - **AND** 直接下一个边界动作 MUST 是 `request_user_input`
 - **AND** MUST NOT 用 prose-only closeout 替代 terminal-choice popup
 
+### Requirement: Repository-managed workflow boundaries run in strict packet mode
+对于本仓库维护的本地 workflow skills，任何 workflow boundary MUST 把
+`endgate-state-packet` 视为默认且强制的协议载体，而不是可选 guidance。
+
+#### Scenario: Local workflow boundary cannot skip packet emission
+- **WHEN** 任一本仓库维护的本地 workflow skill 到达 checkpoint、handoff、
+  analysis recommendation boundary、reviewed-task boundary 或 terminal boundary
+- **THEN** assistant MUST 在下一个机器动作之前发出 canonical
+  `endgate-state-packet`
+- **AND** MUST NOT 退回到“如果使用 packet 就……”这类条件式 guidance
+
+#### Scenario: Prose fallback is legacy-only once the local lane is packetized
+- **WHEN** 当前路径属于本仓库维护的本地 workflow skills
+- **THEN** prose fallback MUST 只作为 legacy fixture 或历史 incident 的
+  残余安全网存在
+- **AND** MUST NOT 被当成本地 canonical lane 的正常替代分支
+
 ### Requirement: Subagent workflow guidance exposes explicit routing semantics
 涉及子代理执行的 workflow guidance MUST 显式说明执行模式、路由优先级、
 状态语义与冲突边界，而不是只保留“逐任务派发子代理”的模糊叙述。
@@ -211,4 +228,3 @@ workflow endgate 的合法性 MUST 由最后一次边界声明及其后的兑现
   合法性证据
 - **AND** 较早位置的普通工具调用 MUST NOT 被复用为后续边界的
   `auto-continue` 证明
-

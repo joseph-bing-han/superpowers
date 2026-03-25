@@ -96,6 +96,12 @@ Use `bash tests/prompt-contracts/test-subagent-pipeline-routing.sh` as the routi
   报告等稳定尾块，便于 prompt-contract 断言。
 - `prose`：只用于补充解释；当它和前三层冲突时，以前三层为准。
 
+当前仓库的本地 workflow skills 已进入 strict packet mode：
+
+- 每个 workflow boundary 都必须先发出 canonical `endgate-state-packet`
+- prose fallback 只保留给历史 incident fixtures 与迁移兼容路径
+- 对本地 skills 的当前 canonical guidance，缺失 packet 不应再被视为可接受分支
+
 ### Repository audit and fragility tiers
 
 - `P0`：最脆弱、最容易漂移的 workflow protocol，必须优先依赖
@@ -181,11 +187,32 @@ First drift matrix: `Chinese / English / concise / verbose`.
   `tests/codex/test-runtime-endgate-transcript-audit.sh` 放行。
   Latest local result: passed the runtime endgate audit in this Codex-only
   validation pass.
+- `tests/codex/fixtures/runtime-prose-endgate-recommendation-leak-negative.jsonl`
+  当前证据：recommendation-framed negative incident fixture，证明
+  `如果要进入下一步，我建议直接做……` 这类非邀请式但仍属下一步提议的 prose-only
+  结尾，同样必须由
+  `tests/codex/test-runtime-endgate-transcript-audit.sh` 拒绝。
+  Latest local result: rejected as a runtime prose-endgate leak in this
+  Codex-only validation pass.
+- `tests/codex/fixtures/runtime-prose-endgate-session-shaped-recommendation-leak-negative.jsonl`
+  当前证据：session-shaped recommendation leak fixture，模拟真实 Codex transcript
+  中 assistant `response_item.message` 不带显式 `turn_id`、只由 `task_started`
+  / `task_complete` 划定 turn 的情况，由
+  `tests/codex/test-runtime-endgate-transcript-audit.sh` 拒绝。
+  Latest local result: rejected after turn attribution propagation in this
+  Codex-only validation pass.
 - `tests/codex/fixtures/runtime-endgate-packet-autocontinue-positive.jsonl`
   当前证据：packet-first auto-continue positive fixture，由
   `tests/codex/test-runtime-endgate-transcript-audit.sh` 放行。
   Latest local result: passed the packet-first runtime endgate audit in this
   Codex-only validation pass.
+- `tests/codex/fixtures/runtime-endgate-item-packet-autocontinue-positive.jsonl`
+  当前证据：item-based Codex transcript positive fixture，证明
+  `item.completed(agent_message)` 中的 packet 以及其后的
+  `item.started(command_execution)` continuation action 可以被
+  `tests/codex/test-runtime-endgate-transcript-audit.sh` 正确识别。
+  Latest local result: passed the item-based packet runtime endgate audit in
+  this Codex-only validation pass.
 - `tests/codex/fixtures/runtime-endgate-packet-terminal-choice-positive.jsonl`
   当前证据：packet-first terminal-choice positive fixture，由
   `tests/codex/test-runtime-endgate-transcript-audit.sh` 放行。
@@ -197,6 +224,20 @@ First drift matrix: `Chinese / English / concise / verbose`.
   `tests/codex/test-runtime-endgate-transcript-audit.sh` 拒绝。
   Latest local result: rejected as an unfulfilled endgate-state-packet in this
   Codex-only validation pass.
+- `tests/codex/fixtures/runtime-endgate-item-packet-unfulfilled-negative.jsonl`
+  当前证据：item-based Codex transcript negative fixture，证明
+  `item.completed(agent_message)` 发出 `AUTO_CONTINUE` packet 后，如果没有新的
+  `item.started` continuation action，仍必须被
+  `tests/codex/test-runtime-endgate-transcript-audit.sh` 拒绝。
+  Latest local result: rejected as an unfulfilled endgate-state-packet in this
+  Codex-only validation pass.
+- `tests/codex/fixtures/runtime-endgate-strict-session-missing-packet-negative.jsonl`
+  当前证据：strict-session negative fixture，模拟 transcript 中已经读到
+  `this repository is in strict packet mode` 的 guidance，但 turn 仍然缺失
+  `endgate-state-packet` 并直接结束，由
+  `tests/codex/test-runtime-endgate-transcript-audit.sh` 拒绝。
+  Latest local result: rejected as a missing endgate-state-packet in a strict
+  packet transcript in this Codex-only validation pass.
 - `tests/claude-code/test-subagent-driven-development.sh`
   当前 contract：锁定 transcript 中的 `Skill` / `Task` / `TodoWrite`
   事件，要求保留 `TASK_STATUS` / `TEST_STATUS` / `NEXT_ACTION`
@@ -217,7 +258,7 @@ First drift matrix: `Chinese / English / concise / verbose`.
 结束。
 
 Runtime Audit A: A negative incident fixture with a prose-only next-step
-invitation followed by `task_complete` must be rejected.
+invitation or recommendation followed by `task_complete` must be rejected.
 
 Runtime Audit B: A repaired fixture that routes the next-step split through
 `request_user_input` must pass.
@@ -236,12 +277,19 @@ Runtime Audit F: Any fixture already placed in the packet-first lane must fail
 if the transcript never emits an `endgate-state-packet`; packet-named fixtures
 are strict-mode evidence, not optional hints.
 
+Runtime Audit G: A session-shaped negative incident fixture where the assistant
+message itself has no explicit `turn_id`, but the surrounding `task_started` /
+`task_complete` events still delimit the turn, must also be rejected.
+
 ### Required Audit Evidence
 
 - 保留最小负向 incident fixture，能够稳定复现
-  `prose-only next-step invitation + task_complete`。
+  `prose-only next-step invitation or recommendation + task_complete`。
 - 至少保留一个 `request_user_input` 修复样本和一个 `auto-continue`
   修复样本。
+- 至少保留一个 session-shaped negative 样本，证明 validator 不会因为真实
+  Codex transcript 中 `assistant response_item.message` 缺失显式 `turn_id`
+  而漏审。
 - 对已经 packet 化的 lane，至少保留一个 packet-positive 样本和一个
   packet-negative 样本。
 - 对文件名进入 packet-first lane 的 fixture，缺失 packet 本身就必须构成失败，
@@ -258,6 +306,7 @@ are strict-mode evidence, not optional hints.
 | D | Packet-first fixture that declares `TERMINAL_CHOICE` and then emits the canonical popup | `tests/codex/fixtures/runtime-endgate-packet-terminal-choice-positive.jsonl` + `tests/codex/test-runtime-endgate-transcript-audit.sh` |
 | E | Packet-first negative fixture that declares `AUTO_CONTINUE` but never emits a post-packet continuation action | `tests/codex/fixtures/runtime-endgate-packet-unfulfilled-negative.jsonl` + `tests/codex/test-runtime-endgate-transcript-audit.sh` |
 | F | Strict packet-lane fixture that omits `endgate-state-packet` entirely and must fail on missing packet alone | `tests/codex/fixtures/runtime-endgate-packet-missing-packet-negative.jsonl` + `tests/codex/test-runtime-endgate-transcript-audit.sh` |
+| G | Session-shaped negative fixture whose assistant message omits explicit `turn_id`, but still ends with a prose-only recommendation before `task_complete` | `tests/codex/fixtures/runtime-prose-endgate-session-shaped-recommendation-leak-negative.jsonl` + `tests/codex/test-runtime-endgate-transcript-audit.sh` |
 
 ## Numeric Choice Smoke Tests
 

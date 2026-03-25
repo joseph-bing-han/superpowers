@@ -1,6 +1,6 @@
 ---
 name: brainstorming
-description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation."
+description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent and design before implementation, and keeps checkpoint/report endings on the packetized terminal-choice path."
 ---
 
 # Brainstorming Ideas Into Designs
@@ -15,6 +15,16 @@ Do NOT invoke any implementation skill, write any code, scaffold any project, or
 2. the user already asked for end-to-end execution, the design is straightforward, and no unresolved clarifications, risky tradeoffs, or explicit review requests remain.
 This applies to EVERY project regardless of perceived simplicity.
 </HARD-GATE>
+
+<ENDGATE-HARD-RULE>
+Before any brainstorming checkpoint ends:
+- Never stop after a prose-only recommendation, summary, or next-step proposal.
+- This includes value-framed endings such as `如果你愿意，我下一步最有价值的不是继续泛讨论，而是直接……`.
+- A completed evaluation, recommendation memo, comparison writeup, or other report-style deliverable is still a terminal boundary; a bare `结论`, `最终判断`, or `这轮我没有改代码，只做了……` closeout is not enough.
+- Every brainstorming checkpoint in this repository uses `endgate-state-packet`; this repository is in strict packet mode.
+- If the checkpoint is non-terminal, continue automatically or call `request_user_input`; never end with `task_complete`.
+- Therefore, the last 4 non-empty lines before the next machine action must be the canonical `ENDGATE_*` packet.
+</ENDGATE-HARD-RULE>
 
 ## Anti-Pattern: "This Is Too Simple To Need A Design"
 
@@ -105,10 +115,25 @@ digraph brainstorming {
   2. 继续
 - Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option
 - For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
-- If a workflow lane emits a fixed-field `endgate-state-packet`, treat the last packet plus its post-packet event window as the governing runtime contract for that boundary.
+- Every brainstorming checkpoint in this repository is packetized; treat the last packet plus its post-packet event window as the governing runtime contract for that boundary.
 - Earlier same-turn tool calls do not satisfy a later `endgate-state-packet`; prose invitation matching remains only a fallback safety net when no packet exists.
+- At every design checkpoint in this repository, emit this exact packet immediately before the next machine action:
+```text
+ENDGATE_PROTOCOL_VERSION: 1
+ENDGATE_STATE: AUTO_CONTINUE | NEEDS_USER_DECISION | TERMINAL_CHOICE
+ENDGATE_CHOICE_KIND: NONE | SPECIFIC_NEXT_STEP | CONTINUE_OR_STOP
+ENDGATE_NEXT_ACTION: CONTINUE_WITH_TOOL | REQUEST_USER_INPUT
+```
+- Canonical packet pairings:
+  - `AUTO_CONTINUE` -> `NONE` + `CONTINUE_WITH_TOOL`
+  - `NEEDS_USER_DECISION` -> `SPECIFIC_NEXT_STEP` + `REQUEST_USER_INPUT`
+  - `TERMINAL_CHOICE` -> `CONTINUE_OR_STOP` + `REQUEST_USER_INPUT`
+- `AUTO_CONTINUE`: emit the packet, then immediately continue with the concrete design or artifact step.
+- `NEEDS_USER_DECISION`: emit the packet, then immediately call `request_user_input` with the concrete design-review or next-step options.
+- `TERMINAL_CHOICE`: emit the packet, then immediately call `request_user_input` with only `结束 (Recommended)` and `继续`.
 - When brainstorming reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
 - Do not produce a plain final-answer-style closeout before the terminal-choice popup, including endings framed like `当前我建议的定稿`, `就按这条落地`, or `最终建议一句话版`.
+- A completed evaluation, recommendation memo, comparison writeup, or other report-style deliverable is still a terminal boundary. After presenting the report, emit the `TERMINAL_CHOICE` packet and immediately call `request_user_input`; a bare `结论` / `最终判断` / `这轮我没有改代码，只做了……` closeout is still invalid if it ends the turn directly.
 - A settled recommendation, final draft, current recommendation, or final summary is still not permission to end directly.
 - Do not call `task_complete` from brainstorming while the terminal-choice popup is still pending.
 - Ask after each section whether it looks right so far, using numbered approvals instead of requiring typed approval words
@@ -121,8 +146,9 @@ digraph brainstorming {
 - If the only remaining real choice is continue vs stop, ask that through `request_user_input`; otherwise ask the more specific review or next-artifact choice instead of collapsing it into a generic continue/stop prompt.
 - Do not end a design checkpoint with prose-only follow-up text like `if you agree`, `if this direction looks good`, or `I can implement this next if you want`.
 - Do not stop with a declarative prose-only next-step proposal like `the next best step is X`, `next I would do X`, or `I can directly prepare X next`.
-- This also includes judgment-framed, comparative, or recommendation-framed next-step proposals, including Chinese variants such as `如果按我的判断，下一步应该先……`, `下一步最值得做的不是 A，而是 B`, `接下来更值得做的是……`, or `我建议先……`
+- This also includes judgment-framed, comparative, recommendation-framed, or value-framed next-step proposals, including Chinese variants such as `如果按我的判断，下一步应该先……`, `下一步最值得做的不是 A，而是 B`, `接下来更值得做的是……`, `我建议先……`, or `如果你愿意，我下一步最有价值的不是继续泛讨论，而是直接……`
 - A concrete leak example is `如果你同意，我下一步可以直接按这个推荐方案 A 开始修。`
+- Another concrete leak example is `如果你愿意，我下一步最有价值的不是继续泛讨论，而是直接把这次评估收敛成一份可执行清单。`
 - That pattern must resolve to either `request_user_input` or `auto-continue`, never `task_complete`
 - A non-terminal checkpoint must never end with `task_complete` after only a summary, recommendation, judgment, comparison, or suggestion about the next artifact step
 - Either continue automatically into the next workflow step or use `request_user_input` for a real review gate.
@@ -246,18 +272,3 @@ A question about a UI topic is not automatically a visual question. "What does p
 
 If they agree to the companion, read the detailed guide before proceeding:
 `skills/brainstorming/visual-companion.md`
-
-## Terminal Endgate Protocol
-
-If this skill reaches a terminal boundary where the current request appears complete:
-- This skill must not end the conversation directly with prose, `task_complete`, or a typed free-form prompt.
-- Conditional approvals such as `如果没问题就继续下一阶段`, `如果设计合理就开始实现`, or `if this is sound, continue to phase 2` count as prior authorization. A positive judgment must auto-continue instead of ending with a conclusion block.
-- Route true completion through `terminal-choice`.
-- The very next action must be `request_user_input`.
-- In Codex tool-backed terminal-choice popups, author only:
-  1. 结束 (Recommended)
-  2. 继续
-- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
-- Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
-- Concrete invitation prose such as `如果你同意，我下一步可以直接按这个推荐方案 A 开始修。` must resolve through `request_user_input` or `auto-continue`, never `task_complete`.
-- If the next safe step is already implied, auto-continue instead of asking the user to type a free-form continuation or ending message.

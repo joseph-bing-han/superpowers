@@ -89,6 +89,14 @@ assert_file_exists \
   "skills/spec-governed-development/SKILL.md" \
   "spec-governed-development is shipped inside the installable skills directory"
 
+assert_file_exists \
+  ".codex/instruction.md" \
+  "Codex install ships a repo-managed canonical instruction bootstrap file"
+
+assert_file_exists \
+  ".codex/install-codex.sh" \
+  "Codex install ships an installer script for bootstrap configuration"
+
 assert_section_contains \
   "skills/using-superpowers/SKILL.md" \
   "## Governance Routing" \
@@ -160,10 +168,24 @@ assert_section_contains \
   '^## '
 
 assert_section_contains \
+  ".codex/INSTALL.md" \
+  "## Installation" \
+  'install-codex\.sh|model_instructions_file|\.codex/instruction\.md' \
+  "install guide documents the installer script and repo-managed model_instructions_file bootstrap" \
+  '^## '
+
+assert_section_contains \
   "docs/README.codex.md" \
   "## How It Works" \
   'discoverable skills.*including `spec-governed-development`.*`skills/`|all discoverable skills.*`~/.codex/superpowers/skills`' \
   "Codex README documents that discoverable skills, including spec-governed-development, live under skills/" \
+  '^## '
+
+assert_section_contains \
+  "docs/README.codex.md" \
+  "## Manual Installation" \
+  'install-codex\.sh|model_instructions_file|\.codex/instruction\.md' \
+  "Codex README documents the installer script and repo-managed model_instructions_file bootstrap" \
   '^## '
 
 echo "All OpenSpec entry and document-path prompt contract checks passed."

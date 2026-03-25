@@ -1,0 +1,4 @@
+{"type":"turn.started"}
+{"type":"item.completed","item":{"id":"item_packet_unfulfilled_message","type":"agent_message","text":"the next step is supposedly preauthorized, but no real continuation starts after this boundary.\nENDGATE_PROTOCOL_VERSION: 1\nENDGATE_STATE: AUTO_CONTINUE\nENDGATE_CHOICE_KIND: NONE\nENDGATE_NEXT_ACTION: CONTINUE_WITH_TOOL"}}
+{"type":"item.completed","item":{"id":"item_followup_commentary","type":"agent_message","text":"this is only extra prose, not a machine action."}}
+{"type":"turn.completed","usage":{"input_tokens":11,"cached_input_tokens":0,"output_tokens":16}}

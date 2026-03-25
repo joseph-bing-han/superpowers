@@ -104,6 +104,13 @@ prose-only 的自由文本收口。
 - **THEN** 验证 MUST 失败
 - **AND** 该路径 SHALL 作为 legacy prose safety net 被继续拦截
 
+#### Scenario: Strict packet lanes fail when the transcript never emits a packet
+- **WHEN** 验证器读取的 transcript 属于本仓库当前 packetized local workflow lane
+- **AND** 当前 turn 没有发出 `endgate-state-packet`
+- **THEN** 验证 MUST 失败
+- **AND** MUST 优先报告 missing packet，而不是把缺失 packet 当成可接受的
+  prose-only 分支
+
 ### Requirement: Validation audits routing and execution-metadata contracts
 自动化验证 MUST 能够审计子代理路由相关的 prompt/docs contract，
 而不是只在实现完成后依赖人工解释。
@@ -165,4 +172,3 @@ packet 字段与 popup 结构，而不是 prose 文案，来区分
 - **THEN** validator MUST 优先根据该 packet 与其后的事件窗口做判定
 - **AND** prose 模式匹配 MAY 作为错误说明的一部分
 - **AND** prose 模式匹配 MUST NOT 取代 packet 成为主合规依据
-

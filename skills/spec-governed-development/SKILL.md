@@ -327,8 +327,22 @@ Next skills:
   2. 继续
 - 额外文本需求必须走客户端自动追加的 `Other` / notes 路径，不要再在选项列表里重复增加同类入口
 - For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
-- If a workflow lane emits a fixed-field `endgate-state-packet`, treat the last packet plus its post-packet event window as the governing runtime contract for that boundary.
+- Every governance handoff in this repository uses `endgate-state-packet`; treat the last packet plus its post-packet event window as the governing runtime contract for that boundary.
 - Earlier same-turn tool calls do not satisfy a later `endgate-state-packet`; prose invitation matching remains only a fallback safety net when no packet exists.
+- 每个治理 handoff 都必须先输出下面这份固定 packet，再执行下一个机器动作：
+```text
+ENDGATE_PROTOCOL_VERSION: 1
+ENDGATE_STATE: AUTO_CONTINUE | NEEDS_USER_DECISION | TERMINAL_CHOICE
+ENDGATE_CHOICE_KIND: NONE | SPECIFIC_NEXT_STEP | CONTINUE_OR_STOP
+ENDGATE_NEXT_ACTION: CONTINUE_WITH_TOOL | REQUEST_USER_INPUT
+```
+- 固定映射关系：
+  - `AUTO_CONTINUE` -> `NONE` + `CONTINUE_WITH_TOOL`
+  - `NEEDS_USER_DECISION` -> `SPECIFIC_NEXT_STEP` + `REQUEST_USER_INPUT`
+  - `TERMINAL_CHOICE` -> `CONTINUE_OR_STOP` + `REQUEST_USER_INPUT`
+- `AUTO_CONTINUE`：先输出 packet，再立刻进入已经明确的下一个 skill 或工具动作。
+- `NEEDS_USER_DECISION`：先输出 packet，再立刻调用 `request_user_input` 呈现具体分支选项。
+- `TERMINAL_CHOICE`：先输出 packet，再立刻调用 `request_user_input`，且只提供 `结束 (Recommended)` 与 `继续`。
 
 当 handoff 进入 `terminal-choice` 时，这个 turn 的直接下一个动作就是弹出 `request_user_input`，不能先写一段自由文本终稿再结束。
 
@@ -381,7 +395,15 @@ Next skills:
 
 If this skill reaches a terminal boundary where the current request appears complete:
 - This skill must not end the conversation directly with prose, `task_complete`, or a typed free-form prompt.
-- Conditional approvals such as `如果没问题就继续下一阶段`, `如果设计合理就开始实现`, or `if this is sound, continue to phase 2` count as prior authorization. A positive judgment must auto-continue instead of ending with a conclusion block.
+- Treat this terminal boundary as strict `endgate-state-packet` territory; packet emission is mandatory, not optional guidance.
+- Emit this exact packet immediately before the next machine action:
+```text
+ENDGATE_PROTOCOL_VERSION: 1
+ENDGATE_STATE: TERMINAL_CHOICE
+ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
+ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
+```
+- The last 4 non-empty lines before the next machine action must be that canonical `ENDGATE_*` packet.
 - Route true completion through `terminal-choice`.
 - The very next action must be `request_user_input`.
 - In Codex tool-backed terminal-choice popups, author only:
@@ -389,4 +411,6 @@ If this skill reaches a terminal boundary where the current request appears comp
   2. 继续
 - Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
 - Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
-- If the next safe step is already implied, auto-continue instead of asking the user to type a free-form continuation or ending message.
+- A completed assessment, audit, comparison, review, recommendation memo, or research report is still a terminal boundary. After presenting that deliverable, emit the `TERMINAL_CHOICE` packet and immediately call `request_user_input`; a bare closeout such as `结论`, `最终判断`, `我的推荐`, or `这轮我没有改代码，只做了……` is still invalid if it ends the turn directly.
+- Concrete invitation prose such as `如果你同意，我下一步可以直接按这个推荐方案 A 开始修。` must resolve through `request_user_input` or `auto-continue`, never `task_complete`.
+- If the next safe step is already implied, use the relevant non-terminal continuation path instead of stopping at terminal-choice.

@@ -374,7 +374,15 @@ No exceptions without your human partner's permission.
 
 If this skill reaches a terminal boundary where the current request appears complete:
 - This skill must not end the conversation directly with prose, `task_complete`, or a typed free-form prompt.
-- Conditional approvals such as `如果没问题就继续下一阶段`, `如果设计合理就开始实现`, or `if this is sound, continue to phase 2` count as prior authorization. A positive judgment must auto-continue instead of ending with a conclusion block.
+- Treat this terminal boundary as strict `endgate-state-packet` territory; packet emission is mandatory, not optional guidance.
+- Emit this exact packet immediately before the next machine action:
+```text
+ENDGATE_PROTOCOL_VERSION: 1
+ENDGATE_STATE: TERMINAL_CHOICE
+ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
+ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
+```
+- The last 4 non-empty lines before the next machine action must be that canonical `ENDGATE_*` packet.
 - Route true completion through `terminal-choice`.
 - The very next action must be `request_user_input`.
 - In Codex tool-backed terminal-choice popups, author only:
@@ -382,4 +390,6 @@ If this skill reaches a terminal boundary where the current request appears comp
   2. 继续
 - Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
 - Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
-- If the next safe step is already implied, auto-continue instead of asking the user to type a free-form continuation or ending message.
+- A completed assessment, audit, comparison, review, recommendation memo, or research report is still a terminal boundary. After presenting that deliverable, emit the `TERMINAL_CHOICE` packet and immediately call `request_user_input`; a bare closeout such as `结论`, `最终判断`, `我的推荐`, or `这轮我没有改代码，只做了……` is still invalid if it ends the turn directly.
+- Concrete invitation prose such as `如果你同意，我下一步可以直接按这个推荐方案 A 开始修。` must resolve through `request_user_input` or `auto-continue`, never `task_complete`.
+- If the next safe step is already implied, use the relevant non-terminal continuation path instead of stopping at terminal-choice.

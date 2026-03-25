@@ -1,6 +1,6 @@
 ---
 name: using-superpowers
-description: Use when starting any conversation - establishes how to find and use skills, requiring Skill tool invocation before ANY response including clarifying questions
+description: Use when starting any conversation - mandatory first skill; establishes skill usage and the strict `endgate-state-packet` / `request_user_input` workflow-ending protocol before ANY response including clarifying questions
 ---
 
 <SUBAGENT-STOP>
@@ -14,6 +14,16 @@ IF A SKILL APPLIES TO YOUR TASK, YOU DO NOT HAVE A CHOICE. YOU MUST USE IT.
 
 This is not negotiable. This is not optional. You cannot rationalize your way out of this.
 </EXTREMELY-IMPORTANT>
+
+<ENDGATE-HARD-RULE>
+Before any workflow turn ends:
+- Never stop after a prose-only summary, recommendation, or next-step proposal.
+- This includes value-framed endings such as `如果你愿意，我下一步最有价值的不是继续泛讨论，而是直接……`.
+- A completed assessment, audit, comparison, review, or research report is still a terminal boundary; a bare `结论`, `最终判断`, `我的推荐`, or `这轮我没有改代码，只做了……` closeout is not enough.
+- Every workflow boundary in this repository uses `endgate-state-packet`; this repository is in strict packet mode.
+- If the boundary is non-terminal, continue automatically or call `request_user_input`; never end with `task_complete`.
+- Therefore, the last 4 non-empty lines before the next machine action must be the canonical `ENDGATE_*` packet.
+</ENDGATE-HARD-RULE>
 
 ## Instruction Priority
 
@@ -132,10 +142,25 @@ If the user asked for end-to-end completion and no clarification is needed, keep
   2. 继续
 - Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option
 - For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
-- If a workflow lane emits a fixed-field `endgate-state-packet`, treat the last packet plus its post-packet event window as the governing runtime contract for that boundary.
+- Every workflow boundary in this repository is packetized; treat the last packet plus its post-packet event window as the governing runtime contract for that boundary.
 - Earlier same-turn tool calls do not satisfy a later `endgate-state-packet`; prose invitation matching remains only a fallback safety net when no packet exists.
+- At every workflow boundary in this repository, emit this exact packet immediately before the next machine action:
+```text
+ENDGATE_PROTOCOL_VERSION: 1
+ENDGATE_STATE: AUTO_CONTINUE | NEEDS_USER_DECISION | TERMINAL_CHOICE
+ENDGATE_CHOICE_KIND: NONE | SPECIFIC_NEXT_STEP | CONTINUE_OR_STOP
+ENDGATE_NEXT_ACTION: CONTINUE_WITH_TOOL | REQUEST_USER_INPUT
+```
+- Canonical packet pairings:
+  - `AUTO_CONTINUE` -> `NONE` + `CONTINUE_WITH_TOOL`
+  - `NEEDS_USER_DECISION` -> `SPECIFIC_NEXT_STEP` + `REQUEST_USER_INPUT`
+  - `TERMINAL_CHOICE` -> `CONTINUE_OR_STOP` + `REQUEST_USER_INPUT`
+- `AUTO_CONTINUE`: emit the packet, then immediately take the concrete continuation action with the relevant tool.
+- `NEEDS_USER_DECISION`: emit the packet, then immediately call `request_user_input` with the concrete next-step options.
+- `TERMINAL_CHOICE`: emit the packet, then immediately call `request_user_input` with only `结束 (Recommended)` and `继续`.
 - When the workflow reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
 - Do not produce a plain final-answer-style closeout before the terminal-choice popup.
+- A completed assessment, audit, comparison, review, or research report is still a terminal boundary. After delivering that report, emit the `TERMINAL_CHOICE` packet and immediately call `request_user_input`; a bare closeout such as `结论`, `最终判断`, `我的推荐`, or `这轮我没有改代码，只做了……` is still a protocol violation if it ends the turn directly.
 - A settled recommendation, current recommendation, final draft, final summary, or "this is the right direction" statement is still not permission to end directly.
 - Do not call `task_complete` or otherwise end the turn while the terminal-choice popup is still pending.
 - Do not stop after summaries, checkpoints, or phase boundaries just to ask whether to continue
@@ -145,9 +170,10 @@ If the user asked for end-to-end completion and no clarification is needed, keep
 - If the next action is already implied by the user's request and is safe to take, do it
 - If the only remaining real decision is continue vs stop, ask that through `request_user_input`; otherwise ask the more specific next-step choice instead of collapsing it into a generic continue/stop prompt
 - Non-terminal workflow stages must not end with a prose-only follow-up or a declarative prose-only next-step proposal such as `if you agree`, `if this direction looks good`, `the next best step is X`, `next I would do X`, or `I can directly prepare X next`
-- This also includes judgment-framed, comparative, or recommendation-framed declarative next-step proposals, including Chinese variants such as `如果按我的判断，下一步应该先……`, `下一步最值得做的不是 A，而是 B`, `接下来更值得做的是……`, or `我建议先……`
+- This also includes judgment-framed, comparative, recommendation-framed, or value-framed declarative next-step proposals, including Chinese variants such as `如果按我的判断，下一步应该先……`, `下一步最值得做的不是 A，而是 B`, `接下来更值得做的是……`, `我建议先……`, or `如果你愿意，我下一步最有价值的不是继续泛讨论，而是直接……`
 - A concrete leak example is `如果你同意，我下一步可以直接按这个推荐方案 A 开始修。`
 - Another concrete leak example is `如果你下一步是要把剩余逻辑也完整同步过去，我可以继续接着做。`
+- Another concrete leak example is `如果你愿意，我下一步最有价值的不是继续泛讨论，而是直接把这次评估收敛成一份可执行清单。`
 - That pattern must resolve to either `request_user_input` or `auto-continue`, never `task_complete`
 - A non-terminal turn must never end with `task_complete` after only a summary, recommendation, judgment, comparison, or suggestion about what to do next
 - If you can already describe the next safe step concretely, do it instead of narrating it and stopping
@@ -208,19 +234,3 @@ The skill itself tells you which.
 ## User Instructions
 
 Instructions say WHAT, not HOW. "Add X" or "Fix Y" doesn't mean skip workflows.
-
-## Terminal Endgate Protocol
-
-If this skill reaches a terminal boundary where the current request appears complete:
-- This skill must not end the conversation directly with prose, `task_complete`, or a typed free-form prompt.
-- Conditional approvals such as `如果没问题就继续下一阶段`, `如果设计合理就开始实现`, or `if this is sound, continue to phase 2` count as prior authorization. A positive judgment must auto-continue instead of ending with a conclusion block.
-- Route true completion through `terminal-choice`.
-- The very next action must be `request_user_input`.
-- In Codex tool-backed terminal-choice popups, author only:
-  1. 结束 (Recommended)
-  2. 继续
-- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
-- Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
-- Concrete invitation prose such as `如果你同意，我下一步可以直接按这个推荐方案 A 开始修。` must resolve through `request_user_input` or `auto-continue`, never `task_complete`.
-- Concrete invitation prose such as `如果你下一步是要把剩余逻辑也完整同步过去，我可以继续接着做。` must also resolve through `request_user_input` or `auto-continue`, never `task_complete`.
-- If the next safe step is already implied, auto-continue instead of asking the user to type a free-form continuation or ending message.
