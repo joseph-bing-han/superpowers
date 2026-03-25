@@ -196,7 +196,7 @@ line_is_hidden_endgate() {
   local line="$1"
 
   line="${line%$'\r'}"
-  [[ "$line" =~ ^ENDGATE_[A-Z_]+:\ .*$ ]]
+  [[ "$line" =~ ^ENDGATE_[^:]+:\ .*$ ]]
 }
 
 is_canonical_endgate_block() {

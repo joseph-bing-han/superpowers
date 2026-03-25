@@ -367,6 +367,16 @@ case "$scenario" in
     printf 'ENDGATE_PROTOCOL_VERSION: 1\n'
     printf 'Visible after other partial block\n'
     ;;
+  partial_numeric_single_line)
+    printf 'Visible before numeric partial block\n'
+    printf 'ENDGATE_123: numeric hidden\n'
+    printf 'Visible after numeric partial block\n'
+    ;;
+  partial_lowercase_single_line)
+    printf 'Visible before lowercase partial block\n'
+    printf 'ENDGATE_debug: lowercase hidden\n'
+    printf 'Visible after lowercase partial block\n'
+    ;;
   partial_three_line)
     printf 'Visible before three-line partial block\n'
     printf '%s\n' \
@@ -442,13 +452,17 @@ partial_stdout_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-partial-stdout.XXXXXX")"
 partial_stderr_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-partial-stderr.XXXXXX")"
 partial_other_stdout_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-partial-other-stdout.XXXXXX")"
 partial_other_stderr_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-partial-other-stderr.XXXXXX")"
+partial_numeric_stdout_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-partial-numeric-stdout.XXXXXX")"
+partial_numeric_stderr_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-partial-numeric-stderr.XXXXXX")"
+partial_lowercase_stdout_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-partial-lowercase-stdout.XXXXXX")"
+partial_lowercase_stderr_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-partial-lowercase-stderr.XXXXXX")"
 partial_runtime_dir="$(mktemp -d "${TMPDIR:-/tmp}/wrapper-partial-runtime.XXXXXX")"
 term_stdout_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-term-stdout.XXXXXX")"
 term_stderr_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-term-stderr.XXXXXX")"
 term_signal_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-term-signal.XXXXXX")"
 term_child_pid_file="$(mktemp "${TMPDIR:-/tmp}/wrapper-term-child-pid.XXXXXX")"
 prompt_expect_script="$(mktemp "${TMPDIR:-/tmp}/wrapper-prompt-expect.XXXXXX")"
-trap 'rm -f "$mock_codex" "$stdout_file" "$stderr_file" "$prompt_stdout_file" "$prompt_stderr_file" "$failure_stdout_file" "$failure_stderr_file" "$refresh_stdout_file" "$refresh_stderr_file" "$partial_stdout_file" "$partial_stderr_file" "$partial_other_stdout_file" "$partial_other_stderr_file" "$term_stdout_file" "$term_stderr_file" "$term_signal_file" "$term_child_pid_file" "$prompt_expect_script"; rm -rf "$runtime_dir" "$no_packet_runtime_dir" "$partial_runtime_dir"' EXIT
+trap 'rm -f "$mock_codex" "$stdout_file" "$stderr_file" "$prompt_stdout_file" "$prompt_stderr_file" "$failure_stdout_file" "$failure_stderr_file" "$refresh_stdout_file" "$refresh_stderr_file" "$partial_stdout_file" "$partial_stderr_file" "$partial_other_stdout_file" "$partial_other_stderr_file" "$partial_numeric_stdout_file" "$partial_numeric_stderr_file" "$partial_lowercase_stdout_file" "$partial_lowercase_stderr_file" "$term_stdout_file" "$term_stderr_file" "$term_signal_file" "$term_child_pid_file" "$prompt_expect_script"; rm -rf "$runtime_dir" "$no_packet_runtime_dir" "$partial_runtime_dir"' EXIT
 
 create_mock_codex "$mock_codex"
 
@@ -459,7 +473,7 @@ assert_contains "$stdout_file" "Visible stdout before packet" "wrapper keeps nor
 assert_contains "$stdout_file" "Visible stdout after packet" "wrapper keeps normal stdout text after packet lines"
 assert_contains "$stdout_file" "Visible stderr before packet" "wrapper keeps normal stderr text before packet lines in the terminal render"
 assert_contains "$stdout_file" "Visible stderr after packet" "wrapper keeps normal stderr text after packet lines in the terminal render"
-assert_not_contains_regex "$stdout_file" '^ENDGATE_[A-Z_]+: ' "wrapper removes packet lines from visible stdout"
+assert_not_contains_regex "$stdout_file" '^ENDGATE_[^:]+: ' "wrapper removes packet lines from visible stdout"
 assert_file_exact_text_after_cr_to_lf \
   "$stdout_file" \
   "$(cat <<'TEXT'
@@ -493,7 +507,7 @@ assert_jq_true \
   "$runtime_dir/latest-endgate.json" \
   '.debug_mirror == true and .source == "codex-endgate-wrapper" and .carrier.ENDGATE_STATE == "TERMINAL_CHOICE" and .carrier.ENDGATE_NEXT_ACTION == "REQUEST_USER_INPUT"' \
   "latest endgate snapshot tracks the last mirrored packet"
-assert_not_contains_regex "$stdout_file" '^ENDGATE_[A-Z_]+: ' "wrapper still hides packet lines when debug mirror is enabled"
+assert_not_contains_regex "$stdout_file" '^ENDGATE_[^:]+: ' "wrapper still hides packet lines when debug mirror is enabled"
 
 CODEX_BIN="$mock_codex" \
 CODEX_ENDGATE_WRITE_DEBUG_MIRROR=1 \
@@ -503,7 +517,7 @@ assert_contains "$stdout_file" "Visible stdout without protocol lines" "wrapper 
 assert_contains "$stdout_file" "Visible stderr without protocol lines" "wrapper keeps ordinary stderr text when no packet exists"
 assert_not_exists "$no_packet_runtime_dir/endgate-state.jsonl" "wrapper does not generate a debug mirror when no packet block exists"
 assert_not_exists "$no_packet_runtime_dir/latest-endgate.json" "wrapper does not create a latest snapshot when no packet block exists"
-assert_not_contains_regex "$stdout_file" '^ENDGATE_[A-Z_]+: ' "wrapper never invents canonical packet lines in stdout"
+assert_not_contains_regex "$stdout_file" '^ENDGATE_[^:]+: ' "wrapper never invents canonical packet lines in stdout"
 assert_file_exact_text_after_cr_to_lf \
   "$stdout_file" \
   "$(cat <<'TEXT'
@@ -542,6 +556,28 @@ TEXT
 )" \
   "single-line other ENDGATE field is hidden while ordinary text stays visible"
 assert_file_empty "$partial_other_stderr_file" "single-line other partial block scenario does not leak terminal render to stderr"
+
+CODEX_BIN="$mock_codex" bash "$WRAPPER" partial_numeric_single_line >"$partial_numeric_stdout_file" 2>"$partial_numeric_stderr_file"
+assert_file_exact_text_after_cr_to_lf \
+  "$partial_numeric_stdout_file" \
+  "$(cat <<'TEXT'
+Visible before numeric partial block
+Visible after numeric partial block
+TEXT
+)" \
+  "single-line ENDGATE_123 field is hidden while ordinary text stays visible"
+assert_file_empty "$partial_numeric_stderr_file" "single-line numeric partial block scenario does not leak terminal render to stderr"
+
+CODEX_BIN="$mock_codex" bash "$WRAPPER" partial_lowercase_single_line >"$partial_lowercase_stdout_file" 2>"$partial_lowercase_stderr_file"
+assert_file_exact_text_after_cr_to_lf \
+  "$partial_lowercase_stdout_file" \
+  "$(cat <<'TEXT'
+Visible before lowercase partial block
+Visible after lowercase partial block
+TEXT
+)" \
+  "single-line ENDGATE_debug field is hidden while ordinary text stays visible"
+assert_file_empty "$partial_lowercase_stderr_file" "single-line lowercase partial block scenario does not leak terminal render to stderr"
 
 CODEX_BIN="$mock_codex" \
 CODEX_ENDGATE_WRITE_DEBUG_MIRROR=1 \
