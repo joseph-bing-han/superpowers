@@ -86,6 +86,53 @@ bash ~/.codex/superpowers/.codex/install-codex.sh
 
 Skills update instantly through the symlink. Re-running the installer also keeps the repo-managed instruction bootstrap aligned with the current clone.
 
+## 可选：显式 opt-in 的 endgate wrapper 过渡方案
+
+如果你暂时还没有原生 structured carrier，但又希望把终端里的
+`ENDGATE_*` 行隐藏掉，可以手动运行下面这个 wrapper：
+
+```bash
+bash ~/.codex/superpowers/.codex/codex-endgate-wrapper.sh
+```
+
+如果你平时会给 `codex` 传参数，也直接追加在后面：
+
+```bash
+bash ~/.codex/superpowers/.codex/codex-endgate-wrapper.sh --help
+```
+
+边界说明：
+
+- 这是**显式 opt-in** 的过渡方案；只有你手动运行这个 wrapper 时才会生效
+- 它**不会**修改 `install-codex.sh`
+- 它**不会**替换你原本默认的 `codex` 入口
+- 长期标准仍然是**原生 structured carrier**
+- wrapper 只负责过滤 terminal render，不负责定义 canonical contract
+
+如果你想把被隐藏的 packet 额外镜像到本地 sidecar 文件用于调试，可以显式开启：
+
+```bash
+CODEX_ENDGATE_WRITE_DEBUG_MIRROR=1 \
+bash ~/.codex/superpowers/.codex/codex-endgate-wrapper.sh
+```
+
+默认镜像目录是仓库内的 `.codex/.runtime/`。如需临时改到别的目录，可再传：
+
+```bash
+CODEX_ENDGATE_WRITE_DEBUG_MIRROR=1 \
+CODEX_ENDGATE_RUNTIME_DIR=/tmp/codex-endgate-runtime \
+bash ~/.codex/superpowers/.codex/codex-endgate-wrapper.sh
+```
+
+请注意：
+
+- `.codex/.runtime/endgate-state.jsonl` 与 `.codex/.runtime/latest-endgate.json`
+  只是 **debug mirror**
+- sidecar 只用于本地排障或观察 wrapper 行为
+- 即使 sidecar 存在，**canonical contract 仍然必须来自 transcript 中的
+  structured carrier 或合法 tail-block fallback**
+- 不要把 sidecar 当成正式协议来源
+
 ## Uninstalling
 
 ```bash
