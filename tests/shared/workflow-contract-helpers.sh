@@ -98,6 +98,28 @@ extract_structured_endgate_carrier_object() {
     ' < "$file"
 }
 
+structured_endgate_carrier_is_complete() {
+    local carrier="$1"
+
+    if [ -z "$carrier" ] || ! command -v jq >/dev/null 2>&1; then
+        return 1
+    fi
+
+    printf '%s\n' "$carrier" | jq -e '
+        . as $carrier
+        | type == "object"
+        and (
+            [
+                "ENDGATE_PROTOCOL_VERSION",
+                "ENDGATE_STATE",
+                "ENDGATE_CHOICE_KIND",
+                "ENDGATE_NEXT_ACTION"
+            ]
+            | all(.[]; ($carrier[.]? | type) == "string" and (($carrier[.] // "") | length > 0))
+        )
+    ' >/dev/null 2>&1
+}
+
 print_endgate_packet_block_from_text() {
     awk '
         { lines[NR] = $0 }
@@ -124,11 +146,50 @@ print_endgate_packet_block_from_text() {
     '
 }
 
-normalize_visible_endgate_packet_to_carrier_object() {
+print_valid_visible_endgate_packet_block() {
     local file="$1"
     local block
 
     block="$(print_endgate_packet_block "$file")"
+
+    if [ -z "$block" ]; then
+        return 0
+    fi
+
+    if printf '%s\n' "$block" | awk '
+        BEGIN {
+            required["ENDGATE_PROTOCOL_VERSION"] = 1
+            required["ENDGATE_STATE"] = 1
+            required["ENDGATE_CHOICE_KIND"] = 1
+            required["ENDGATE_NEXT_ACTION"] = 1
+        }
+        /^ENDGATE_[A-Z_]+: / {
+            key = substr($0, 1, index($0, ": ") - 1)
+            value = substr($0, index($0, ": ") + 2)
+            count[key]++
+            if (count[key] == 1) {
+                first_value[key] = value
+            }
+        }
+        END {
+            valid = 1
+            for (key in required) {
+                if (count[key] != 1 || first_value[key] == "") {
+                    valid = 0
+                }
+            }
+            exit(valid ? 0 : 1)
+        }
+    '; then
+        printf '%s\n' "$block"
+    fi
+}
+
+normalize_visible_endgate_packet_to_carrier_object() {
+    local file="$1"
+    local block
+
+    block="$(print_valid_visible_endgate_packet_block "$file")"
 
     if [ -z "$block" ] || ! command -v jq >/dev/null 2>&1; then
         return 0
@@ -140,11 +201,7 @@ normalize_visible_endgate_packet_to_carrier_object() {
             | select(test("^ENDGATE_[A-Z_]+: "))
             | capture("^(?<key>ENDGATE_[A-Z_]+): (?<value>.*)$")
         ]
-        | if length > 0 then
-            from_entries
-          else
-            empty
-          end
+        | from_entries
     '
 }
 
@@ -154,7 +211,7 @@ print_endgate_carrier_object() {
     local fallback_carrier
 
     structured_carrier="$(extract_structured_endgate_carrier_object "$file")"
-    if [ -n "$structured_carrier" ]; then
+    if structured_endgate_carrier_is_complete "$structured_carrier"; then
         printf '%s\n' "$structured_carrier"
         return 0
     fi
@@ -168,16 +225,16 @@ print_endgate_carrier_object() {
 extract_endgate_carrier_kind() {
     local file="$1"
     local structured_carrier
-    local packet_block
+    local valid_visible_block
 
     structured_carrier="$(extract_structured_endgate_carrier_object "$file")"
-    if [ -n "$structured_carrier" ]; then
+    if structured_endgate_carrier_is_complete "$structured_carrier"; then
         printf 'structured\n'
         return 0
     fi
 
-    packet_block="$(print_endgate_packet_block "$file")"
-    if [ -n "$packet_block" ]; then
+    valid_visible_block="$(print_valid_visible_endgate_packet_block "$file")"
+    if [ -n "$valid_visible_block" ]; then
         printf 'visible_tail_block\n'
     fi
 }
@@ -185,16 +242,19 @@ extract_endgate_carrier_kind() {
 extract_endgate_carrier_field() {
     local file="$1"
     local key="$2"
-    local carrier
+    local structured_carrier
+    local valid_visible_block
 
-    carrier="$(print_endgate_carrier_object "$file")"
-
-    if [ -n "$carrier" ] && command -v jq >/dev/null 2>&1; then
-        printf '%s\n' "$carrier" | jq -r --arg key "$key" '.[$key] // empty'
+    structured_carrier="$(extract_structured_endgate_carrier_object "$file")"
+    if structured_endgate_carrier_is_complete "$structured_carrier"; then
+        printf '%s\n' "$structured_carrier" | jq -r --arg key "$key" '.[$key] // empty'
         return 0
     fi
 
-    extract_endgate_packet_field_from_text "$key" < "$file"
+    valid_visible_block="$(print_valid_visible_endgate_packet_block "$file")"
+    if [ -n "$valid_visible_block" ]; then
+        printf '%s\n' "$valid_visible_block" | extract_endgate_packet_field_from_text "$key"
+    fi
 }
 
 extract_endgate_packet_field_from_text() {

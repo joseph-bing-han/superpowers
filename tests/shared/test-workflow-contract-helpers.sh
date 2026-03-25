@@ -23,6 +23,20 @@ assert_equals() {
   fi
 }
 
+assert_empty() {
+  local actual="$1"
+  local description="$2"
+
+  if [[ -z "$actual" ]]; then
+    echo "PASS: $description"
+  else
+    echo "FAIL: $description"
+    echo "  Expected empty value"
+    echo "  Actual: $actual"
+    exit 1
+  fi
+}
+
 assert_file_exists() {
   local file="$1"
   local description="$2"
@@ -36,6 +50,39 @@ assert_file_exists() {
   fi
 }
 
+assert_fixture_endgate_field() {
+  local file="$1"
+  local key="$2"
+  local expected="$3"
+  local description_prefix="$4"
+
+  assert_equals \
+    "$(extract_endgate_carrier_field "$file" "$key")" \
+    "$expected" \
+    "$description_prefix exposes $key via carrier helper"
+  assert_equals \
+    "$(extract_endgate_packet_field "$file" "$key")" \
+    "$expected" \
+    "$description_prefix exposes $key via packet helper"
+}
+
+assert_complete_structured_fixture() {
+  local file="$1"
+  local description_prefix="$2"
+  local expected_state="$3"
+  local expected_choice_kind="$4"
+  local expected_next_action="$5"
+
+  assert_equals \
+    "$(extract_endgate_carrier_kind "$file")" \
+    "structured" \
+    "$description_prefix reports structured carrier kind"
+  assert_fixture_endgate_field "$file" "ENDGATE_PROTOCOL_VERSION" "1" "$description_prefix"
+  assert_fixture_endgate_field "$file" "ENDGATE_STATE" "$expected_state" "$description_prefix"
+  assert_fixture_endgate_field "$file" "ENDGATE_CHOICE_KIND" "$expected_choice_kind" "$description_prefix"
+  assert_fixture_endgate_field "$file" "ENDGATE_NEXT_ACTION" "$expected_next_action" "$description_prefix"
+}
+
 if ! command -v jq >/dev/null 2>&1; then
   echo "FAIL: jq is required for structured carrier helper checks"
   exit 1
@@ -45,42 +92,26 @@ assert_file_exists "$AUTOCONTINUE_FIXTURE" "structured autocontinue fixture exis
 assert_file_exists "$NEEDS_USER_DECISION_FIXTURE" "structured needs-user-decision fixture exists"
 assert_file_exists "$TERMINAL_CHOICE_FIXTURE" "structured terminal-choice fixture exists"
 
-assert_equals \
-  "$(extract_endgate_carrier_field "$AUTOCONTINUE_FIXTURE" "ENDGATE_STATE")" \
+assert_complete_structured_fixture \
+  "$AUTOCONTINUE_FIXTURE" \
+  "structured response_item fixture" \
   "AUTO_CONTINUE" \
-  "structured response_item carrier exposes AUTO_CONTINUE"
-assert_equals \
-  "$(extract_endgate_packet_field "$AUTOCONTINUE_FIXTURE" "ENDGATE_NEXT_ACTION")" \
-  "CONTINUE_WITH_TOOL" \
-  "existing packet helper reads structured response_item carrier first"
-assert_equals \
-  "$(extract_endgate_carrier_kind "$AUTOCONTINUE_FIXTURE")" \
-  "structured" \
-  "carrier kind reports structured for response_item metadata"
-
-assert_equals \
-  "$(extract_endgate_carrier_field "$NEEDS_USER_DECISION_FIXTURE" "ENDGATE_STATE")" \
+  "NONE" \
+  "CONTINUE_WITH_TOOL"
+assert_complete_structured_fixture \
+  "$NEEDS_USER_DECISION_FIXTURE" \
+  "structured item fixture" \
   "NEEDS_USER_DECISION" \
-  "structured item carrier exposes NEEDS_USER_DECISION"
-assert_equals \
-  "$(extract_endgate_packet_field "$NEEDS_USER_DECISION_FIXTURE" "ENDGATE_CHOICE_KIND")" \
   "SPECIFIC_NEXT_STEP" \
-  "existing packet helper reads structured item carrier first"
-assert_equals \
-  "$(extract_endgate_carrier_kind "$NEEDS_USER_DECISION_FIXTURE")" \
-  "structured" \
-  "carrier kind reports structured for item metadata"
-
-assert_equals \
-  "$(extract_endgate_carrier_field "$TERMINAL_CHOICE_FIXTURE" "ENDGATE_STATE")" \
+  "REQUEST_USER_INPUT"
+assert_complete_structured_fixture \
+  "$TERMINAL_CHOICE_FIXTURE" \
+  "structured terminal-choice fixture" \
   "TERMINAL_CHOICE" \
-  "structured carrier exposes TERMINAL_CHOICE"
-assert_equals \
-  "$(extract_endgate_packet_field "$TERMINAL_CHOICE_FIXTURE" "ENDGATE_NEXT_ACTION")" \
-  "REQUEST_USER_INPUT" \
-  "existing packet helper reads structured terminal-choice carrier first"
+  "CONTINUE_OR_STOP" \
+  "REQUEST_USER_INPUT"
 
-sample_text="$(cat <<'EOF'
+sample_text="$(cat <<'TEXT'
 Human-readable paragraph.
 
 ENDGATE_PROTOCOL_VERSION: 1
@@ -94,15 +125,15 @@ ENDGATE_PROTOCOL_VERSION: 1
 ENDGATE_STATE: TERMINAL_CHOICE
 ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
 ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
-EOF
+TEXT
 )"
 
-expected_block="$(cat <<'EOF'
+expected_block="$(cat <<'TEXT'
 ENDGATE_PROTOCOL_VERSION: 1
 ENDGATE_STATE: TERMINAL_CHOICE
 ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
 ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
-EOF
+TEXT
 )"
 
 actual_block="$(printf '%s\n' "$sample_text" | print_endgate_packet_block_from_text)"
@@ -114,17 +145,19 @@ assert_equals "$actual_state" "TERMINAL_CHOICE" "endgate packet helper extracts 
 assert_equals "$actual_action" "REQUEST_USER_INPUT" "endgate packet helper extracts ENDGATE_NEXT_ACTION"
 
 tail_fallback_file="$(mktemp)"
+partial_structured_fallback_file="$(mktemp)"
+duplicate_visible_tail_file="$(mktemp)"
 priority_file="$(mktemp)"
-trap 'rm -f "$tail_fallback_file" "$priority_file"' EXIT
+trap 'rm -f "$tail_fallback_file" "$partial_structured_fallback_file" "$duplicate_visible_tail_file" "$priority_file"' EXIT
 
-cat > "$tail_fallback_file" <<'EOF'
+cat > "$tail_fallback_file" <<'TEXT'
 Human-readable paragraph.
 
 ENDGATE_PROTOCOL_VERSION: 1
 ENDGATE_STATE: TERMINAL_CHOICE
 ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
 ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
-EOF
+TEXT
 
 assert_equals \
   "$(extract_endgate_carrier_kind "$tail_fallback_file")" \
@@ -139,13 +172,54 @@ assert_equals \
   "REQUEST_USER_INPUT" \
   "existing packet helper still works with visible tail block fallback"
 
-cat > "$priority_file" <<'EOF'
+cat > "$partial_structured_fallback_file" <<'TEXT'
+{"timestamp":"2026-03-26T09:30:00.000Z","turn_id":"turn-partial-structured","type":"response_item","payload":{"type":"message","role":"assistant","metadata":{"endgate":{"ENDGATE_PROTOCOL_VERSION":"1","ENDGATE_STATE":"NEEDS_USER_DECISION","ENDGATE_NEXT_ACTION":"REQUEST_USER_INPUT"}},"content":[{"type":"output_text","text":"This structured carrier is intentionally incomplete."}]}}
+ENDGATE_PROTOCOL_VERSION: 1
+ENDGATE_STATE: TERMINAL_CHOICE
+ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
+ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
+TEXT
+
+assert_equals \
+  "$(extract_endgate_carrier_kind "$partial_structured_fallback_file")" \
+  "visible_tail_block" \
+  "partial structured carrier falls back to visible tail block"
+assert_equals \
+  "$(extract_endgate_carrier_field "$partial_structured_fallback_file" "ENDGATE_STATE")" \
+  "TERMINAL_CHOICE" \
+  "shared carrier extraction ignores incomplete structured carrier"
+assert_equals \
+  "$(extract_endgate_packet_field "$partial_structured_fallback_file" "ENDGATE_CHOICE_KIND")" \
+  "CONTINUE_OR_STOP" \
+  "packet helper falls back when structured carrier is incomplete"
+
+cat > "$duplicate_visible_tail_file" <<'TEXT'
+Human-readable paragraph.
+
+ENDGATE_PROTOCOL_VERSION: 1
+ENDGATE_STATE: TERMINAL_CHOICE
+ENDGATE_STATE: AUTO_CONTINUE
+ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
+ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
+TEXT
+
+assert_empty \
+  "$(extract_endgate_carrier_kind "$duplicate_visible_tail_file")" \
+  "duplicate visible tail key does not produce a legal carrier kind"
+assert_empty \
+  "$(extract_endgate_carrier_field "$duplicate_visible_tail_file" "ENDGATE_STATE")" \
+  "duplicate visible tail key invalidates carrier extraction"
+assert_empty \
+  "$(extract_endgate_packet_field "$duplicate_visible_tail_file" "ENDGATE_NEXT_ACTION")" \
+  "duplicate visible tail key invalidates packet fallback"
+
+cat > "$priority_file" <<'TEXT'
 {"timestamp":"2026-03-26T09:00:00.000Z","turn_id":"turn-priority","type":"response_item","payload":{"type":"message","role":"assistant","metadata":{"endgate":{"ENDGATE_PROTOCOL_VERSION":"1","ENDGATE_STATE":"NEEDS_USER_DECISION","ENDGATE_CHOICE_KIND":"SPECIFIC_NEXT_STEP","ENDGATE_NEXT_ACTION":"REQUEST_USER_INPUT"}},"content":[{"type":"output_text","text":"Structured carrier should win over visible tail text."}]}}
 ENDGATE_PROTOCOL_VERSION: 1
 ENDGATE_STATE: TERMINAL_CHOICE
 ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
 ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
-EOF
+TEXT
 
 assert_equals \
   "$(extract_endgate_carrier_kind "$priority_file")" \
