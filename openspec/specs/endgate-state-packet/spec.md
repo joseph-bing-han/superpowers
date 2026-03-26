@@ -8,13 +8,18 @@ TBD - created by archiving change protocolize-runtime-endgate-state. Update Purp
 boundary、handoff 或 terminal boundary 时，暴露一份固定字段的
 `endgate-state-packet`，供 transcript validator 与后续自动化逻辑消费。
 
-#### Scenario: Boundary packet exposes the canonical fields
+#### Scenario: Boundary packet exposes the canonical fields through the preferred carrier
 - **WHEN** assistant 到达任一 endgate 边界
 - **THEN** 系统 SHALL 暴露以下 canonical 字段：
   `ENDGATE_PROTOCOL_VERSION`、`ENDGATE_STATE`、
   `ENDGATE_CHOICE_KIND`、`ENDGATE_NEXT_ACTION`
-- **AND** 这些字段 SHALL 出现在固定 tail block 或等价的结构化 transcript
-  字段中
+- **AND** 若当前运行时支持结构化 transcript 字段，carrier SHALL 使用该结构化字段
+- **AND** 仅当该能力不存在时，carrier MAY 回退为固定 tail block
+
+#### Scenario: Tail block remains the compatibility fallback
+- **WHEN** 当前运行时尚未提供原生结构化 endgate transcript 字段
+- **THEN** 系统 SHALL 继续通过固定 tail block 暴露 canonical 字段
+- **AND** validator MUST 仍能按现有字段名解析该 packet
 
 ### Requirement: Packet fields use stable enums and valid pairings
 `endgate-state-packet` 的字段值 MUST 使用固定枚举，并遵守稳定的字段配对，
