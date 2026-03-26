@@ -120,6 +120,34 @@ assert_section_contains \
 
 assert_section_contains \
   "skills/brainstorming/SKILL.md" \
+  "## OpenSpec Lane Safety Gate" \
+  'request_user_input.*创建 OpenSpec 提案|lane confirmation|先.*request_user_input.*OpenSpec' \
+  "brainstorming requires a lane confirmation before ordinary design docs when the OpenSpec lane is still unresolved" \
+  '^## '
+
+assert_section_contains \
+  "skills/brainstorming/SKILL.md" \
+  "## OpenSpec Lane Safety Gate" \
+  'MUST NOT.*普通设计文档|不得.*普通设计文档|do not write ordinary design docs|before ordinary design docs' \
+  "brainstorming forbids ordinary design docs before lane decision when the OpenSpec lane is unresolved" \
+  '^## '
+
+assert_section_contains \
+  "skills/writing-plans/SKILL.md" \
+  "## OpenSpec Lane Safety Gate" \
+  'request_user_input.*创建 OpenSpec 提案|lane confirmation|先.*request_user_input.*OpenSpec' \
+  "writing-plans requires a lane confirmation before ordinary plan docs when the OpenSpec lane is still unresolved" \
+  '^## '
+
+assert_section_contains \
+  "skills/writing-plans/SKILL.md" \
+  "## OpenSpec Lane Safety Gate" \
+  'MUST NOT.*普通计划文档|不得.*普通计划文档|do not write ordinary plan docs|before ordinary plan docs' \
+  "writing-plans forbids ordinary plan docs before lane decision when the OpenSpec lane is unresolved" \
+  '^## '
+
+assert_section_contains \
+  "skills/brainstorming/SKILL.md" \
   "## Document Path Selection" \
   'docs/specs|docs/superpowers/specs' \
   "brainstorming prefers a structured spec directory instead of bare docs root" \

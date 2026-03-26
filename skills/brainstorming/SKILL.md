@@ -187,6 +187,17 @@ Do not accept a prose-only `reply 1/2/3` prompt for these enumerable approval ga
 
 ## After the Design
 
+## OpenSpec Lane Safety Gate
+
+If the current work still looks like an important change that probably belongs in OpenSpec, and the lane has not yet been resolved, `brainstorming` must not silently continue as if this were already a Superpowers-only lane.
+
+- If there is no explicit existing change and the user has not explicitly chosen the ordinary-docs fallback, you MUST NOT write ordinary design docs yet（不得先写普通设计文档）.
+- In that unresolved state, you MUST use `request_user_input` to run lane confirmation first.
+- Slot `1` remains `创建 OpenSpec 提案 (Recommended)`.
+- Slot `2` remains the explicit ordinary-docs fallback.
+- Only after the user explicitly chooses the ordinary-docs fallback may `brainstorming` write a normal design artifact outside OpenSpec.
+- If the user chooses OpenSpec, update the relevant OpenSpec artifacts instead of creating an ordinary design document.
+
 ## Document Path Selection
 
 Before writing any non-OpenSpec design artifact, choose the destination path in this order:

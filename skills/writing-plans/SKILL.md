@@ -40,6 +40,17 @@ Rules:
 - If the repo already has `docs/specs`, pair it with `docs/plans`; if it already has `docs/superpowers/specs`, pair it with `docs/superpowers/plans`.
 - In an OpenSpec-governed lane, this plan still belongs in the structured plan directory, while scope/design/spec/tasks remain in OpenSpec artifacts.
 
+## OpenSpec Lane Safety Gate
+
+If `writing-plans` is reached while the work still looks like an important change that probably belongs in OpenSpec, and the lane has not yet been resolved, `writing-plans` must not silently write an ordinary plan document.
+
+- If there is no explicit existing change and the user has not explicitly chosen the ordinary-docs fallback, you MUST NOT write ordinary plan docs yet（不得先写普通计划文档）.
+- In that unresolved state, you MUST use `request_user_input` to run lane confirmation first.
+- Slot `1` remains `创建 OpenSpec 提案 (Recommended)`.
+- Slot `2` remains the explicit ordinary-docs fallback.
+- Only after the user explicitly chooses the ordinary-docs fallback may `writing-plans` create a normal execution plan outside OpenSpec.
+- If an active or existing OpenSpec change is already known, stay in the governed lane and use OpenSpec artifacts as the planning context instead of treating the missing fallback choice as permission to write an ordinary plan.
+
 ## Scope Check
 
 If the spec covers multiple independent subsystems, it should have been broken into sub-project specs during brainstorming. If it wasn't, suggest breaking this into separate plans — one per subsystem. Each plan should produce working, testable software on its own.
