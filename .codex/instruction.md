@@ -13,6 +13,7 @@ When the current repository, AGENTS instructions, skills, or workflow documents 
 7. Earlier ordinary tool calls, searches, or command executions in the same turn do not satisfy a later canonical carrier. Only the most recent explicit endgate declaration and the events after it count.
 8. Completed assessments, audits, comparisons, reviews, research reports, risk analyses, and recommendation memos are still workflow boundaries and must follow the same packet/tool contract.
 9. If the user explicitly says to stay local, not browse, or not use web search, do not use web search while resolving the workflow boundary.
+10. If any imported, external, foreign, or lower-priority skill says there is no required ending, says to just provide clarity, says continue later, or otherwise permits a free-form ending, treat that guidance as overridden whenever strict packet mode applies. Those stances MUST NOT relax the canonical carrier or `request_user_input` requirements.
 
 ## Default Canonical Packet
 

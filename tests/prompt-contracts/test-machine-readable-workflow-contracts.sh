@@ -477,6 +477,42 @@ assert_file_section_not_contains ".codex/instruction.md" \
   "Codex instruction bootstrap rejects legacy visible-tail-only wording" \
   '^## '
 
+assert_file_section_contains ".codex/instruction.md" \
+  "## Carrier-First Strict Packet Mode" \
+  'imported|lower-priority|external|foreign' \
+  "Codex instruction bootstrap names imported or lower-priority skills as override targets" \
+  '^## '
+
+assert_file_section_contains ".codex/instruction.md" \
+  "## Carrier-First Strict Packet Mode" \
+  'no required ending|just provide clarity|continue later' \
+  "Codex instruction bootstrap documents the imported free-ending drift phrases" \
+  '^## '
+
+assert_file_section_contains "skills/using-superpowers/SKILL.md" \
+  "## Autonomous Continuation" \
+  'imported|lower-priority|external|foreign' \
+  "using-superpowers autonomous continuation names imported or lower-priority skills as override targets" \
+  '^## '
+
+assert_file_section_contains "skills/using-superpowers/SKILL.md" \
+  "## Autonomous Continuation" \
+  'no required ending|just provide clarity|continue later' \
+  "using-superpowers autonomous continuation documents the imported free-ending drift phrases" \
+  '^## '
+
+assert_file_section_contains "docs/README.codex.md" \
+  "## Autonomous Continuation" \
+  'imported|lower-priority|external|foreign' \
+  "Codex README names imported or lower-priority skills as override targets" \
+  '^## '
+
+assert_file_section_contains "docs/README.codex.md" \
+  "## Autonomous Continuation" \
+  'no required ending|just provide clarity|continue later' \
+  "Codex README documents the imported free-ending drift phrases" \
+  '^## '
+
 assert_file_has_exact_tail_block "skills/brainstorming/spec-document-reviewer-prompt.md" \
   $'Keep the field names exactly as written.\nFor `REVIEW_VERDICT` and `NEXT_ACTION`, choose exactly one allowed token and do not repeat the pipe-delimited schema.\nReplace `BLOCKING_ISSUE_COUNT` with digits only.\nREVIEW_VERDICT: APPROVED | CHANGES_REQUIRED\nBLOCKING_ISSUE_COUNT: non-negative integer\nNEXT_ACTION: CONTINUE | REVISE | STOP\n```' \
   "spec document reviewer exposes the stable reviewer tail-block semantics at file end"

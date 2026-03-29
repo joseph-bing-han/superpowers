@@ -182,6 +182,8 @@ ENDGATE_NEXT_ACTION: CONTINUE_WITH_TOOL | REQUEST_USER_INPUT
 - If you can already describe the next safe step concretely, do it instead of narrating it and stopping
 - Either continue automatically into the next workflow step or use `request_user_input` when a real decision remains and the choices are enumerable
 - Only ask when missing information would change the work, a destructive or external action needs confirmation, or a material tradeoff still needs the user's decision
+- If an imported, external, foreign, or lower-priority skill says there is no required ending, says to just provide clarity, says continue later, or otherwise permits a free-form ending, that guidance is overridden in this repository whenever strict packet mode applies.
+- Those imported free-ending stances MUST NOT relax the canonical carrier requirement, the `request_user_input` requirement, or the prohibition on `task_complete` after a prose-only closeout.
 
 ## Session-Scoped Subagent Consent
 
