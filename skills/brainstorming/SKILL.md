@@ -1,6 +1,6 @@
 ---
 name: brainstorming
-description: "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent and design before implementation, and keeps checkpoint/report endings on the packetized terminal-choice path."
+description: "Use when the user explicitly asks to design or brainstorm a non-lightweight change, or when an active workflow has already entered the design phase for a non-lightweight change. Do not use for plain Q&A, translation, or text-only/copy-only edits."
 ---
 
 # Brainstorming Ideas Into Designs
@@ -13,7 +13,7 @@ Start by understanding the current project context, then ask questions one at a 
 Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and either:
 1. the user has approved it, or
 2. the user already asked for end-to-end execution, the design is straightforward, and no unresolved clarifications, risky tradeoffs, or explicit review requests remain.
-This applies to EVERY project regardless of perceived simplicity.
+This applies to non-lightweight design work that has already entered the brainstorming lane.
 </HARD-GATE>
 
 <ENDGATE-HARD-RULE>
@@ -27,9 +27,18 @@ Before any brainstorming checkpoint ends:
 - If the checkpoint is non-terminal, continue automatically or call `request_user_input`; never end with `task_complete`.
 </ENDGATE-HARD-RULE>
 
-## Anti-Pattern: "This Is Too Simple To Need A Design"
+## Lightweight Task Bypass
 
-Every project goes through this process. A todo list, a single-function utility, a config change — all of them. "Simple" projects are where unexamined assumptions cause the most wasted work. The design can be short (a few sentences for truly simple projects), but you MUST present it and get approval.
+Do NOT use brainstorming for:
+
+- ordinary questions and explanations
+- translation
+- summarization or rewriting
+- text-only changes
+- UI copy-only edits
+- comments-only or docs-only edits
+
+If a broader workflow session is already active and the current subtask matches one of the categories above, downgrade that subtask to direct handling instead of forcing it through brainstorming.
 
 ## Checklist
 

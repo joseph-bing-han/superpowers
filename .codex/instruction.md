@@ -1,5 +1,15 @@
 Treat this file as a high-priority runtime workflow contract for Superpowers on Codex.
 
+## Direct Mode Default
+
+Direct Mode is the default for this repository unless the user explicitly asks for a skill, explicitly asks for Superpowers workflow, or uses a clear workflow keyword such as design, planning, debugging, review, or implementation coordination.
+
+Lightweight tasks MUST stay in Direct Mode. This includes ordinary questions, translation, summarization/rewrite, text-only changes, UI copy-only edits, comments-only edits, and docs-only edits when they do not change behavior.
+
+If a workflow is already active and the current subtask is lightweight, downgrade that subtask to direct handling. Do not force brainstorming, planning, TDD, or terminal-choice onto a lightweight subtask just because the surrounding session is in a workflow lane.
+
+Direct replies and downgraded lightweight subtasks are not workflow terminal boundaries by default. They MUST output the result directly and MUST NOT insert `request_user_input` or `terminal-choice` before the user sees the answer.
+
 ## Carrier-First Strict Packet Mode
 
 When the current repository, AGENTS instructions, skills, or workflow documents declare a machine-readable workflow boundary such as `endgate-state-packet`, `request_user_input`, `terminal-choice`, `auto-continue`, `needs-user-decision`, or strict packet mode, follow these rules immediately:

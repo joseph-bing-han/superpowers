@@ -16,7 +16,7 @@ After you've signed off on the design, your agent puts together an implementatio
 
 Next up, once you say "go", it launches a *subagent-driven-development* process, having agents work through each engineering task, inspecting and reviewing their work, and continuing forward. It's not uncommon for Claude to be able to work autonomously for a couple hours at a time without deviating from the plan you put together.
 
-There's a bunch more to it, but that's the core of the system. And because the skills trigger automatically, you don't need to do anything special. Your coding agent just has Superpowers.
+There's a bunch more to it, but that's the core of the system. In the current model, lightweight tasks stay direct by default. Superpowers workflow kicks in when you explicitly ask for a skill or use a clear workflow keyword such as design, planning, debugging, review, or implementation coordination.
 
 
 ## Sponsorship
@@ -162,6 +162,10 @@ already use it in another harness.
   ```bash
   copilot plugin install superpowers@superpowers-marketplace
   ```
+
+### Verify Installation
+
+Start a new session in your chosen platform and ask for something with clear workflow intent (for example, "help me plan this feature" or "let's debug this issue"), or explicitly name a skill. Lightweight tasks such as plain Q&A, translation, or copy-only edits should stay direct instead of triggering the heavyweight workflow.
 
 ## The Basic Workflow
 

@@ -1,6 +1,6 @@
 ---
 name: test-driven-development
-description: Use when implementing any feature or bugfix, before writing implementation code
+description: Use when implementing a behavior-changing feature or bugfix before writing implementation code. Do not use for translation, text-only changes, UI copy-only edits, comments-only edits, or docs-only edits that do not change behavior.
 ---
 
 # Test-Driven Development (TDD)
@@ -15,13 +15,23 @@ Write the test first. Watch it fail. Write minimal code to pass.
 
 ## When to Use
 
-**Always:**
+**Always for behavior-changing work:**
 - New features
 - Bug fixes
 - Refactoring
 - Behavior changes
 
-**Exceptions (ask your human partner):**
+**Do NOT use TDD for non-behavioral text changes:**
+- Translation
+- Text-only edits
+- UI copy-only edits
+- Comments-only edits
+- Docs-only edits
+- Any task that does not change behavior, state flow, conditions, contracts, interactions, rendering logic, or layout structure
+
+**Escalate back to TDD immediately if the task mixes text and behavior changes.**
+
+**Other exceptions (ask your human partner):**
 - Throwaway prototypes
 - Generated code
 - Configuration files

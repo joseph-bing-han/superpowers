@@ -78,12 +78,16 @@ The higher-priority workflow bootstrap is stored in the repository at `~/.codex/
 
 ## Usage
 
-Skills are discovered automatically. Codex activates them when:
+Skills are discovered automatically, but Superpowers should stay in Direct Mode by default. Codex should activate workflow skills only when:
 - You mention a skill by name (e.g., "use brainstorming")
-- The task matches a skill's description
+- You use a clear workflow keyword such as design, planning, debugging, review, or implementation coordination
 - The `using-superpowers` skill directs Codex to use one
 - If a request looks like an important change but no OpenSpec lane or change has been chosen yet, Superpowers should use `request_user_input` before writing ordinary design/plan docs to ask whether to create an OpenSpec proposal first.
 - Once an OpenSpec proposal / change is created, that work remains in the OpenSpec lane until archive completes; archive is part of closure, not an optional afterthought.
+
+Plain Q&A, translation, summarization/rewrite, text-only changes, UI copy-only edits, comments-only edits, and docs-only edits SHOULD stay in Direct Mode. They should not trigger heavyweight workflow skills or TDD by default.
+
+If a workflow is already active and the current subtask is lightweight, that subtask should be downgraded to direct handling. The answer must be shown directly, and the subtask must not inherit workflow `terminal-choice` / `request_user_input` popups before the result is visible.
 
 ## Choice-Based Interaction
 
