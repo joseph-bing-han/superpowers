@@ -1,0 +1,1 @@
+What does "deterministic regression test" mean? Explain it briefly in plain English. Do not write code.

@@ -1,0 +1,3 @@
+Translate this sentence into Simplified Chinese:
+
+"Please click the save button after reviewing the changes."
