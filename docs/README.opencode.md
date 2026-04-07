@@ -8,21 +8,34 @@ Add superpowers to the `plugin` array in your `opencode.json` (global or project
 
 ```json
 {
-  "plugin": ["superpowers@git+https://github.com/obra/superpowers.git"]
+  "plugin": [
+    "superpowers@git+https://github.com/joseph-bing-han/superpowers.git#openspec"
+  ]
 }
 ```
 
-Restart OpenCode. The plugin installs through OpenCode's plugin manager and
-registers all skills.
+Restart OpenCode.
 
-Verify by asking: "Tell me about your superpowers"
+This OpenCode installation path uses the team-maintained fork and the `openspec`
+branch, so you get the current repo changes and newly added skills/bootstrap content.
 
-OpenCode uses its own plugin install. If you also use Claude Code, Codex, or
-another harness, install Superpowers separately for each one.
+On startup, the plugin will:
 
-### Migrating from the old symlink-based install
+- load `.opencode/plugins/superpowers.js` from the repo
+- register the repo `skills/` tree with OpenCode
+- inject the `using-superpowers` bootstrap automatically
+- expose newer skills such as `spec-governed-development`
 
-If you previously installed superpowers using `git clone` and symlinks, remove the old setup:
+The OpenSpec governance entry point exposed by this branch is
+`spec-governed-development`. It decides whether the current task should enter an
+OpenSpec lane. It is not a rename of `openspec-apply-change`, which still
+remains a separate execution skill used after a task has already entered the
+OpenSpec lane and is ready for implementation.
+
+### Migrating from older installs
+
+If you previously installed superpowers using symlinks, a local clone, or the
+upstream `obra/superpowers` repository, remove the old setup:
 
 ```bash
 # Remove old symlinks
@@ -31,11 +44,15 @@ rm -rf ~/.config/opencode/skills/superpowers
 
 # Optionally remove the cloned repo
 rm -rf ~/.config/opencode/superpowers
-
-# Remove skills.paths from opencode.json if you added one for superpowers
 ```
 
-Then follow the installation steps above.
+Then update `opencode.json`:
+
+1. Replace any `obra/superpowers` plugin entry with
+   `joseph-bing-han/superpowers.git#openspec`
+2. Remove any old `skills.paths` entry that still points at an outdated
+   superpowers clone or skills directory
+3. Restart OpenCode
 
 ## Usage
 
@@ -51,7 +68,11 @@ use skill tool to list skills
 
 ```
 use skill tool to load superpowers/brainstorming
+use skill tool to load superpowers/spec-governed-development
 ```
+
+You usually do not need to manually load `using-superpowers`, because it is
+already injected by the plugin bootstrap.
 
 ### Personal Skills
 
@@ -82,18 +103,21 @@ Create project-specific skills in `.opencode/skills/` within your project.
 
 ## Updating
 
-OpenCode installs Superpowers through a git-backed package spec. Some OpenCode
-and Bun versions pin that resolved git dependency in a lockfile or cache, so a
-restart may not pick up the newest Superpowers commit. If updates do not appear,
-clear OpenCode's package cache or reinstall the plugin.
+OpenCode re-resolves the git plugin source when it restarts.
 
-To pin a specific version, use a branch or tag:
+As long as your `opencode.json` still points to:
 
 ```json
 {
-  "plugin": ["superpowers@git+https://github.com/obra/superpowers.git#v5.0.3"]
+  "plugin": [
+    "superpowers@git+https://github.com/joseph-bing-han/superpowers.git#openspec"
+  ]
 }
 ```
+
+Restarting OpenCode keeps you on the current team-maintained `openspec` branch.
+
+To pin a specific revision, replace `#openspec` with a specific commit SHA.
 
 ## How It Works
 
@@ -116,34 +140,15 @@ Skills written for Claude Code are automatically adapted for OpenCode:
 ### Plugin not loading
 
 1. Check OpenCode logs: `opencode run --print-logs "hello" 2>&1 | grep -i superpowers`
-2. Verify the plugin line in your `opencode.json` is correct
+2. Verify the plugin line in your `opencode.json` points to `joseph-bing-han/superpowers.git#openspec`
 3. Make sure you're running a recent version of OpenCode
-
-### Windows install issues
-
-Some Windows OpenCode builds have upstream installer issues with git-backed
-plugin specs, including cache paths for `git+https` URLs and Bun not finding
-`git.exe` even when it works in a normal terminal. If OpenCode cannot install
-the plugin, try installing with system npm and pointing OpenCode at the local
-package:
-
-```powershell
-npm install superpowers@git+https://github.com/obra/superpowers.git --prefix "$HOME\.config\opencode"
-```
-
-Then use the installed package path in `opencode.json`:
-
-```json
-{
-  "plugin": ["~/.config/opencode/node_modules/superpowers"]
-}
-```
 
 ### Skills not found
 
 1. Use OpenCode's `skill` tool to list available skills
 2. Check that the plugin is loading (see above)
-3. Each skill needs a `SKILL.md` file with valid YAML frontmatter
+3. Check whether an old `skills.paths` entry or outdated local directory is shadowing the current install
+4. Restart OpenCode
 
 ### Bootstrap not appearing
 
@@ -152,6 +157,6 @@ Then use the installed package path in `opencode.json`:
 
 ## Getting Help
 
-- Report issues: https://github.com/obra/superpowers/issues
-- Main documentation: https://github.com/obra/superpowers
+- Report issues: https://github.com/joseph-bing-han/superpowers/issues
+- Main documentation: https://github.com/joseph-bing-han/superpowers
 - OpenCode docs: https://opencode.ai/docs/

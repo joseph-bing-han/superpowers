@@ -2,10 +2,6 @@
 
 Superpowers is a complete software development methodology for your coding agents, built on top of a set of composable skills and some initial instructions that make sure your agent uses them.
 
-## Quickstart
-
-Give your agent Superpowers: [Claude Code](#claude-code), [Codex CLI](#codex-cli), [Codex App](#codex-app), [Factory Droid](#factory-droid), [Gemini CLI](#gemini-cli), [OpenCode](#opencode), [Cursor](#cursor), [GitHub Copilot CLI](#github-copilot-cli).
-
 ## How it works
 
 It starts from the moment you fire up your coding agent. As soon as it sees that you're building something, it *doesn't* just jump into trying to write code. Instead, it steps back and asks you what you're really trying to do. 
@@ -30,78 +26,70 @@ Thanks!
 
 ## Installation
 
-Installation differs by harness. If you use more than one, install Superpowers separately for each one.
+**Note:** Installation differs by platform. 
 
-### Claude Code
+### Claude Code Official Marketplace
 
 Superpowers is available via the [official Claude plugin marketplace](https://claude.com/plugins/superpowers)
 
-#### Official Marketplace
+Install the plugin from Anthropic's official marketplace:
 
-- Install the plugin from Anthropic's official marketplace:
+```bash
+/plugin install superpowers@claude-plugins-official
+```
 
-  ```bash
-  /plugin install superpowers@claude-plugins-official
-  ```
-
-#### Superpowers Marketplace
+### Claude Code (Superpowers Marketplace)
 
 The Superpowers marketplace provides Superpowers and some other related plugins for Claude Code.
 
-- Register the marketplace:
+In Claude Code, register the marketplace first:
 
-  ```bash
-  /plugin marketplace add obra/superpowers-marketplace
-  ```
+```bash
+/plugin marketplace add obra/superpowers-marketplace
+```
 
-- Install the plugin from this marketplace:
+Then install the plugin from this marketplace:
 
-  ```bash
-  /plugin install superpowers@superpowers-marketplace
-  ```
+```bash
+/plugin install superpowers@superpowers-marketplace
+```
 
-### Codex CLI
+### OpenAI Codex CLI
 
-Superpowers is available via the [official Codex plugin marketplace](https://github.com/openai/plugins).
+- Open plugin search interface
 
-- Open the plugin search interface:
+```bash
+/plugins
+```
 
-  ```bash
-  /plugins
-  ```
+Search for Superpowers
 
-- Search for Superpowers:
+```bash
+superpowers
+```
 
-  ```bash
-  superpowers
-  ```
+Select `Install Plugin`
 
-- Select `Install Plugin`.
-
-### Codex App
-
-Superpowers is available via the [official Codex plugin marketplace](https://github.com/openai/plugins).
+### OpenAI Codex App
 
 - In the Codex app, click on Plugins in the sidebar.
-- You should see `Superpowers` in the Coding section.
+- You should see `Superpowers` in the Coding section. 
 - Click the `+` next to Superpowers and follow the prompts.
 
-### Factory Droid
 
-- Register the marketplace:
+### Cursor (via Plugin Marketplace)
 
-  ```bash
-  droid plugin marketplace add https://github.com/obra/superpowers
-  ```
+In Cursor Agent chat, install from marketplace:
 
-- Install the plugin:
-  ```bash
-  droid plugin install superpowers@superpowers
-  ```
+```text
+/add-plugin superpowers
+```
 
-### Codex (Team Fork Source Install)
+or search for "superpowers" in the plugin marketplace.
 
-For the team-maintained `openspec` branch, tell Codex:
+### Codex
+
+Tell Codex:
 
 ```
 Fetch and follow instructions from https://raw.githubusercontent.com/joseph-bing-han/superpowers/refs/heads/openspec/.codex/INSTALL.md
@@ -111,57 +99,37 @@ This Codex path installs the team-maintained `openspec` branch.
 It also bootstraps the repo-managed Codex instruction file via `model_instructions_file`, so first-time installs do not need a separate manual config edit.
 
 **Detailed docs:** [docs/README.codex.md](docs/README.codex.md)
-
-### Gemini CLI
-
-- Install the extension:
-
-  ```bash
-  gemini extensions install https://github.com/obra/superpowers
-  ```
-
-- Update later:
-
-  ```bash
-  gemini extensions update superpowers
-  ```
-
 ### OpenCode
 
-OpenCode uses its own plugin install; install Superpowers separately even if you
-already use it in another harness.
+Tell OpenCode:
 
-- Tell OpenCode:
+```
+Fetch and follow instructions from https://raw.githubusercontent.com/joseph-bing-han/superpowers/refs/heads/openspec/.opencode/INSTALL.md
+```
 
-  ```
-  Fetch and follow instructions from https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.opencode/INSTALL.md
-  ```
+This OpenCode path installs the team-maintained `openspec` branch.
+It loads the repo plugin, registers the repo `skills/` tree, injects the `using-superpowers` bootstrap, and exposes newer skills such as `spec-governed-development`.
 
-- Detailed docs: [docs/README.opencode.md](docs/README.opencode.md)
-
-### Cursor
-
-- In Cursor Agent chat, install from marketplace:
-
-  ```text
-  /add-plugin superpowers
-  ```
-
-- Or search for "superpowers" in the plugin marketplace.
+**Detailed docs:** [docs/README.opencode.md](docs/README.opencode.md)
 
 ### GitHub Copilot CLI
 
-- Register the marketplace:
+```bash
+copilot plugin marketplace add obra/superpowers-marketplace
+copilot plugin install superpowers@superpowers-marketplace
+```
 
-  ```bash
-  copilot plugin marketplace add obra/superpowers-marketplace
-  ```
+### Gemini CLI
 
-- Install the plugin:
+```bash
+gemini extensions install https://github.com/obra/superpowers
+```
 
-  ```bash
-  copilot plugin install superpowers@superpowers-marketplace
-  ```
+To update:
+
+```bash
+gemini extensions update superpowers
+```
 
 ### Verify Installation
 
@@ -244,6 +212,11 @@ MIT License - see LICENSE file for details
 
 Superpowers is built by [Jesse Vincent](https://blog.fsck.com) and the rest of the folks at [Prime Radiant](https://primeradiant.com).
 
-- **Discord**: [Join us](https://discord.gg/35wsABTejz) for community support, questions, and sharing what you're building with Superpowers
-- **Issues**: https://github.com/obra/superpowers/issues
+For community support, questions, and sharing what you're building with Superpowers, join us on [Discord](https://discord.gg/Jd8Vphy9jq).
+
+## Support
+
+- **Discord**: [Join us on Discord](https://discord.gg/Jd8Vphy9jq)
+- **Issues**: https://github.com/joseph-bing-han/superpowers/issues
 - **Release announcements**: [Sign up](https://primeradiant.com/superpowers/) to get notified about new versions
+- **Marketplace**: https://github.com/obra/superpowers-marketplace
