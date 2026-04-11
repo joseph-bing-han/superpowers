@@ -1,14 +1,14 @@
 {
-  "name": "superpowers",
-  "displayName": "Superpowers",
-  "description": "Core skills library: TDD, debugging, collaboration patterns, and proven techniques",
-  "version": "5.1.0",
+  "name": "superpowers-openspec",
+  "displayName": "Superpowers OpenSpec",
+  "description": "Core skills library with TDD, debugging, collaboration workflows, and OpenSpec governance entrypoints",
+  "version": "5.0.7",
   "author": {
     "name": "Jesse Vincent",
     "email": "jesse@fsck.com"
   },
-  "homepage": "https://github.com/obra/superpowers",
-  "repository": "https://github.com/obra/superpowers",
+  "homepage": "https://github.com/joseph-bing-han/superpowers/tree/openspec",
+  "repository": "https://github.com/joseph-bing-han/superpowers",
   "license": "MIT",
   "keywords": [
     "skills",
@@ -16,7 +16,9 @@
     "debugging",
     "collaboration",
     "best-practices",
-    "workflows"
+    "workflows",
+    "openspec",
+    "governance"
   ],
   "skills": "./skills/",
   "agents": "./agents/",
