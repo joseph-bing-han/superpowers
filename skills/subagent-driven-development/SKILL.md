@@ -11,8 +11,6 @@ Execute plan by dispatching fresh subagent per task, with two-stage review after
 
 **Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
 
-**Continuous execution:** Do not pause to check in with your human partner between tasks. Execute all tasks from the plan without stopping. The only reasons to stop are: BLOCKED status you cannot resolve, ambiguity that genuinely prevents progress, or all tasks complete. "Should I continue?" prompts and progress summaries waste their time — they asked you to execute the plan, so execute it.
-
 ## When to Use
 
 ```dot
@@ -46,14 +44,14 @@ digraph when_to_use {
 
 ## The Process
 
-Before dispatching implementation subagents, ensure you are already inside a dedicated worktree.
-If not already in a dedicated worktree, invoke `using-git-worktrees` first.
-Do not create a nested worktree if one is already active; reuse the current dedicated worktree.
+Before dispatching implementation subagents, continue in the current workspace by default.
+Only switch to an isolated workspace or worktree when the user explicitly requested that execution context.
+Do not create or require a separate worktree as the default precondition for same-session execution.
 
 Treat same-session execution as three related modes:
 - **Serial SDD** for high-risk or tightly coupled work
-- **Pipeline SDD** as the default same-session execution mode
-- **Parallel Dispatch** only when the plan proves disjoint `Write Set` and `Conflict Group` boundaries
+- **Parallel Dispatch** as the preferred same-session path when the plan proves safe, independent lanes with disjoint `Write Set` and `Conflict Group` boundaries
+- **Pipeline SDD** as the fallback when same-session work is safe enough to avoid Serial SDD but parallel safety is not yet proven
 
 Within **Pipeline SDD**, task states are:
 `queued` → `preflight` → `ready` → `implementing` → `spec_review` → `quality_review` → `done`
@@ -359,7 +357,6 @@ Done!
 ## Integration
 
 **Required workflow skills:**
-- **superpowers:using-git-worktrees** - Ensures isolated workspace (creates one or verifies existing)
 - **superpowers:writing-plans** - Creates the plan this skill executes
 - **superpowers:requesting-code-review** - Code review template for reviewer subagents
 - **superpowers:finishing-a-development-branch** - Complete development after all tasks

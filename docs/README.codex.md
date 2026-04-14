@@ -188,10 +188,10 @@ In the writing-plans execution handoff, choosing `Subagent-Driven` sets the shar
 Superpowers treats implementation-time subagent execution as three related modes:
 
 - **Serial SDD** for high-risk or tightly coupled work
-- **Pipeline SDD** as the default same-session execution model
-- **Parallel Dispatch** as a conditional upgrade for disjoint lanes
+- **Parallel Dispatch** as the preferred same-session path for safe disjoint lanes
+- **Pipeline SDD** as the fallback when parallel safety is not proven yet
 
-`Pipeline SDD` is the default promise. It preserves review gates while overlapping safe preparation work.
+The routing promise is risk-first: high-risk work stays `Serial SDD`, safe disjoint lanes prefer `Parallel Dispatch`, and `Pipeline SDD` remains the fallback when the plan still needs controlled overlap.
 
 To support that routing, `writing-plans` may emit **Execution Metadata** per task:
 
@@ -201,18 +201,16 @@ To support that routing, `writing-plans` may emit **Execution Metadata** per tas
 - `Risk Level`
 - `Parallelizable`
 
-`Parallel Dispatch` is not a blanket promise that every subagent workflow runs at maximum concurrency. It is an upgrade path that should be used only when the plan proves independent lanes with disjoint `Write Set` and `Conflict Group` boundaries.
+`Parallel Dispatch` is not a blanket promise that every subagent workflow runs at maximum concurrency. It is the preferred path once the plan proves independent lanes with disjoint `Write Set` and `Conflict Group` boundaries.
 
-## Worktree Lifecycle
+## Execution Workspace
 
-Implementation-oriented Superpowers flows should run inside a dedicated git worktree for isolation.
+Implementation-oriented Superpowers flows should continue in the current workspace by default.
 
-- If the workflow is about to move from design into planning or execution and no dedicated worktree is active yet, it should invoke `using-git-worktrees` first.
-- If a dedicated worktree is already active for that implementation lane, the workflow should reuse it instead of creating a nested worktree.
-- `subagent-driven-development` and `executing-plans` should execute inside that dedicated worktree, not in the shared primary workspace.
-- `finishing-a-development-branch` is the standard convergence path for worktree cleanup:
-  - Merge locally or discard: remove the worktree
-  - Push PR or keep as-is: preserve the worktree for follow-up review or fixes
+- Planning and execution should stay in the current workspace unless the user explicitly requests an isolated workspace or worktree.
+- If an isolated workspace was explicitly requested, reuse it instead of creating nested worktrees.
+- `subagent-driven-development` and `executing-plans` may run in that isolated workspace only when it was explicitly requested.
+- `finishing-a-development-branch` should treat isolated workspace cleanup as a conditional step, not as the default branch-completion path.
 
 ### Personal Skills
 

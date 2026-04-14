@@ -213,11 +213,11 @@ Maintain a session-scoped consent state for subagent use: `unknown`, `granted`, 
 Treat subagent execution as three distinct modes:
 
 - **Serial SDD** for high-risk, tightly coupled, or boundary-shifting work
-- **Pipeline SDD** as the default same-session execution model
-- **Parallel Dispatch** only for independent lanes with disjoint `Write Set` and `Conflict Group` boundaries
+- **Parallel Dispatch** as the preferred same-session path for safe independent lanes with disjoint `Write Set` and `Conflict Group` boundaries
+- **Pipeline SDD** as the fallback when same-session work does not qualify for `Parallel Dispatch`
 
 The presence of subagents does not automatically mean maximum concurrency.
-The default promise is controlled execution quality via **Pipeline SDD**. True **Parallel Dispatch** is a conditional upgrade when the plan's `Execution Metadata` proves the work is safe to split.
+The routing promise is risk-first: high-risk work stays `Serial SDD`, safe independent lanes prefer **Parallel Dispatch**, and **Pipeline SDD** remains the controlled fallback when the plan's `Execution Metadata` does not yet prove parallel safety.
 
 ## Governance Routing
 

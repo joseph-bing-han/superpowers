@@ -56,6 +56,49 @@ assert_section_contains() {
   fi
 }
 
+assert_section_not_contains() {
+  local file="$1"
+  local heading="$2"
+  local pattern="$3"
+  local description="$4"
+  local stop_pattern="${5:-^(##|###) }"
+  local content
+
+  content="$(extract_section "$REPO_ROOT/$file" "$heading" "$stop_pattern")"
+
+  if [[ -z "$content" ]]; then
+    echo "FAIL: $description"
+    echo "  File: $file"
+    echo "  Missing section: $heading"
+    exit 1
+  fi
+
+  if printf '%s' "$content" | normalize_stream | rg -qi -- "$pattern"; then
+    echo "FAIL: $description"
+    echo "  File: $file"
+    echo "  Section: $heading"
+    echo "  Unexpected pattern: $pattern"
+    exit 1
+  else
+    echo "PASS: $description"
+  fi
+}
+
+assert_not_contains() {
+  local file="$1"
+  local pattern="$2"
+  local description="$3"
+
+  if normalize_stream < "$REPO_ROOT/$file" | rg -qi -- "$pattern"; then
+    echo "FAIL: $description"
+    echo "  File: $file"
+    echo "  Unexpected pattern: $pattern"
+    exit 1
+  else
+    echo "PASS: $description"
+  fi
+}
+
 assert_contains() {
   local file="$1"
   local pattern="$2"
@@ -71,16 +114,20 @@ assert_contains() {
   fi
 }
 
-assert_section_contains "skills/brainstorming/SKILL.md" "## Checklist" 'using-git-worktrees|isolated workspace|dedicated worktree' "brainstorming checklist explicitly routes implementation into an isolated worktree before planning" '^## '
-assert_section_contains "skills/brainstorming/SKILL.md" "**Implementation:**" 'using-git-worktrees.*before.*writing-plans|invoke `using-git-worktrees`.*then.*`writing-plans`' "brainstorming implementation handoff invokes using-git-worktrees before writing-plans" '^## '
-assert_section_contains "skills/writing-plans/SKILL.md" "## Overview" 'if you are not already in a dedicated worktree.*invoke `using-git-worktrees` first|invoke `using-git-worktrees` first if you are not already in a dedicated worktree' "writing-plans has a defensive worktree guard instead of only assuming brainstorming already created one" '^## '
-assert_section_contains "skills/writing-plans/SKILL.md" "## Overview" 'if you are already in a dedicated worktree.*reuse it|reuse the existing dedicated worktree' "writing-plans reuses an existing dedicated worktree instead of nesting another one" '^## '
-assert_section_contains "skills/executing-plans/SKILL.md" "## The Process" 'before executing tasks, ensure you are already inside a dedicated worktree|if not already in a dedicated worktree, invoke `using-git-worktrees`' "executing-plans explicitly requires entering a dedicated worktree before task execution" '^## '
-assert_section_contains "skills/executing-plans/SKILL.md" "## The Process" 'do not create a nested worktree if one is already active|reuse the current dedicated worktree' "executing-plans avoids nested worktree creation" '^## '
-assert_section_contains "skills/subagent-driven-development/SKILL.md" "## The Process" 'before dispatching implementation subagents, ensure you are already inside a dedicated worktree|if not already in a dedicated worktree, invoke `using-git-worktrees`' "subagent-driven-development explicitly requires entering a dedicated worktree before dispatching implementers" '^## '
-assert_section_contains "skills/subagent-driven-development/SKILL.md" "## The Process" 'do not create a nested worktree if one is already active|reuse the current dedicated worktree' "subagent-driven-development avoids nested worktree creation" '^## '
-assert_section_contains "skills/finishing-a-development-branch/SKILL.md" "### Step 5: Cleanup Worktree" 'For Options 1 and 4' "finishing flow cleans up worktrees for merge and discard outcomes" '^### '
-assert_section_contains "skills/finishing-a-development-branch/SKILL.md" "### Step 5: Cleanup Worktree" 'For Options 2 and 3.*Keep worktree|Keep worktree.*Options 2 and 3' "finishing flow preserves worktrees for PR and keep-as-is outcomes" '^### '
-assert_contains "docs/README.codex.md" 'worktree' "Codex README documents worktree lifecycle and execution isolation somewhere in the install or usage guide"
+assert_section_contains "skills/brainstorming/SKILL.md" "## Checklist" 'current workspace|current working tree|current working directory' "brainstorming checklist keeps implementation planning in the current workspace by default" '^## '
+assert_section_not_contains "skills/brainstorming/SKILL.md" "## Checklist" 'using-git-worktrees|isolated workspace|dedicated worktree' "brainstorming checklist no longer routes implementation into a dedicated worktree before planning" '^## '
+assert_section_contains "skills/brainstorming/SKILL.md" "**Implementation:**" 'current workspace.*writing-plans|writing-plans.*current workspace|directly.*writing-plans' "brainstorming implementation handoff goes directly into writing-plans in the current workspace" '^## '
+assert_section_not_contains "skills/brainstorming/SKILL.md" "**Implementation:**" 'using-git-worktrees.*before.*writing-plans|using-git-worktrees.*then.*writing-plans' "brainstorming implementation handoff no longer requires using-git-worktrees before writing-plans" '^## '
+assert_section_contains "skills/writing-plans/SKILL.md" "## Overview" 'current workspace|current working tree|current working directory' "writing-plans documents current-workspace planning as the default context" '^## '
+assert_section_not_contains "skills/writing-plans/SKILL.md" "## Overview" 'dedicated worktree|using-git-worktrees' "writing-plans overview no longer requires a dedicated worktree precondition" '^## '
+assert_section_contains "skills/executing-plans/SKILL.md" "## The Process" 'current workspace|current working tree|current working directory' "executing-plans allows execution directly in the current workspace" '^## '
+assert_section_not_contains "skills/executing-plans/SKILL.md" "## The Process" 'dedicated worktree|using-git-worktrees' "executing-plans process no longer requires entering a dedicated worktree first" '^## '
+assert_section_contains "skills/subagent-driven-development/SKILL.md" "## The Process" 'current workspace|current working tree|current working directory' "subagent-driven-development allows same-session execution in the current workspace" '^## '
+assert_section_not_contains "skills/subagent-driven-development/SKILL.md" "## The Process" 'dedicated worktree|using-git-worktrees' "subagent-driven-development process no longer requires a dedicated worktree precondition" '^## '
+assert_section_contains "skills/finishing-a-development-branch/SKILL.md" "### Step 5: Cleanup Worktree" 'if an isolated workspace or worktree was used|only when an isolated workspace or worktree was used|if a worktree was actually used' "finishing flow treats worktree cleanup as conditional context instead of the default path" '^### '
+assert_section_not_contains "skills/finishing-a-development-branch/SKILL.md" "### Step 5: Cleanup Worktree" 'For Options 1 and 4|For Options 2 and 3.*Keep worktree|Keep worktree.*Options 2 and 3' "finishing flow no longer assumes every implementation used a worktree" '^### '
+assert_contains "docs/README.codex.md" 'Execution Workspace|current workspace' "Codex README documents current-workspace execution as the default path"
+assert_contains "docs/README.codex.md" 'explicit opt-in|explicitly requested' "Codex README documents isolated workspaces as explicit opt-in only"
+assert_not_contains "docs/README.codex.md" 'Implementation-oriented Superpowers flows should run inside a dedicated git worktree for isolation' "Codex README no longer presents dedicated worktrees as the default execution model"
 
 echo "All worktree execution lifecycle prompt contract checks passed."

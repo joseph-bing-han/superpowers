@@ -13,9 +13,9 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
-**Context:** This should be run in a dedicated worktree (normally created before planning).
-If you are not already in a dedicated worktree, invoke `using-git-worktrees` first instead of assuming brainstorming already created one.
-If you are already in a dedicated worktree, reuse the existing dedicated worktree rather than creating a nested one.
+**Context:** Run planning in the current workspace by default.
+If the user explicitly requested an isolated workspace or worktree, honor that request.
+Otherwise, do not create or switch to a separate worktree just to start planning.
 
 **Save plans to:** the structured plan directory selected below (for example `docs/plans/YYYY-MM-DD-<feature-name>.md` or `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`)
 - Only an explicit path from the user or scoped instructions overrides this structured-directory rule

@@ -83,16 +83,20 @@ assert_section_contains "skills/subagent-driven-development/SKILL.md" "## The Pr
 assert_section_contains "skills/subagent-driven-development/SKILL.md" "## The Process" 'implementer \+ preflight' "subagent-driven-development requires implementer plus preflight overlap" '^## '
 assert_section_contains "skills/subagent-driven-development/SKILL.md" "## The Process" 'reviewer \+ preflight' "subagent-driven-development requires reviewer plus preflight overlap" '^## '
 assert_section_contains "skills/subagent-driven-development/SKILL.md" "## The Process" 'Risk Level.*>.*dependency changes task boundary.*>.*Conflict Group.*Write Set.*>.*Parallelizable|Risk Level.*higher.*than.*dependency.*Conflict Group.*Write Set.*Parallelizable' "subagent-driven-development documents routing priority order" '^## '
+assert_section_contains "skills/subagent-driven-development/SKILL.md" "## The Process" 'safe.*Parallel Dispatch|Parallel Dispatch.*preferred|preferred.*Parallel Dispatch|disjoint `Write Set`.*Parallel Dispatch' "subagent-driven-development prefers Parallel Dispatch when safe independent lanes are proven" '^## '
 assert_contains "skills/using-superpowers/SKILL.md" 'Serial SDD' "using-superpowers documents Serial SDD"
 assert_contains "skills/using-superpowers/SKILL.md" 'Pipeline SDD' "using-superpowers documents Pipeline SDD"
 assert_contains "skills/using-superpowers/SKILL.md" 'Parallel Dispatch' "using-superpowers documents Parallel Dispatch"
+assert_contains "skills/using-superpowers/SKILL.md" 'Serial SDD.*Parallel Dispatch.*Pipeline SDD|Parallel Dispatch.*Pipeline SDD.*fallback|safe.*Parallel Dispatch' "using-superpowers documents the proactive routing order instead of treating Pipeline as the standing default"
 assert_section_contains "skills/dispatching-parallel-agents/SKILL.md" "## Overview" 'execution[- ]time' "dispatching-parallel-agents mentions execution-time routing in overview" '^## '
 assert_section_contains "skills/dispatching-parallel-agents/SKILL.md" "## Overview" 'independent lane' "dispatching-parallel-agents mentions independent lanes in overview" '^## '
 assert_section_contains "skills/dispatching-parallel-agents/SKILL.md" "## Overview" 'Write Set' "dispatching-parallel-agents mentions Write Set boundaries in overview" '^## '
 assert_section_contains "skills/dispatching-parallel-agents/SKILL.md" "## Overview" 'Conflict Group' "dispatching-parallel-agents mentions Conflict Group boundaries in overview" '^## '
 assert_section_contains "skills/dispatching-parallel-agents/SKILL.md" "## Overview" 'Pipeline SDD' "dispatching-parallel-agents mentions Pipeline SDD upgrade path in overview" '^## '
+assert_section_contains "skills/dispatching-parallel-agents/SKILL.md" "## Overview" 'preferred execution path|preferred upgrade path|safe lane|first-choice path' "dispatching-parallel-agents presents safe independent lanes as the preferred parallel path" '^## '
 assert_contains "docs/README.codex.md" 'Pipeline SDD' "Codex README documents Pipeline SDD"
 assert_contains "docs/README.codex.md" 'Execution Metadata' "Codex README documents Execution Metadata"
 assert_contains "docs/README.codex.md" 'Parallel Dispatch' "Codex README documents Parallel Dispatch"
+assert_contains "docs/README.codex.md" 'Serial SDD.*Parallel Dispatch.*Pipeline SDD|Parallel Dispatch.*fallback.*Pipeline SDD|safe.*Parallel Dispatch' "Codex README documents proactive parallel routing order"
 
 echo "All subagent pipeline routing prompt contract checks passed."

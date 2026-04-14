@@ -52,7 +52,7 @@ You MUST create a task for each of these items and complete them in order:
 6. **Write design artifacts** — in a Superpowers-only lane, save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit; in an OpenSpec-governed lane, update the relevant OpenSpec change artifacts and commit without creating a duplicate Superpowers spec file
 7. **Design artifact review loop** — dispatch spec-document-reviewer subagent with precisely crafted review context (never your session history); review the written design artifacts, fix issues, and re-dispatch until approved (max 3 iterations, then surface to human)
 8. **User reviews written design artifacts** — only when a real review gate remains; otherwise note the artifact paths and continue automatically
-9. **Transition to isolated implementation workspace** — invoke `using-git-worktrees` before planning when implementation follows, unless already inside the dedicated worktree that should be reused
+9. **Transition into implementation context** — stay in the current workspace by default and invoke `writing-plans` when implementation follows
 10. **Transition to implementation** — invoke writing-plans skill to create implementation plan
 
 ## Process Flow
@@ -70,7 +70,6 @@ digraph brainstorming {
     "Design artifact review loop" [shape=box];
     "Design artifact review passed?" [shape=diamond];
     "User reviews artifacts?" [shape=diamond];
-    "Invoke using-git-worktrees" [shape=box];
     "Invoke writing-plans skill" [shape=doublecircle];
 
     "Explore project context" -> "Visual questions ahead?";
@@ -87,12 +86,11 @@ digraph brainstorming {
     "Design artifact review passed?" -> "Design artifact review loop" [label="issues found,\nfix and re-dispatch"];
     "Design artifact review passed?" -> "User reviews artifacts?" [label="approved"];
     "User reviews artifacts?" -> "Write design artifacts" [label="changes requested"];
-    "User reviews artifacts?" -> "Invoke using-git-worktrees" [label="approved"];
-    "Invoke using-git-worktrees" -> "Invoke writing-plans skill";
+    "User reviews artifacts?" -> "Invoke writing-plans skill" [label="approved"];
 }
 ```
 
-**The terminal implementation handoff is invoking `using-git-worktrees`, then `writing-plans`.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill here.
+**The terminal implementation handoff is continuing in the current workspace, then invoking `writing-plans`.** Do NOT invoke frontend-design, mcp-builder, or any other implementation skill here.
 
 ## The Process
 
@@ -260,11 +258,10 @@ Do not switch back to prose-only follow-up text like `if you agree` after a tool
 
 **Implementation:**
 
-- Invoke `using-git-worktrees` before `writing-plans` whenever the workflow is moving from approved design into implementation work
-- If implementation follows, invoke `using-git-worktrees` first to set up an isolated workspace
-- If you are already inside the dedicated worktree that should carry the implementation, reuse it instead of creating a nested worktree
-- After worktree setup or reuse, invoke the writing-plans skill to create a detailed implementation plan
-- Do NOT invoke any other implementation skill here. The next sequence is `using-git-worktrees` → `writing-plans`
+- When implementation follows, continue in the current workspace by default
+- Only enter an isolated workspace or worktree when the user explicitly requests that setup
+- After confirming the execution context, invoke the writing-plans skill to create a detailed implementation plan
+- Do NOT invoke any other implementation skill here. The next sequence is current workspace continuation → `writing-plans`
 
 ## Key Principles
 

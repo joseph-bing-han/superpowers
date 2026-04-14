@@ -9,11 +9,11 @@ description: Use when facing 2+ independent tasks that can be worked on without 
 
 You delegate tasks to specialized agents with isolated context. By precisely crafting their instructions and context, you ensure they stay focused and succeed at their task. They should never inherit your session's context or history — you construct exactly what they need. This also preserves your own context for coordination work.
 
-This skill is not only for debugging. It is also the execution-time upgrade path from **Pipeline SDD** when the plan proves independent lanes with disjoint `Write Set` and `Conflict Group` boundaries.
+This skill is not only for debugging. It is also the preferred execution-time path for safe independent lanes when the plan proves disjoint `Write Set` and `Conflict Group` boundaries, allowing the workflow to upgrade out of **Pipeline SDD** when the safer parallel lane split is proven.
 
 When you have multiple unrelated failures (different test files, different subsystems, different bugs), or multiple implementation lanes whose write boundaries are genuinely independent, investigating them sequentially wastes time. Each lane is independent and can happen in parallel.
 
-**Core principle:** Dispatch one agent per independent problem domain. Let them work concurrently.
+**Core principle:** Dispatch one agent per independent problem domain. Let them work concurrently, and treat that safe lane split as the preferred upgrade path instead of a last-mile optimization.
 
 ## When to Use
 
