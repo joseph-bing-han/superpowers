@@ -419,12 +419,12 @@ assert_file_section_contains_literal "skills/writing-plans/SKILL.md" \
 
 assert_file_section_contains_literal "skills/writing-plans/SKILL.md" \
   "## Execution Handoff" \
-  "3. Stop here for now" \
-  "writing-plans freezes slot 3 as the explicit stop-here choice"
+  "2. Stop here for now" \
+  "writing-plans freezes slot 2 as the explicit stop-here choice"
 
 assert_file_section_contains_literal "skills/writing-plans/SKILL.md" \
   "## Execution Handoff" \
-  'Treat free-form requirements as the client-provided `Other` / notes path rather than authoring slot 3 for free text.' \
+  'Treat free-form requirements as the client-provided `Other` / notes path rather than authoring an extra slot for free text.' \
   "writing-plans freezes the client-provided Other/notes path for free-form execution input"
 
 assert_file_section_contains_literal "skills/executing-plans/SKILL.md" \
@@ -521,12 +521,5 @@ assert_file_has_exact_tail_block "skills/writing-plans/plan-document-reviewer-pr
   $'Keep the field names exactly as written.\nFor `REVIEW_VERDICT` and `NEXT_ACTION`, choose exactly one allowed token and do not repeat the pipe-delimited schema.\nReplace `BLOCKING_ISSUE_COUNT` with digits only.\nREVIEW_VERDICT: APPROVED | CHANGES_REQUIRED\nBLOCKING_ISSUE_COUNT: non-negative integer\nNEXT_ACTION: CONTINUE | REVISE | STOP\n```' \
   "plan document reviewer exposes the stable reviewer tail-block semantics at file end"
 
-assert_file_has_exact_tail_block "skills/subagent-driven-development/spec-reviewer-prompt.md" \
-  $'Keep the field names exactly as written.\nFor `REVIEW_VERDICT` and `NEXT_ACTION`, choose exactly one allowed token and do not repeat the pipe-delimited schema.\nReplace `BLOCKING_ISSUE_COUNT` with digits only.\nREVIEW_VERDICT: APPROVED | CHANGES_REQUIRED\nBLOCKING_ISSUE_COUNT: non-negative integer\nNEXT_ACTION: CONTINUE | REVISE\n```' \
-  "spec compliance reviewer exposes the stable reviewer tail-block semantics at file end"
-
-assert_file_has_exact_tail_block "skills/subagent-driven-development/implementer-prompt.md" \
-  $'The field names must remain unchanged and appear verbatim.\n`TASK_STATUS`, `TEST_STATUS`, and `NEXT_ACTION` must each use exactly one allowed token and must not repeat the pipe-delimited schema.\nTASK_STATUS: DONE | DONE_WITH_CONCERNS | BLOCKED | NEEDS_CONTEXT\nTEST_STATUS: PASS | FAIL | NOT_RUN\nNEXT_ACTION: REVIEW | NEEDS_CONTEXT | STOP\n```' \
-  "implementer prompt exposes the stable machine-readable trailer semantics at file end"
 
 echo "All machine-readable workflow contract checks passed."

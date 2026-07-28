@@ -301,11 +301,9 @@ This step is about mandatory auto-continuation into the archive skill when the l
 ## Integration
 
 **Called by:**
-- **subagent-driven-development** (Step 7) - After all tasks complete
-- **executing-plans** (Step 5) - After all batches complete
+- **executing-plans** (Step 4) - After all tasks complete and batch review passes
 
 **Pairs with:**
-- **using-git-worktrees** - Optional pairing only when an isolated workspace or worktree was explicitly used earlier
 - **openspec-archive-change** - Required finalization step after branch completion for completed OpenSpec-governed work
 
 ## Terminal Endgate Protocol

@@ -97,9 +97,9 @@ claude -p "The plan looks good. What are my options for executing it?" \
 echo "Done."
 
 # Turn 5: THE CRITICAL TEST
-echo ">>> Turn 5: Requesting subagent-driven-development..."
+echo ">>> Turn 5: Requesting systematic-debugging..."
 FINAL_LOG="$OUTPUT_DIR/turn5.json"
-claude -p "subagent-driven-development, please" \
+claude -p "use systematic-debugging" \
     --continue \
     --model haiku \
     --plugin-dir "$PLUGIN_DIR" \
@@ -113,7 +113,7 @@ echo ""
 echo "=== Results (Haiku) ==="
 
 # Check final turn
-SKILL_PATTERN='"skill":"([^"]*:)?subagent-driven-development"'
+SKILL_PATTERN='"skill":"([^"]*:)?systematic-debugging"'
 if grep -q '"name":"Skill"' "$FINAL_LOG" && grep -qE "$SKILL_PATTERN" "$FINAL_LOG"; then
     echo "PASS: Skill was triggered"
     TRIGGERED=true

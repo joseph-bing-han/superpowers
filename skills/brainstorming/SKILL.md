@@ -50,7 +50,7 @@ You MUST create a task for each of these items and complete them in order:
 4. **Propose 2-3 approaches** — with trade-offs and your recommendation
 5. **Present design** — in sections scaled to their complexity; when a real review gate remains, get user approval after each section using `request_user_input` when available for enumerable choices instead of typed approval words or a prose-only numbered reply prompt
 6. **Write design artifacts** — in a Superpowers-only lane, save to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` and commit; in an OpenSpec-governed lane, update the relevant OpenSpec change artifacts and commit without creating a duplicate Superpowers spec file
-7. **Design artifact review loop** — dispatch spec-document-reviewer subagent with precisely crafted review context (never your session history); review the written design artifacts, fix issues, and re-dispatch until approved (max 3 iterations, then surface to human)
+7. **Design artifact review loop** — dispatch the spec reviewer for your platform with precisely crafted review context (never your session history); review the written design artifacts, fix issues, and re-dispatch until approved (max 3 iterations, then surface to human)
 8. **User reviews written design artifacts** — only when a real review gate remains; otherwise note the artifact paths and continue automatically
 9. **Transition into implementation context** — stay in the current workspace by default and invoke `writing-plans` when implementation follows
 10. **Transition to implementation** — invoke writing-plans skill to create implementation plan
@@ -236,7 +236,7 @@ After writing the design artifact(s):
 1. Dispatch spec-document-reviewer subagent (see spec-document-reviewer-prompt.md)
    - In a **Superpowers-only lane**, provide the path to the written design artifact
    - In an **OpenSpec-governed lane**, provide the relevant OpenSpec artifact paths
-   - If a reviewer subagent would materially help and the session consent state is unknown, use `request_user_input` to ask once before dispatching it
+   - Dispatch the spec reviewer for your platform with precisely crafted review context — never your session history
    - If the state is `granted`, dispatch the reviewer subagent
    - If the state is `denied`, review inline and do not ask again in the same session
 2. If Issues Found: fix, re-dispatch, repeat until Approved

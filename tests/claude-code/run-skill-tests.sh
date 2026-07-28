@@ -56,11 +56,8 @@ while [[ $# -gt 0 ]]; do
             echo "  --integration, -i    Run integration tests (slow, 10-30 min)"
             echo "  --help, -h           Show this help"
             echo ""
-            echo "Tests:"
-            echo "  test-subagent-driven-development.sh  Test skill loading and requirements"
-            echo ""
             echo "Integration Tests (use --integration):"
-            echo "  test-subagent-driven-development-integration.sh  Full workflow execution"
+            echo "  test-requesting-code-review.sh  Full workflow execution"
             exit 0
             ;;
         *)
@@ -72,13 +69,10 @@ while [[ $# -gt 0 ]]; do
 done
 
 # List of skill tests to run (fast unit tests)
-tests=(
-    "test-subagent-driven-development.sh"
-)
+tests=()
 
 # Integration tests (slow, full execution)
 integration_tests=(
-    "test-subagent-driven-development-integration.sh"
     "test-requesting-code-review.sh"
 )
 

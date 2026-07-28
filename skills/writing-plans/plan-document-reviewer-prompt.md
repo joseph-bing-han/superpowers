@@ -8,8 +8,13 @@ Use this template when dispatching a plan document reviewer subagent.
 
 **Reviewer returns:** Status, Issues (if any), Recommendations
 
+Dispatch the plan reviewer for your platform. On Cursor, use the preset
+`plan-reviewer` subagent and follow the reviewer model tiers in
+`using-superpowers/references/cursor-tools.md`; never dispatch a reviewer through
+`explore`, which is bound to a fast, small model.
+
 ```
-Task tool (general-purpose):
+Task tool (plan reviewer for your platform):
   description: "Review plan document"
   prompt: |
     You are a plan document reviewer. Verify this plan is complete and ready for implementation.

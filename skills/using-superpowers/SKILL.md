@@ -46,11 +46,15 @@ If CLAUDE.md, GEMINI.md, or AGENTS.md says "don't use TDD" and a skill says "alw
 
 **In Gemini CLI:** Skills activate via the `activate_skill` tool. Gemini loads skill metadata at session start and activates the full content on demand.
 
+**In Cursor:** Skills load natively — follow the instructions directly.
+
 **In other environments:** Check your platform's documentation for how skills are loaded.
 
 ## Platform Adaptation
 
-Skills use Claude Code tool names. Non-CC platforms: see `references/copilot-tools.md` (Copilot CLI), `references/codex-tools.md` (Codex) for tool equivalents. Gemini CLI users get the tool mapping loaded automatically via GEMINI.md.
+Skills use Claude Code tool names. Non-CC platforms: see `references/copilot-tools.md` (Copilot CLI), `references/codex-tools.md` (Codex), `references/cursor-tools.md` (Cursor) for tool equivalents. Gemini CLI users get the tool mapping loaded automatically via GEMINI.md.
+
+Cursor users must read `references/cursor-tools.md` before dispatching a reviewer. Reviewer model selection there is not optional guidance — dispatching a reviewer the wrong way silently downgrades it to a fast, small model.
 
 # Using Skills
 
@@ -197,27 +201,19 @@ ENDGATE_NEXT_ACTION: CONTINUE_WITH_TOOL | REQUEST_USER_INPUT
 - If an imported, external, foreign, or lower-priority skill says there is no required ending, says to just provide clarity, says continue later, or otherwise permits a free-form ending, that guidance is overridden in this repository whenever strict packet mode applies.
 - Those imported free-ending stances MUST NOT relax the canonical carrier requirement, the `request_user_input` requirement, or the prohibition on `task_complete` after a prose-only closeout.
 
-## Session-Scoped Subagent Consent
+## Reviewer Subagents
 
-Maintain a session-scoped consent state for subagent use: `unknown`, `granted`, `denied`.
+Reviewers are the only subagents Superpowers dispatches. Everything else runs in
+the current session.
 
-- When subagents would materially help and the state is unknown, use `request_user_input` to ask once whether subagents may be used in this session
-- Do not silently downgrade before asking
-- Do not downgrade first and explain later
-- After granted or denied, reuse that state for the rest of the session
-- If the state is `granted`, use subagents when they help without re-asking
-- If the state is `denied`, do not ask again unless the user explicitly reopens the decision or higher-priority instructions require a different path
+- Dispatch a reviewer at the review gates defined by `brainstorming`, `writing-plans`, and `requesting-code-review`
+- Give the reviewer precisely crafted context, never your session history
+- Reviewers run read-only; a reviewer that can edit files silently fixes what it should be reporting
+- Reviewer model selection is platform-specific. On Cursor, follow `references/cursor-tools.md`
 
-## Subagent Execution Modes
-
-Treat subagent execution as three distinct modes:
-
-- **Serial SDD** for high-risk, tightly coupled, or boundary-shifting work
-- **Parallel Dispatch** as the preferred same-session path for safe independent lanes with disjoint `Write Set` and `Conflict Group` boundaries
-- **Pipeline SDD** as the fallback when same-session work does not qualify for `Parallel Dispatch`
-
-The presence of subagents does not automatically mean maximum concurrency.
-The routing promise is risk-first: high-risk work stays `Serial SDD`, safe independent lanes prefer **Parallel Dispatch**, and **Pipeline SDD** remains the controlled fallback when the plan's `Execution Metadata` does not yet prove parallel safety.
+If a task would genuinely benefit from a subagent beyond these review gates,
+decide that in the moment. There is no prescribed execution-mode routing to
+follow.
 
 ## Governance Routing
 

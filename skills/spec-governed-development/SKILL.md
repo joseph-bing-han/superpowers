@@ -181,7 +181,7 @@ Next skills:
 
 1. 使用 `brainstorming`
 2. 设计获批后，使用 `writing-plans`
-3. 执行时使用 `subagent-driven-development` 或 `executing-plans`
+3. 执行时使用 `executing-plans`
 4. 完成前使用 `verification-before-completion`
 5. 收尾时使用 `finishing-a-development-branch`
 
@@ -204,7 +204,7 @@ Next skills:
 6. 已确认的范围、设计、要求必须沉淀到 OpenSpec artifacts，而不是重复写入 `docs/superpowers/specs/...`
 7. 使用 `writing-plans` 生成**执行级计划**，输入应优先来自 OpenSpec artifacts
 8. 进入实现前，使用 `openspec-apply-change`
-9. 执行时使用 `subagent-driven-development` 或 `executing-plans`
+9. 执行时使用 `executing-plans`
 10. 若实现中发现设计或范围变化，先更新 OpenSpec artifacts，再继续实现
 11. 完成前使用 `verification-before-completion`
 12. 收尾时使用 `finishing-a-development-branch`

@@ -41,7 +41,7 @@ That install path now bootstraps both the skills symlink and the repo-managed `m
 
 3. Restart Codex.
 
-4. **For subagent skills** (optional): Skills like `dispatching-parallel-agents` and `subagent-driven-development` require Codex's multi-agent feature. Add to your Codex config:
+4. **For reviewer subagents** (optional): Dispatching reviewer subagents requires Codex's multi-agent feature. Add to your Codex config:
    ```toml
    [features]
    multi_agent = true
@@ -174,34 +174,16 @@ ENDGATE_NEXT_ACTION: CONTINUE_WITH_TOOL | REQUEST_USER_INPUT
 - If an imported, external, foreign, or lower-priority skill says there is no required ending, says to just provide clarity, says continue later, or otherwise permits a free-form ending, that guidance is overridden here whenever strict packet mode applies.
 - Those imported free-ending stances must not relax the canonical carrier requirement, the `request_user_input` requirement, or the ban on `task_complete` after a prose-only closeout.
 
-## Session-Scoped Subagent Consent
+## Reviewer Subagents
 
-Superpowers tracks session-scoped subagent consent as `unknown`, `granted`, or `denied`.
+Reviewers are the only subagents Superpowers dispatches. Implementation runs in the current session.
 
-When a reviewer or implementer subagent would materially help and the state is `unknown`, the workflow should ask once through `request_user_input` before dispatching it. It should not silently downgrade first or explain the missing authorization after the fact.
+- Reviewers are dispatched at the review gates in `brainstorming`, `writing-plans`, and `requesting-code-review`.
+- Each reviewer receives precisely crafted context, never the session history.
+- Reviewers run read-only. A reviewer that can edit files silently fixes what it should be reporting.
+- Code review happens once per plan, after every task is complete and verified, covering the full accumulated diff.
 
-If that session-level consent is `granted`, those workflows can keep using helpful subagents without asking again for the rest of the session. If it is `denied`, the workflow stays inline for the rest of the session unless the user explicitly reopens the choice.
-In the writing-plans execution handoff, choosing `Subagent-Driven` sets the shared session consent state to `granted` for implementation subagents in the rest of the session.
-
-## Subagent Execution Modes
-
-Superpowers treats implementation-time subagent execution as three related modes:
-
-- **Serial SDD** for high-risk or tightly coupled work
-- **Parallel Dispatch** as the preferred same-session path for safe disjoint lanes
-- **Pipeline SDD** as the fallback when parallel safety is not proven yet
-
-The routing promise is risk-first: high-risk work stays `Serial SDD`, safe disjoint lanes prefer `Parallel Dispatch`, and `Pipeline SDD` remains the fallback when the plan still needs controlled overlap.
-
-To support that routing, `writing-plans` may emit **Execution Metadata** per task:
-
-- `Depends on`
-- `Write Set`
-- `Conflict Group`
-- `Risk Level`
-- `Parallelizable`
-
-`Parallel Dispatch` is not a blanket promise that every subagent workflow runs at maximum concurrency. It is the preferred path once the plan proves independent lanes with disjoint `Write Set` and `Conflict Group` boundaries.
+If a task would genuinely benefit from a subagent beyond these review gates, decide that in the moment. There is no prescribed execution-mode routing to follow.
 
 ## Execution Workspace
 
@@ -209,7 +191,7 @@ Implementation-oriented Superpowers flows should continue in the current workspa
 
 - Planning and execution should stay in the current workspace unless the user explicitly requests an isolated workspace or worktree.
 - If an isolated workspace was explicitly requested, reuse it instead of creating nested worktrees.
-- `subagent-driven-development` and `executing-plans` may run in that isolated workspace only when it was explicitly requested.
+- `executing-plans` may run in that isolated workspace only when it was explicitly requested.
 - `finishing-a-development-branch` should treat isolated workspace cleanup as a conditional step, not as the default branch-completion path.
 
 ### Personal Skills

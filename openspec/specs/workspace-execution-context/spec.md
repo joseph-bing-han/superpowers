@@ -10,10 +10,10 @@ TBD - created by archiving change remove-worktree-requirement-and-upgrade-parall
 - **WHEN** workflow 从设计阶段进入 `writing-plans`
 - **AND** 用户没有明确要求额外隔离 workspace
 - **THEN** assistant MUST 直接在当前工作区继续规划
-- **AND** MUST NOT 把 `using-git-worktrees` 作为默认前置步骤
+- **AND** MUST NOT 把任何 worktree 创建步骤作为默认前置步骤
 
 #### Scenario: Implementation guidance does not require a dedicated worktree
-- **WHEN** workflow 进入 `executing-plans`、`subagent-driven-development` 或等价实现路径
+- **WHEN** workflow 进入 `executing-plans` 或等价实现路径
 - **AND** 当前工作在现有工作区即可继续
 - **THEN** guidance MUST 允许直接在当前工作区执行
 - **AND** MUST NOT 声明“必须已经位于 dedicated worktree 中”

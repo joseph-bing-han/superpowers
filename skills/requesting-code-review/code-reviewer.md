@@ -4,8 +4,13 @@ Use this template when dispatching a code reviewer subagent.
 
 **Purpose:** Review completed work against requirements and code quality standards before it cascades into more work.
 
+Dispatch the code reviewer for your platform. On Cursor, use the preset
+`code-reviewer` subagent and follow the reviewer model tiers in
+`using-superpowers/references/cursor-tools.md`; never dispatch a reviewer through
+`explore`, which is bound to a fast, small model.
+
 ```
-Task tool (general-purpose):
+Task tool (code reviewer for your platform):
   description: "Review code changes"
   prompt: |
     You are a Senior Code Reviewer with expertise in software architecture,

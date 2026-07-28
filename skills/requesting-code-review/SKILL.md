@@ -12,7 +12,7 @@ Dispatch a code reviewer subagent to catch issues before they cascade. The revie
 ## When to Request Review
 
 **Mandatory:**
-- After each task in subagent-driven development
+- After all plan tasks complete and their own verifications pass
 - After completing major feature
 - Before merge to main
 
@@ -21,67 +21,81 @@ Dispatch a code reviewer subagent to catch issues before they cascade. The revie
 - Before refactoring (baseline check)
 - After fixing complex bug
 
+Review once per plan, not once per task. Per-task verification already catches
+real errors where they happen; a reviewer after every task adds round trips
+without adding much protection.
+
 ## How to Request
 
 **1. Get git SHAs:**
+
+Cover the whole plan, not the last task:
+
 ```bash
-BASE_SHA=$(git rev-parse HEAD~1)  # or origin/main
+BASE_SHA=$(git rev-parse <commit before the first task>)  # or origin/main
 HEAD_SHA=$(git rev-parse HEAD)
 ```
 
+If you captured the baseline before executing the plan, use that value. If not,
+find the commit that precedes the first task's commit — not `HEAD~1`, which
+covers only the most recent task.
+
 **2. Dispatch code reviewer subagent:**
 
-Use Task tool with `general-purpose` type, fill template at `code-reviewer.md`
+Fill the template at `code-reviewer.md`. For reviewer model selection per
+platform, see `using-superpowers/references/cursor-tools.md` (Cursor) or the
+equivalent reference for your platform.
 
 **Placeholders:**
 - `{DESCRIPTION}` - Brief summary of what you built
-- `{PLAN_OR_REQUIREMENTS}` - What it should do
-- `{BASE_SHA}` - Starting commit
+- `{PLAN_OR_REQUIREMENTS}` - Path to the plan; pass the whole plan, since it is the standard the work is judged against
+- `{BASE_SHA}` - Commit before the first task
 - `{HEAD_SHA}` - Ending commit
 
 **3. Act on feedback:**
-- Fix Critical issues immediately
-- Fix Important issues before proceeding
+- Fix all Critical and Important issues together
 - Note Minor issues for later
+- Re-review after the fixes
 - Push back if reviewer is wrong (with reasoning)
 
 ## Example
 
 ```
-[Just completed Task 2: Add verification function]
+[All 5 tasks in the deployment plan are complete, each verification passed]
 
-You: Let me request code review before proceeding.
+You: All tasks are done. Requesting review of the completed work.
 
-BASE_SHA=$(git log --oneline | grep "Task 1" | head -1 | awk '{print $1}')
+BASE_SHA=a7981ec   # captured before Task 1
 HEAD_SHA=$(git rev-parse HEAD)
 
 [Dispatch code reviewer subagent]
-  DESCRIPTION: Added verifyIndex() and repairIndex() with 4 issue types
-  PLAN_OR_REQUIREMENTS: Task 2 from docs/superpowers/plans/deployment-plan.md
+  DESCRIPTION: Deployment index verification and repair, tasks 1-5
+  PLAN_OR_REQUIREMENTS: docs/superpowers/plans/deployment-plan.md
   BASE_SHA: a7981ec
   HEAD_SHA: 3df7661
 
 [Subagent returns]:
   Strengths: Clean architecture, real tests
+  Coverage: verified tasks 1-5 against the diff
   Issues:
-    Important: Missing progress indicators
+    Important: Missing progress indicators (task 3)
+    Important: Task 4 left repairIndex() unreachable after the task 5 refactor
     Minor: Magic number (100) for reporting interval
-  Assessment: Ready to proceed
+  Assessment: With fixes
 
-You: [Fix progress indicators]
-[Continue to Task 3]
+You: [Fix both Important issues together]
+[Re-review, then finish the branch]
 ```
+
+That second Important issue is the kind a per-task review cannot find: each task
+was internally correct, but task 5 stranded task 4's code.
 
 ## Integration with Workflows
 
-**Subagent-Driven Development:**
-- Review after EACH task
-- Catch issues before they compound
-- Fix before moving to next task
-
 **Executing Plans:**
-- Review after each task or at natural checkpoints
-- Get feedback, apply, continue
+- Review once, after every task is complete and verified
+- Pass the whole plan as the reference standard
+- Fix all Critical and Important issues together, then re-review
 
 **Ad-Hoc Development:**
 - Review before merge
@@ -92,7 +106,7 @@ You: [Fix progress indicators]
 **Never:**
 - Skip review because "it's simple"
 - Ignore Critical issues
-- Proceed with unfixed Important issues
+- Finish a branch or merge with unfixed Important issues
 - Argue with valid technical feedback
 
 **If reviewer wrong:**

@@ -82,7 +82,7 @@ This structure informs the task decomposition. Each task should produce self-con
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** [One sentence describing what this builds]
 
@@ -109,14 +109,7 @@ This structure informs the task decomposition. Each task should produce self-con
 - Modify: `exact/path/to/existing.py:123-145`
 - Test: `tests/exact/path/to/test.py`
 
-**Execution Metadata:**
-- Depends on: none
-- Write Set:
-  - `exact/path/to/existing.py`
-  - `tests/exact/path/to/test.py`
-- Conflict Group: `example-group`
-- Risk Level: low
-- Parallelizable: preflight-only
+**Depends on:** none
 
 - [ ] **Step 1: Write the failing test**
 
@@ -151,20 +144,8 @@ git commit -m "feat: add specific feature"
 ```
 ````
 
-**Execution Metadata schema:**
-
-- `Depends on`: `none` or comma-separated task references; gates `ready` / `implementing`
-- `Write Set`: exact paths or `/**` directory prefixes; no bare `*`
-- `Conflict Group`: one slug only
-- `Risk Level`: `low | medium | high`
-- `Parallelizable`: `no | preflight-only | yes`
-
-**Planner constraints:**
-
-1. Every task must include `Execution Metadata`
-2. Prefer exact paths in `Write Set`
-3. Reuse one consistent `Conflict Group` vocabulary per plan
-4. If `Parallelizable: yes` is not clearly justified, downgrade to `preflight-only` or `no`
+`Depends on` is `none` or a comma-separated list of task references. Order tasks
+so that a task's dependencies always appear before it.
 
 ## No Placeholders
 
@@ -188,13 +169,10 @@ Every step must contain the actual content an engineer needs. These are **plan f
 
 After writing the complete plan:
 
-1. Review the written plan.
-   - If a reviewer subagent would materially help and the session consent state is unknown, use `request_user_input` to ask once before dispatching it
-   - If the state is `granted`, dispatch the reviewer subagent: a single plan-document-reviewer subagent (see plan-document-reviewer-prompt.md) with precisely crafted review context — never your session history. This keeps the reviewer focused on the plan, not your thought process.
-   - If the state is `denied`, review inline and do not ask again in the same session
+1. Dispatch a single plan-document reviewer (see plan-document-reviewer-prompt.md) with precisely crafted review context — never your session history. This keeps the reviewer focused on the plan, not your thought process.
    - In a **Superpowers-only lane**, provide: path to the plan document, path to spec document
    - In an **OpenSpec-governed lane**, provide: path to the plan document, plus the relevant OpenSpec artifact paths (`proposal.md`, `design.md`, relevant `specs/*`, `tasks.md`)
-2. If ❌ Issues Found: fix the issues, then review the whole plan again using the same session-consent rules
+2. If ❌ Issues Found: fix the issues, then review the whole plan again
 3. If ✅ Approved: proceed to execution handoff
 
 **Review loop guidance:**
@@ -244,13 +222,12 @@ When a real execution choice is still needed after saving the plan, offer execut
 ```text
 Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Choose the execution path:
 
-1. Subagent-Driven (recommended)
-2. Inline Execution
-3. Stop here for now
+1. Execute the plan now (recommended)
+2. Stop here for now
 ```
 
 When `request_user_input` is available, use it for this execution handoff because the choices are known and enumerable.
-Treat free-form requirements as the client-provided `Other` / notes path rather than authoring slot 3 for free text.
+Treat free-form requirements as the client-provided `Other` / notes path rather than authoring an extra slot for free text.
 Keep a final free-text path only for requirements that do not fit the listed execution choices.
 Do not ask for a prose-only `reply 1/2/3` response in this handoff when `request_user_input` is available.
 If the only remaining real decision is continue vs stop, ask that through `request_user_input`; otherwise ask the more specific execution-path choice instead of collapsing it into a generic continue/stop prompt.
@@ -259,20 +236,10 @@ Do not end this handoff with a declarative prose-only next-step proposal like `t
 This also includes judgment-framed, comparative, or recommendation-framed execution endings, including Chinese variants such as `如果按我的判断，下一步应该先……`, `下一步最值得做的不是 A，而是 B`, `接下来更值得做的是……`, or `我建议先……`
 If you can already describe the next safe execution step concretely, do it instead of narrating it and stopping.
 Either continue automatically on the already-implied execution path or use `request_user_input` when a real execution choice remains.
-Choosing `Subagent-Driven` counts as explicit session-scoped consent to use implementation subagents for the rest of the session.
-Treat that choice as setting the shared session consent state to `granted` for implementation subagents.
-Do not immediately ask again for the same subagent consent after that choice.
+If the execution path is already clear, continue automatically with `executing-plans`.
+Do not pause after saving the plan just to ask whether to continue.
 
-If the execution path is already clear:
-- If session consent is `granted`, continue automatically with `subagent-driven-development`
-- If session consent is `denied`, or subagents are unavailable, continue automatically with `executing-plans`
-- Do not pause after saving the plan just to ask whether to continue
-
-**If Subagent-Driven chosen:**
-- **REQUIRED SUB-SKILL:** Use superpowers:subagent-driven-development
-- Fresh subagent per task + two-stage review
-
-**If Inline Execution chosen:**
+**If execution proceeds:**
 - **REQUIRED SUB-SKILL:** Use superpowers:executing-plans
 - Batch execution with checkpoints for review
 

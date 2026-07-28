@@ -11,8 +11,6 @@ Load plan, review critically, execute all tasks, report when complete.
 
 **Announce at start:** "I'm using the executing-plans skill to implement this plan."
 
-**Note:** Tell your human partner that Superpowers works much better with access to subagents. The quality of its work will be significantly higher if run on a platform with subagent support (such as Claude Code or Codex). If subagents are available, use superpowers:subagent-driven-development instead of this skill.
-
 ## The Process
 
 Before executing tasks, continue in the current workspace by default.
@@ -73,9 +71,42 @@ For each task:
 4. Mark as completed
 5. Continue to the next task automatically unless a real blocker requires human input
 
-### Step 3: Complete Development
+### Step 3: Batch Review
 
-After all tasks complete and verified:
+Review happens once, after every task is done — not after each task.
+
+Per-task verification in Step 2 already catches real errors at the point they
+occur. A reviewer dispatched after every task adds a round trip without adding
+much protection, so the review gate sits here instead.
+
+1. Confirm every task is complete and its own verifications passed
+2. Capture the range to review:
+
+```bash
+BASE_SHA=$(git rev-parse <commit before the first task>)
+HEAD_SHA=$(git rev-parse HEAD)
+```
+
+3. Announce: "I'm using the requesting-code-review skill to review the completed work."
+4. **REQUIRED SUB-SKILL:** Use superpowers:requesting-code-review
+5. Give the reviewer the whole plan as the reference standard, plus the full
+   `BASE_SHA..HEAD_SHA` range. The plan is what the work is judged against, so
+   pass the plan path, not a per-task summary.
+6. Fix all Critical and Important issues together
+7. Re-review the same way
+
+**Review loop guidance:**
+- If the loop exceeds 3 iterations, surface to your human partner for guidance
+- Reviewers are advisory — explain disagreements if you believe feedback is incorrect
+- Do not enter Step 4 while Critical or Important issues are unresolved
+
+A batch review covers a much larger diff than a per-task review, so a reviewer is
+likelier to skim. Passing the plan as the reference standard is what keeps the
+review anchored to what each task was supposed to accomplish.
+
+### Step 4: Complete Development
+
+After batch review passes:
 - Announce: "I'm using the finishing-a-development-branch skill to complete this work."
 - **REQUIRED SUB-SKILL:** Use superpowers:finishing-a-development-branch
 - Follow that skill to verify tests, present options, execute choice
