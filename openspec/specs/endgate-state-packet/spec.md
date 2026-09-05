@@ -1,7 +1,17 @@
 # endgate-state-packet Specification
 
 ## Purpose
-TBD - created by archiving change protocolize-runtime-endgate-state. Update Purpose after archive.
+保留 version 1 legacy endgate consumer 与 transcript replay 的兼容契约。
+
+## Applicability
+
+以下要求仅用于显式启用的 legacy integration 或历史 fixture 回放，且运行环境
+必须支持 carrier consumer 与可用、被允许的 request_user_input。
+普通 workflow 默认不启用 strict packet mode；完成后直接交付。
+加载 Skill、读取规范或启用仅隐藏文本的 wrapper 不构成集成授权。
+DONE 是普通工作流完成状态，不是 version 1 枚举，不得发给旧消费者。
+缺少能力时说明限制并按宿主允许的普通交互降级，不得覆盖更高优先级指令。
+
 ## Requirements
 ### Requirement: Workflow endgate boundaries emit a fixed machine-readable packet
 系统 MUST 在任何 workflow 到达 checkpoint、analysis recommendation
@@ -74,4 +84,3 @@ boundary、handoff 或 terminal boundary 时，暴露一份固定字段的
 - **AND** 该 popup 的问题标识 MUST 对应 `terminal_choice`
 - **AND** 在该 popup 之前 MUST NOT 以 prose-only closeout 或
   `task_complete` 直接收口
-

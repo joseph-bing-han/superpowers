@@ -5,7 +5,7 @@ Use this template when dispatching a code reviewer subagent.
 **Purpose:** Review completed work against requirements and code quality standards before it cascades into more work.
 
 Dispatch the code reviewer for your platform. On Cursor, use the preset
-`code-reviewer` subagent and follow the reviewer model tiers in
+`code-reviewer` subagent and follow the supported reviewer routing in
 `using-superpowers/references/cursor-tools.md`; never dispatch a reviewer through
 `explore`, which is bound to a fast, small model.
 
@@ -25,10 +25,25 @@ Task tool (code reviewer for your platform):
 
     {PLAN_OR_REQUIREMENTS}
 
+    ## Authorized Review Scope
+
+    {REVIEW_SCOPE}
+
+    Judge completion against the authorized tasks and acceptance criteria.
+    Treat the rest of the plan as context. Do not report deferred or excluded tasks
+    as missing functionality. Still report defects that affect the authorized deliverable,
+    including broken dependencies on work outside this scope.
+    If the provided context leaves scope materially unclear, report that limitation
+    instead of assuming the entire plan was authorized.
+
     ## Git Range to Review
 
     **Base:** {BASE_SHA}
     **Head:** {HEAD_SHA}
+
+    **Working-tree scope:** {WORKING_TREE_SCOPE}
+    Include in-scope staged, unstaged, and untracked changes, not just commits.
+    Separate pre-existing user edits from this task. Remain read-only.
 
     ```bash
     git diff --stat {BASE_SHA}..{HEAD_SHA}
@@ -40,7 +55,7 @@ Task tool (code reviewer for your platform):
     **Plan alignment:**
     - Does the implementation match the plan / requirements?
     - Are deviations justified improvements, or problematic departures?
-    - Is all planned functionality present?
+    - Is the required functionality present for every in-scope task?
 
     **Code quality:**
     - Clean separation of concerns?
@@ -70,8 +85,8 @@ Task tool (code reviewer for your platform):
     ## Calibration
 
     Categorize issues by actual severity. Not everything is Critical.
-    Acknowledge what was done well before listing issues — accurate praise
-    helps the implementer trust the rest of the feedback.
+    Lead with evidence-backed issues ordered by severity. If none are found,
+    say so and describe remaining test gaps or uncertainty.
 
     If you find significant deviations from the plan, flag them specifically
     so the implementer can confirm whether the deviation was intentional.
@@ -79,9 +94,6 @@ Task tool (code reviewer for your platform):
     say so.
 
     ## Output Format
-
-    ### Strengths
-    [What's well done? Be specific.]
 
     ### Issues
 
@@ -99,6 +111,9 @@ Task tool (code reviewer for your platform):
     - What's wrong
     - Why it matters
     - How to fix (if not obvious)
+
+    ### Coverage and Strengths
+    [Actual scope reviewed, test limitations, and any useful strengths.]
 
     ### Recommendations
     [Improvements for code quality, architecture, or process]
@@ -129,19 +144,16 @@ Task tool (code reviewer for your platform):
 **Placeholders:**
 - `{DESCRIPTION}` — brief summary of what was built
 - `{PLAN_OR_REQUIREMENTS}` — what it should do (plan file path, task text, or requirements)
+- `{REVIEW_SCOPE}` — authorized task IDs or requirements, acceptance criteria, and deferred or excluded tasks; explicitly state when all plan tasks are authorized
 - `{BASE_SHA}` — starting commit
 - `{HEAD_SHA}` — ending commit
+- `{WORKING_TREE_SCOPE}` — exact in-scope paths and staged/unstaged/untracked contents
 
-**Reviewer returns:** Strengths, Issues (Critical / Important / Minor), Recommendations, Assessment
+**Reviewer returns:** Issues (Critical / Important / Minor), Coverage, Recommendations, Assessment
 
 ## Example Output
 
 ```
-### Strengths
-- Clean database schema with proper migrations (db.ts:15-42)
-- Comprehensive test coverage (18 tests, all edge cases)
-- Good error handling with fallbacks (summarizer.ts:85-92)
-
 ### Issues
 
 #### Important

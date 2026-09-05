@@ -1,303 +1,140 @@
 # workflow-protocol-contracts Specification
 
 ## Purpose
-TBD - created by archiving change decouple-prose-from-workflow-protocols. Update Purpose after archive.
+
+定义按任务触发、按授权推进、按风险验证的工作流契约。
+历史归档中的旧严格终局规则不再是默认行为。
+
 ## Requirements
-### Requirement: Key workflow checkpoints expose machine-readable state
-关键 workflow 节点 MUST 暴露稳定的机器可判定状态信号，使自动化流程能够在不依赖自然语言措辞的前提下判断当前状态。
 
-#### Scenario: Checkpoint state is available for automation
-- **WHEN** 任一关键 workflow 到达 checkpoint、handoff、review verdict、
-  analysis recommendation boundary 或 terminal-choice 边界
-- **THEN** 系统 SHALL 产生可解析的状态信号
-- **AND** 对 endgate 类边界，canonical 状态信号 MUST 为固定字段的
-  `endgate-state-packet`
+### Requirement: Host priority and task scope govern skill defaults
+系统 MUST 服从宿主指令优先级；Skill MUST NOT 声称覆盖系统或开发者规则。
+用户当前请求和适用项目规则在该层级内覆盖 Skill 默认流程。
 
-### Requirement: Human-readable prose is not the sole machine contract
-给用户阅读的自然语言正文 SHALL 与机器判定协议解耦；正文可以变化，但不得成为唯一的自动化判定依据。
+#### Scenario: A stricter skill conflicts with user scope
+- **WHEN** 用户只要求审查，而 Skill 建议实现或提交
+- **THEN** 系统 MUST 只交付审查，MUST NOT 实现、commit、push 或创建 PR
+- **AND** 不得以“更严格”为由提高低优先级规则的权限
 
-#### Scenario: Prose wording changes without breaking protocol
-- **WHEN** 同一 workflow 在不同模型、不同语言或不同表达风格下输出不同正文
-- **THEN** 自动化流程 MUST 仍能仅依赖稳定协议信号完成状态判定
+### Requirement: Completion is scoped to the current request
+完成 MUST 表示本次请求及相称验证已处理，不表示所有可能后续工作都已结束。
 
-### Requirement: Review and execution flows use stable verdict and next-action semantics
-review、execution handoff 与类似决策节点 MUST 使用稳定的 verdict 与 next-action 语义，以便后续自动化逻辑一致消费。
+#### Scenario: A report is the requested deliverable
+- **WHEN** 审查、分析、研究或方案已经完成
+- **THEN** 系统 MUST 直接交付结果、证据与限制
+- **AND** MUST NOT 默认追加结束/继续弹窗
 
-#### Scenario: Reviewer returns a stable verdict
-- **WHEN** reviewer 判断当前工件需要修改或可以继续
-- **THEN** 系统 SHALL 输出稳定的 verdict 与 next-action 信号，而不是只输出自由文本结论
+#### Scenario: Plan-first request is ready for user review
+- **WHEN** 用户要求先给方案并等待确认
+- **THEN** 系统 MUST 交付方案并等待
+- **AND** MUST NOT 把可执行的下一步误当成已授权实现
 
-### Requirement: Contingent authorization counts as prior authorization
-当用户通过条件式表达授权后续动作时，系统 MUST 将正向判断视为条件已满足，
-并直接进入已经获得授权的下一步，而不是把该判断当成一个可以 prose-only
-收口的分析结论。
+### Requirement: Safe authorized continuation does not require repeated confirmation
+系统 MUST 自动继续本次请求内必要、安全、已获授权的工作。
+进度摘要、保存计划和阶段边界 MUST NOT 自动成为审批门禁。
 
-#### Scenario: Positive contingent judgment auto-continues
-- **WHEN** 用户表达 `如果没问题就继续下一阶段`、
-  `如果设计合理就开始实现` 或等价的条件式授权
-- **THEN** 一旦系统判断条件成立，后续状态 MUST 进入 `auto-continue`
-  或已经授权的下游动作，而不是等待用户再次确认
+#### Scenario: Contingent authorization is satisfied
+- **WHEN** 用户要求“如果设计合理就开始实现”且条件成立
+- **THEN** 系统 MUST 继续已授权实现，不再询问是否继续
 
-#### Scenario: Contingent judgment cannot end with prose-only conclusion
-- **WHEN** 系统刚完成一个条件式正向判断
-- **THEN** 系统 MUST NOT 只输出 `最终判断`、
-  `现在可以把结论更新为`、`项目现在可以稳妥进入 ...` 或等价的
-  prose-only 结论块后直接结束当前 turn
+#### Scenario: One task is blocked but another is independent
+- **WHEN** 一个步骤缺凭据或依赖，另一个已授权步骤不依赖它
+- **THEN** 系统 MUST 安全诊断并继续独立步骤
+- **AND** 只对真正无法推进的剩余部分报告阻塞
 
-### Requirement: Terminal completion uses tool-backed terminal-choice across all local skills
-任何本地 skill 在“请求工作已完成”的终局边界 MUST 使用统一的
-`terminal-choice` 协议收口，而不是直接结束对话或要求用户额外输入自由文本。
+### Requirement: Real decisions use available permitted interaction
+仅当缺失信息、实质取舍或新授权会改变工作时才询问。
 
-#### Scenario: Any skill reaches a terminal boundary
-- **WHEN** 任一本地 skill 或 skill-guided workflow 到达
-  “当前请求看似已完成”的终局边界
-- **THEN** 直接下一个动作 MUST 是 `request_user_input`
-- **AND** 在 Codex tool-backed popup 中，assistant-authored 选项 MUST 为
-  `结束 (Recommended)` 与 `继续`
-- **AND** 当客户端自动提供 free-form `Other/notes` 路径时，workflow MUST
-  使用该客户端路径作为自由输入 fallback，而不是重复追加显式 `自由输入`
-  选项
+#### Scenario: Choice tool is unavailable
+- **WHEN** request_user_input 不可用或不适用于当前授权问题
+- **THEN** 系统 MUST 用简洁普通文字询问
+- **AND** MUST NOT 虚构工具调用或永久等待不存在的弹窗
 
-#### Scenario: Prose cannot replace the terminal-choice popup
-- **WHEN** 终局边界已经达到
-- **THEN** 系统 MUST NOT 用自由文本总结、optional follow-up、
-  typed free-form confirmation 或 `task_complete` 直接替代
-  `terminal-choice` 弹窗
+### Requirement: Machine contracts are capability-scoped
+机器消费者存在时 MUST 保留稳定协议；不得要求每个 Skill 重复整份协议。
 
-### Requirement: Terminal-choice applies only to workflow-mode boundaries
-系统 MUST 仅在当前边界仍属于 workflow mode 时使用 `terminal-choice`、
-`request_user_input` 终局 popup 与 strict packet mode 的 workflow 收口规则；
-Direct Mode 回复或被临时降级处理的轻量子任务 MUST 直接输出结果，
-不得先被终局 popup 拦截。
+#### Scenario: Normal workflow completes
+- **WHEN** 没有显式启用兼容的 version 1 legacy integration
+- **THEN** DONE 表示直接交付完成结果，不输出 version 1 packet
+- **AND** 仅加载 Skill、读取规范或运行隐藏文本的 wrapper MUST NOT 启用 strict mode
 
-#### Scenario: Direct-mode answer completes without terminal-choice
-- **WHEN** 当前请求属于普通问答、翻译、总结、润色或其他轻量任务
-- **AND** 当前边界不属于 workflow mode
-- **THEN** 系统 MUST 直接输出结果
-- **AND** MUST NOT 在结果前插入 `terminal-choice` 或 `request_user_input` popup
+#### Scenario: Legacy runtime is explicitly enabled
+- **WHEN** 明确启用 version 1 集成且 carrier consumer 和选择工具可用、被允许
+- **THEN** 系统 MUST 遵守 endgate-state-packet 与 endgate-render-separation 规范
+- **AND** 保留 canonical carrier、固定字段配对和最后声明后的事件窗口
+- **AND** MUST NOT 向未升级的 version 1 consumer 发送 DONE
 
-#### Scenario: Workflow completion still uses terminal-choice
-- **WHEN** 当前工作已经处于 workflow mode
-- **AND** 当前边界是真正的 workflow terminal boundary
-- **THEN** 系统 MUST 继续使用既有的 `terminal-choice` / `request_user_input` 协议
-- **AND** MUST NOT 因本次变更而削弱 workflow lane 的 strict packet mode
+#### Scenario: Reviewer returns a consumed verdict
+- **WHEN** review consumer 需要 REVIEW_VERDICT、BLOCKING_ISSUE_COUNT 和 NEXT_ACTION
+- **THEN** reviewer MUST 保留这些稳定字段
+- **AND** 正文措辞不是唯一机器契约
 
-#### Scenario: Downgraded lightweight subtask does not inherit workflow popup
-- **WHEN** 当前会话整体仍在 workflow mode
-- **AND** 当前子任务已被分类为 direct-handled 轻量任务
-- **THEN** 该子任务的回复 MUST 先直接给出结果
-- **AND** MUST NOT 复用 workflow terminal-choice 作为该子任务的结束方式
+### Requirement: Context is loaded on demand
+系统 MUST 完整读取当前触发的 Skill 入口，再按任务需要展开引用。
+已读且未变化的上下文 MAY 复用。
 
-#### Scenario: Client-provided free-form fallback is not duplicated
-- **WHEN** `request_user_input` 客户端会自动追加 free-form `Other/notes`
-  路径
-- **THEN** assistant MUST NOT 在同一个 popup 中再次 authored 一个重复的
-  `自由输入` 选项
-- **AND** 相关 guidance、fixtures 与 tests MUST 以客户端自动提供的 free-form
-  fallback 作为 canonical 路径
+#### Scenario: Governed bugfix needs design context
+- **WHEN** 本次回归属于 existing OpenSpec change
+- **THEN** 系统 MUST 识别该 change 并读取相关需求、设计约束与任务状态
+- **AND** MUST NOT 每次强制通读所有 proposal、specs 和历史材料
 
-### Requirement: Local skill guidance explicitly inherits the terminal endgate protocol
-仓库内每个本地 skill 文档 MUST 显式声明统一终局协议，以便仓库级审计
-能够直接检测是否存在“允许直接结束对话”的漂移。
+### Requirement: Governance follows risk and existing ownership
+治理 MUST 由明确请求、既有 change、项目制度或需要持久决策的实质风险触发。
+新功能、模块数量或步骤数量单独 MUST NOT 强制 OpenSpec。
 
-#### Scenario: Repository audit checks a local skill file
-- **WHEN** prompt-contract 套件审计任一本地 skill 文档
-- **THEN** 该 skill 文档 SHALL 包含与统一终局协议兼容的显式 guidance
-- **AND** 其内容至少覆盖：
-  不得直接结束对话、终局使用 `request_user_input`、以及在 tool-backed
-  terminal-choice 中只显式 authored `结束 / 继续`，自由输入改用客户端
-  自动提供的 fallback
+#### Scenario: A local change is clear and low risk
+- **WHEN** 不存在治理要求或需要记录的实质设计取舍
+- **THEN** 系统 MAY 直接实现并聚焦验证，无须路线弹窗或额外文档
 
-### Requirement: Governed bugfixes recover existing OpenSpec context before proposing fixes
-当一个 bug 或异常行为属于既有 OpenSpec change 的范围时，系统 MUST 在提出
-修复方案前恢复该 change 的正式上下文，而不能只基于当前 symptom 做局部修补。
+#### Scenario: Canonical record ownership is genuinely unresolved
+- **WHEN** 正式记录位置会实质影响工作且尚未决定
+- **THEN** 系统 MUST 在创建可能重复的设计文档前解决该决策
+- **AND** 已明确的 change 或用户路线 MUST 直接复用，不重复询问
 
-#### Scenario: Bugfix belongs to an existing OpenSpec change
-- **WHEN** 当前 bug、失败测试或异常行为明显属于既有 OpenSpec-governed work
-- **THEN** 系统 MUST 先识别对应的 active change
-- **AND** MUST 读取该 change 的 `proposal.md`、`design.md`、`specs/*`、`tasks.md`
-- **AND** 仅在恢复上述上下文后，才继续根因分析与修复设计
+### Requirement: Request completion and change archive are separate
+OpenSpec lane MUST 保留正式记录，但不得扩大本次授权范围。
 
-#### Scenario: Local symptom fix cannot skip governed design context
-- **WHEN** assistant 正在分析一个 governed bug
-- **THEN** assistant MUST NOT 直接跳到局部修复建议
-- **AND** MUST 把既有 OpenSpec artifacts 视为当前 bugfix 的设计约束与全局目标
+#### Scenario: One regression is fixed within a larger change
+- **WHEN** 本次回归已修复并验证，但 change 尚有其他任务
+- **THEN** 系统 MUST 交付本次完成结果并保持 change 开放
+- **AND** MUST NOT 自动实现无关任务或提前归档
 
-### Requirement: Known OpenSpec lane continuations auto-continue into apply or archive
-当当前 workflow 已经知道下一条 OpenSpec lane 时，系统 MUST 将其视为
-`auto-continue`，而不是退化成泛化的继续/结束选择或 recommendation-only
-收口。
+#### Scenario: Full closure is requested and archive prerequisites hold
+- **WHEN** 本次授权包含完整收尾，change 已完成，所需审查、合并和规范同步已满足
+- **THEN** 系统 MUST 自动继续已授权归档，无须重复确认
+- **AND** 若能力缺失或条件未满足，MUST 准确报告待办，不能称已归档
 
-#### Scenario: Active change still has remaining work
-- **WHEN** 当前工作已明确属于某个 active OpenSpec change
-- **AND** 该 change 仍有待完成任务或待继续实现的工作
-- **THEN** 系统 MUST 把下一步视为 `openspec-apply-change`
-- **AND** MUST auto-continue 到该 skill，而不是先询问泛化的继续/结束
+### Requirement: Review and verification match risk
+共享行为、安全边界和复杂跨模块契约 SHOULD 有独立只读审查与对应行为证据。
+普通文本修订只需相关静态检查；局部行为变更需聚焦回归。
 
-#### Scenario: Active change is complete and archive-compatible
-- **WHEN** 当前工作已明确属于某个 active OpenSpec change
-- **AND** 当前 branch / workflow 结果已经满足 archive compatibility
-- **THEN** 系统 MUST 把下一步视为 `openspec-archive-change`
-- **AND** MUST auto-continue 到该 skill，而不是只输出 “ready to archive”
-  或 recommendation-only handoff
+#### Scenario: Independent review is unavailable
+- **WHEN** 当前运行环境没有合适 reviewer
+- **THEN** 系统 MUST 自审并说明限制，不默认修改全局设置
+- **AND** 只有明确要求的独立审批才阻止相应集成，不阻止交付现状
 
-### Requirement: Created OpenSpec changes carry a mandatory archive obligation
-只要 assistant 已经为某项工作创建了 OpenSpec proposal / change，该工作就 MUST
-保持在受治理的 OpenSpec lane 中，直到该 change 通过
-`openspec-archive-change` 完成归档；最终完成时不得跳过这一归档步骤。
+#### Scenario: Existing evidence is still applicable
+- **WHEN** 已有可靠验证且相关输入、环境和契约未变化
+- **THEN** 系统 MAY 复用证据，只复核受影响部分
+- **AND** MUST 准确区分已通过、未覆盖、无法运行和失败
 
-#### Scenario: Proposal creation establishes archive obligation
-- **WHEN** assistant 已经为当前工作创建了 OpenSpec proposal / change
-- **THEN** 该工作 MUST 被视为带有 archive obligation 的 OpenSpec lane 工作
-- **AND** 在 archive 完成前，系统 MUST NOT 把它降级回可自由结束的普通流程
+#### Scenario: Review includes local changes
+- **WHEN** 本次修改尚未全部提交
+- **THEN** review MUST 覆盖完整任务 diff，包括 staged、unstaged 和相关 untracked 文件
+- **AND** MUST NOT 用 BASE_SHA..HEAD_SHA 代替未提交内容
 
-#### Scenario: Final completion of a created change cannot skip archive
-- **WHEN** 当前工作对应的 OpenSpec change 已完成实现、验证与最终收尾
-- **AND** 该 change 先前已经被创建
-- **THEN** workflow MUST 继续进入 `openspec-archive-change`
-- **AND** MUST NOT 用 recommendation-only prose、generic continue/stop
-  选择、或普通 terminal-choice 直接结束
+#### Scenario: Review covers an authorized subset of a plan
+- **WHEN** 用户仅授权计划中的部分任务
+- **THEN** 派发 MUST 提供完整计划作为上下文，以及独立的 REVIEW_SCOPE，列出获准任务、验收条件与延期或排除任务
+- **AND** reviewer MUST 检查全部获准任务，不得把延期任务当作本次缺失功能
+- **AND** 影响本次交付物的真实缺陷或依赖问题仍 MUST 报告
+- **AND** 执行器 MUST NOT 为消除范围外审查意见而自动扩展任务
 
-#### Scenario: Archive skill remains the place for archive safety checks
-- **WHEN** created OpenSpec change 已到达最终完成边界
-- **THEN** workflow MUST 进入 `openspec-archive-change`
-- **AND** incomplete tasks、delta spec sync、以及最终确认等安全检查
-  仍由 `openspec-archive-change` 自身负责
+### Requirement: Cleanup and external operations have bounded authorization
+本地编辑、commit、push、PR、merge 和归档 MUST 区分授权范围。
+整理 MUST 仅处理本次创建且已确认可清理的资源。
 
-### Requirement: Analysis and recommendation boundaries use protocolized next-step handling
-当 assistant 在当前 turn 中已经完成分析、给出具体推荐方案，并且能够指出明确的下一步时，系统 MUST 将该边界视为正式 workflow 协议边界，并且只能在 `auto-continue` 与 `request_user_input` 两种路径之间选择，不得以 prose-only 的下一步邀请结束当前 turn。
-
-#### Scenario: Concrete next step with remaining user choice uses a declared needs-user-decision packet
-- **WHEN** assistant 已经完成分析并给出具体推荐方案
-- **AND** 下一步需要用户在若干具体选项中做选择
-- **THEN** assistant MUST 先声明 `ENDGATE_STATE=NEEDS_USER_DECISION`
-  的 `endgate-state-packet`
-- **AND** 随后 MUST 使用 `request_user_input`
-- **AND** MUST NOT 以 `如果你同意，我下一步可以……`、
-  `如果你下一步是要……我可以继续接着做`、`I can do X next if you agree`
-  或等价 prose 邀请后直接结束当前 turn
-
-#### Scenario: Preauthorized next step auto-continues after a declared packet
-- **WHEN** assistant 已经完成分析并给出具体推荐方案
-- **AND** 用户先前已经对该下一步给出足够授权
-- **THEN** assistant MUST 先声明 `ENDGATE_STATE=AUTO_CONTINUE`
-  的 `endgate-state-packet`
-- **AND** workflow MUST 进入 `auto-continue`
-- **AND** assistant MUST 直接执行已授权的下一步，而不是先输出 prose-only
-  的可选邀请
-
-#### Scenario: True completion declares terminal-choice instead of prose closeout
-- **WHEN** assistant 判断当前请求已经到达真正完成边界
-- **THEN** assistant MUST 先声明 `ENDGATE_STATE=TERMINAL_CHOICE`
-  的 `endgate-state-packet`
-- **AND** 直接下一个边界动作 MUST 是 `request_user_input`
-- **AND** MUST NOT 用 prose-only closeout 替代 terminal-choice popup
-
-### Requirement: Repository-managed workflow boundaries run in strict packet mode
-对于本仓库维护的本地 workflow skills，任何 workflow boundary MUST 把
-`endgate-state-packet` 视为默认且强制的协议载体，而不是可选 guidance。
-
-#### Scenario: Local workflow boundary cannot skip canonical carrier emission
-- **WHEN** 任一本仓库维护的本地 workflow skill 到达 checkpoint、handoff、
-  analysis recommendation boundary、reviewed-task boundary 或 terminal boundary
-- **THEN** assistant MUST 在下一个机器动作之前暴露 canonical
-  `endgate-state-packet`
-- **AND** MUST NOT 退回到“如果使用 packet 就……”这类条件式 guidance
-
-#### Scenario: Structured carrier satisfies strict packet mode without visible packet text
-- **WHEN** 当前运行时能够在 transcript 中记录结构化 endgate carrier
-- **THEN** strict packet mode MUST 视该结构化 carrier 为合法满足
-- **AND** workflow guidance MUST NOT 再把“最后 4 行必须是用户可见文本”写成唯一合法路径
-
-#### Scenario: Visible tail block remains the fallback for legacy runtimes
-- **WHEN** 当前运行时尚未提供结构化 endgate carrier
-- **THEN** workflow guidance SHALL 继续使用 canonical `ENDGATE_*` tail block 作为 fallback
-- **AND** prose fallback MUST 仍只作为 legacy fixture 或历史 incident 的残余安全网
-
-### Requirement: Imported or lower-priority skill ending guidance MUST NOT relax strict packet mode
-当当前仓库已经通过 repo-managed instruction、`using-superpowers` 或其他更高优先级 guidance 进入 strict packet mode 时，任何 imported、lower-priority、explore-mode、stance-only skill 中关于“无固定结尾”“just provide clarity”“continue later”或等价自由收尾的表述，都 MUST 被视为非终局语气参考，而不能削弱 `endgate-state-packet` 与后续 machine action 的硬约束。
-
-#### Scenario: Imported explore guidance cannot authorize prose-only completion
-- **WHEN** assistant 在 strict packet mode 下读取了 imported 或 lower-priority explore skill
-- **AND** 该 skill 文案包含 `There’s no required ending`、`Just provide clarity`、`Continue later` 或等价自由结尾表述
-- **THEN** assistant MUST 继续遵守当前仓库的 `endgate-state-packet` 契约
-- **AND** MUST NOT 因该 imported guidance 直接以 prose-only report 或 recommendation 结束当前 turn
-
-#### Scenario: Repo-managed bootstrap explicitly overrides foreign ending stances
-- **WHEN** 本仓库提供 repo-managed instruction bootstrap 与核心 workflow entry skill
-- **THEN** 这些 guidance MUST 明确声明 imported / lower-priority skill ending guidance 不能削弱 strict packet mode
-- **AND** MUST 把 `no required ending`、`just provide clarity`、`continue later` 或等价 imported stance 视为被覆盖
-
-### Requirement: Reviewer subagents are the only prescribed subagent role
-Workflow guidance MUST 把 reviewer 作为唯一由 Superpowers 规定派发的子代理角色，
-不得再规定实现期的子代理执行模式路由。
-
-#### Scenario: Guidance defines reviewer dispatch without execution-mode routing
-- **WHEN** 仓库中的 workflow guidance 描述子代理使用
-- **THEN** guidance MUST 只规定 review gate 上的 reviewer 派发
-- **AND** MUST NOT 规定实现期子代理执行模式路由
-
-#### Scenario: Reviewer dispatch is read-only and context-scoped
-- **WHEN** guidance 描述如何派发 reviewer
-- **THEN** MUST 要求 reviewer 以只读方式运行
-- **AND** MUST 要求只提供精确构造的评审上下文，而不是会话历史
-
-### Requirement: Endgate declarations are boundary-scoped rather than turn-scoped
-workflow endgate 的合法性 MUST 由最后一次边界声明及其后的兑现动作决定，
-而不是由同一 turn 任意更早位置发生过什么工具调用来决定。
-
-#### Scenario: Earlier tool work cannot legalize a later prose-only ending
-- **WHEN** 同一 turn 较早位置已经发生过 `exec_command`、`apply_patch`
-  或其他普通 continuation action
-- **AND** assistant 在更后面进入新的 analysis / recommendation boundary
-- **THEN** 只有该边界最后声明的 `endgate-state-packet` 之后的事件才可以作为
-  合法性证据
-- **AND** 较早位置的普通工具调用 MUST NOT 被复用为后续边界的
-  `auto-continue` 证明
-
-### Requirement: OpenSpec lane decision MUST precede ordinary design and plan docs for important changes
-系统 MUST 在工作看起来应进入 OpenSpec lane，且当前既没有明确的 existing change、
-也没有用户明确选择 ordinary-docs fallback 时，先完成 lane decision，再允许创建普通设计文档或计划文档。
-
-#### Scenario: Important change asks about OpenSpec before ordinary design docs
-- **WHEN** assistant 处理一个新功能、跨模块、多阶段或其他疑似应进入 OpenSpec lane 的工作
-- **AND** 当前还没有明确 existing change
-- **AND** 用户还没有明确选择继续仅生成常规设计/计划文档
-- **THEN** assistant MUST 先通过 `request_user_input` 发起 lane confirmation
-- **AND** MUST NOT 先创建普通设计文档
-
-#### Scenario: Important change asks about OpenSpec before ordinary plan docs
-- **WHEN** assistant 即将为一个疑似应进入 OpenSpec lane 的工作创建普通计划文档
-- **AND** 当前还没有明确 existing change
-- **AND** 用户还没有明确选择继续仅生成常规设计/计划文档
-- **THEN** assistant MUST 先完成 lane confirmation
-- **AND** MUST NOT 先创建普通计划文档
-
-#### Scenario: Explicit ordinary-docs fallback unlocks regular docs
-- **WHEN** assistant 已通过 tool-backed lane confirmation 提供
-  `创建 OpenSpec 提案` 与 `继续仅生成常规设计/计划文档` 选项
-- **AND** 用户明确选择继续仅生成常规设计/计划文档
-- **THEN** assistant MAY 进入 Superpowers-only lane
-- **AND** 之后才允许创建普通设计文档或计划文档
-
-### Requirement: Downstream design and planning skills MUST block unresolved OpenSpec lane drift
-系统 MUST 在入口治理判断漏触发、且 `brainstorming` 或 `writing-plans` 发现当前工作仍处于 unresolved OpenSpec lane 时，阻断普通 docs 产出并回到 lane confirmation，而不是默认沿 ordinary-docs 路径继续。
-
-#### Scenario: Brainstorming blocks ordinary design docs when lane is unresolved
-- **WHEN** `brainstorming` 发现当前工作疑似应进入 OpenSpec lane
-- **AND** 当前还没有明确 existing change
-- **AND** 用户还没有明确选择 ordinary-docs fallback
-- **THEN** `brainstorming` MUST 阻止普通设计文档落地
-- **AND** MUST 先触发 lane confirmation
-
-#### Scenario: Writing plans blocks ordinary plan docs when lane is unresolved
-- **WHEN** `writing-plans` 发现当前工作疑似应进入 OpenSpec lane
-- **AND** 当前还没有明确 existing change
-- **AND** 用户还没有明确选择 ordinary-docs fallback
-- **THEN** `writing-plans` MUST 阻止普通计划文档落地
-- **AND** MUST 先触发 lane confirmation
-
-#### Scenario: Existing change bypasses ordinary-docs fallback and stays governed
-- **WHEN** 当前工作已经存在明确的 active 或 existing OpenSpec change
-- **THEN** assistant MUST 继续沿 OpenSpec lane 工作
-- **AND** MUST NOT 把缺少用户再次确认当作创建普通设计文档或计划文档的理由
+#### Scenario: Worktree contains unrelated user changes
+- **WHEN** 当前任务完成或准备整理
+- **THEN** 系统 MUST 保留用户已有文件与无关改动
+- **AND** MUST NOT 为获得干净工作区而丢弃它们

@@ -7,7 +7,7 @@ description: Use when you have a written implementation plan to execute in a sep
 
 ## Overview
 
-Load plan, review critically, execute all tasks, report when complete.
+Load the relevant plan, review critically, execute the tasks authorized by the current request, and report their completion. Remaining plan tasks do not automatically expand the assignment.
 
 **Announce at start:** "I'm using the executing-plans skill to implement this plan."
 
@@ -17,48 +17,15 @@ Before executing tasks, continue in the current workspace by default.
 Only switch to an isolated workspace or worktree when the user explicitly requested that execution context.
 Do not create or require a separate worktree as the default starting condition.
 
-Routine summaries, checkpoints, and batch boundaries are internal progress markers, not human approval gates. Do not stop at routine summaries, checkpoints, or batch boundaries just to ask whether to continue.
-Before ending a routine batch boundary, classify the batch boundary as `auto-continue`, `needs-user-decision`, or `terminal-choice`.
-- `auto-continue`: the next task is already clear and safe; execute it immediately
-- `needs-user-decision`: the workflow cannot safely continue until the user chooses among concrete options; use `request_user_input`
-- `terminal-choice`: the requested execution work is complete, but do not end directly; use `request_user_input`
-- In Codex tool-backed terminal-choice popups, author only:
-  1. 结束 (Recommended)
-  2. 继续
-- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option
-- For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
-- Every routine boundary in this repository is carrier-backed; treat the last canonical carrier plus its post-carrier event window as the governing runtime contract for that boundary.
-- Earlier same-turn tool calls do not satisfy a later canonical carrier; prose invitation matching remains only a fallback safety net when no carrier exists.
-- In strict packet mode, a canonical machine-readable carrier must exist before the next machine action.
-- Prefer a structured carrier when the runtime supports it; a user-visible tail block remains only a fallback.
-- At every routine boundary in this repository, ensure the canonical machine-readable carrier contains this exact packet before the next machine action:
-```text
-ENDGATE_PROTOCOL_VERSION: 1
-ENDGATE_STATE: AUTO_CONTINUE | NEEDS_USER_DECISION | TERMINAL_CHOICE
-ENDGATE_CHOICE_KIND: NONE | SPECIFIC_NEXT_STEP | CONTINUE_OR_STOP
-ENDGATE_NEXT_ACTION: CONTINUE_WITH_TOOL | REQUEST_USER_INPUT
-```
-- Canonical packet pairings:
-  - `AUTO_CONTINUE` -> `NONE` + `CONTINUE_WITH_TOOL`
-  - `NEEDS_USER_DECISION` -> `SPECIFIC_NEXT_STEP` + `REQUEST_USER_INPUT`
-  - `TERMINAL_CHOICE` -> `CONTINUE_OR_STOP` + `REQUEST_USER_INPUT`
-- `AUTO_CONTINUE`: ensure the canonical carrier records this packet, then immediately execute the next concrete task.
-- `NEEDS_USER_DECISION`: ensure the canonical carrier records this packet, then immediately call `request_user_input` with the concrete blocker-resolution or next-step options.
-- `TERMINAL_CHOICE`: ensure the canonical carrier records this packet, then immediately call `request_user_input` with only `结束 (Recommended)` and `继续`.
-- When this routine boundary reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
-- Do not produce a plain final-answer-style closeout before the terminal-choice popup.
-- A settled recommendation, final draft, or final summary is still not permission to end directly.
-- Do not call `task_complete` while the terminal-choice popup is still pending.
-Do not stop with prose-only follow-up text like `if you want me to continue` after a routine summary or checkpoint.
-Do not stop with a declarative prose-only next-step proposal like `the next best step is to continue with task 2` or `next I would continue with task 2` after a routine summary or checkpoint.
-This also includes judgment-framed, comparative, or recommendation-framed checkpoint endings, including Chinese variants such as `如果按我的判断，下一步应该先……`, `下一步最值得做的不是 A，而是 B`, `接下来更值得做的是……`, or `我建议先……`
-If the next task is already clear and safe, execute it rather than narrating the step and stopping.
-If the path is clear, keep executing automatically.
++Routine summaries, checkpoints, and batch boundaries are progress markers, not
+automatic approval gates. Continue clear authorized work. Ask only when a real
+decision, missing information or new authority blocks the next safe step.
+If the user requested a plan-only handoff, deliver the plan and wait.
 
 ### Step 1: Load and Review Plan
-1. Read plan file
+1. Read the plan and identify the tasks and acceptance criteria authorized by the current request, including any deferred or excluded tasks
 2. Review critically - identify any questions or concerns about the plan
-3. If concerns: Raise them with your human partner before starting, using numbered options instead of an open-ended prompt whenever the next actions are already known
+3. Resolve concerns with safe local inspection first. Ask your human partner only about material ambiguity, changed scope, or missing authority; proceed with independent clear tasks
 4. If concerns need human input and the next actions are already known, use `request_user_input` when available instead of a prose-only numbered reply prompt.
 5. If no concerns: Create TodoWrite and proceed
 
@@ -66,20 +33,20 @@ If the path is clear, keep executing automatically.
 
 For each task:
 1. Mark as in_progress
-2. Follow each step exactly (plan has bite-sized steps)
-3. Run verifications as specified
+2. Follow the plan's intent and constraints; adjust incidental details to repository reality, explaining material deviations
+3. Run the specified affected verifications, reusing reliable evidence when relevant inputs, environment, and contracts are unchanged
 4. Mark as completed
 5. Continue to the next task automatically unless a real blocker requires human input
 
 ### Step 3: Batch Review
 
-Review happens once, after every task is done — not after each task.
+Review at meaningful risk boundaries and before integration. A narrow change can be self-reviewed; complex or shared behavior warrants independent review when available and authorized.
 
 Per-task verification in Step 2 already catches real errors at the point they
 occur. A reviewer dispatched after every task adds a round trip without adding
 much protection, so the review gate sits here instead.
 
-1. Confirm every task is complete and its own verifications passed
+1. Confirm every in-scope task is complete and record verification results and unavailable coverage
 2. Capture the range to review:
 
 ```bash
@@ -89,38 +56,41 @@ HEAD_SHA=$(git rev-parse HEAD)
 
 3. Announce: "I'm using the requesting-code-review skill to review the completed work."
 4. **REQUIRED SUB-SKILL:** Use superpowers:requesting-code-review
-5. Give the reviewer the whole plan as the reference standard, plus the full
-   `BASE_SHA..HEAD_SHA` range. The plan is what the work is judged against, so
-   pass the plan path, not a per-task summary.
-6. Fix all Critical and Important issues together
+5. Give the reviewer the whole plan for context and an explicit `REVIEW_SCOPE`:
+   authorized task IDs, their acceptance criteria, and deferred or excluded tasks.
+   For full-plan execution, state that all tasks are in scope. Include the full
+   `BASE_SHA..HEAD_SHA` range and in-scope staged, unstaged, and untracked changes.
+   Completion is judged against this scope; the rest of the plan is context.
+   Do not commit merely to make changes reviewable.
+6. Fix all valid Critical and Important issues affecting the authorized deliverable; deferred work is not a missing feature in this review
 7. Re-review the same way
 
 **Review loop guidance:**
-- If the loop exceeds 3 iterations, surface to your human partner for guidance
+- After repeated review churn, reassess the evidence and disputed assumptions; ask only when progress requires a user decision
 - Reviewers are advisory — explain disagreements if you believe feedback is incorrect
-- Do not enter Step 4 while Critical or Important issues are unresolved
+- Do not claim integration readiness with unresolved Critical or Important issues; report or preserve the work with its actual status
 
 A batch review covers a much larger diff than a per-task review, so a reviewer is
-likelier to skim. Passing the plan as the reference standard is what keeps the
-review anchored to what each task was supposed to accomplish.
+likelier to skim. Passing the plan with its explicit authorized scope keeps the
+review anchored to what every in-scope task was supposed to accomplish.
 
 ### Step 4: Complete Development
 
 After batch review passes:
 - Announce: "I'm using the finishing-a-development-branch skill to complete this work."
-- **REQUIRED SUB-SKILL:** Use superpowers:finishing-a-development-branch
-- Follow that skill to verify tests, present options, execute choice
+- Use superpowers:finishing-a-development-branch when branch integration or cleanup is in scope; ordinary workspace edits finish with an evidence-backed handoff
+- Follow the already-authorized outcome; do not infer commit, push, PR, merge, or cleanup permission
 - Treat that finishing step as the standard convergence path for branch outcomes; if an isolated workspace was explicitly used, let the finishing flow handle cleanup conditionally
 
 ## When to Stop and Ask for Help
 
-**STOP executing immediately when:**
-- Hit a blocker (missing dependency, test fails, instruction unclear)
-- Plan has critical gaps preventing starting
-- You don't understand an instruction
-- Verification fails repeatedly
+**Investigate before escalating:**
+- Diagnose failing tests and missing dependencies using safe in-scope checks; fix regressions introduced by this task
+- Inspect relevant code and plan context to resolve unclear instructions
+- Continue independent tasks when another task is blocked
+- Reassess repeated failures instead of repeating speculative changes
 
-**Ask for clarification rather than guessing.**
+Ask when a critical gap, unavailable prerequisite, material choice, or missing authority genuinely prevents further safe progress. Do not install global tools, alter unrelated dependencies, or broaden scope to bypass a blocker.
 
 If concerns or blockers need human input, present numbered options instead of open-ended questions.
 If concerns, blockers, or known next actions need human input and the choices are enumerable, use `request_user_input` when available.
@@ -141,43 +111,24 @@ Example:
 - Partner updates the plan based on your feedback
 - Fundamental approach needs rethinking
 
-**Don't force through blockers** - stop and ask.
+**Don't force through real blockers** - report evidence, completed work, and the specific input needed after exhausting safe in-scope alternatives.
 
 ## Remember
 - Review plan critically first
-- Follow plan steps exactly
+- Follow the plan's required behavior and acceptance criteria
 - Don't skip verifications
 - Reference skills when plan says to
 - Stop when blocked, don't guess
-- Never start implementation on main/master branch without explicit user consent
+- Respect the repository's branch policy and current workspace; branch names alone do not create a new approval gate
 
 ## Integration
 
 **Required workflow skills:**
 - **superpowers:writing-plans** - Creates the plan this skill executes
-- **superpowers:finishing-a-development-branch** - Complete development after all tasks
+- **superpowers:finishing-a-development-branch** - Complete development after all in-scope tasks
 
-## Terminal Endgate Protocol
+## Completion
 
-If this skill reaches a terminal boundary where the current request appears complete:
-- This skill must not end the conversation directly with prose, `task_complete`, or a typed free-form prompt.
-- Treat this terminal boundary as strict `endgate-state-packet` territory; a canonical machine-readable carrier is mandatory, not optional guidance.
-- Ensure the canonical machine-readable carrier contains this exact packet before the next machine action:
-```text
-ENDGATE_PROTOCOL_VERSION: 1
-ENDGATE_STATE: TERMINAL_CHOICE
-ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
-ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
-```
-- In strict packet mode, a canonical machine-readable carrier must exist before the next machine action.
-- Prefer a structured carrier when the runtime supports it; a user-visible tail block remains only a fallback.
-- Route true completion through `terminal-choice`.
-- The very next action must be `request_user_input`.
-- In Codex tool-backed terminal-choice popups, author only:
-  1. 结束 (Recommended)
-  2. 继续
-- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
-- Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
-- A completed assessment, audit, comparison, review, recommendation memo, or research report is still a terminal boundary. After presenting that deliverable, emit the `TERMINAL_CHOICE` packet and immediately call `request_user_input`; a bare closeout such as `结论`, `最终判断`, `我的推荐`, or `这轮我没有改代码，只做了……` is still invalid if it ends the turn directly.
-- Concrete invitation prose such as `如果你同意，我下一步可以直接按这个推荐方案 A 开始修。` must resolve through `request_user_input` or `auto-continue`, never `task_complete`.
-- If the next safe step is already implied, use the relevant non-terminal continuation path instead of stopping at terminal-choice.
+Follow the shared completion rules in `using-superpowers`: continue safe,
+authorized work; ask only about a genuine blocker or decision; deliver completed
+requests directly with evidence and limitations. Legacy packet mode is opt-in.

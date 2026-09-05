@@ -4,13 +4,9 @@ Superpowers is a complete software development methodology for your coding agent
 
 ## How it works
 
-It starts from the moment you fire up your coding agent. As soon as it sees that you're building something, it *doesn't* just jump into trying to write code. Instead, it steps back and asks you what you're really trying to do. 
+Superpowers loads a bootstrap when the coding agent starts and selects skills according to the task. When design is needed, it clarifies consequential unknowns and develops an agreed design. An existing design or a clear, low-risk request can proceed without repeating that conversation.
 
-Once it's teased a spec out of the conversation, it shows it to you in chunks short enough to actually read and digest. 
-
-After you've signed off on the design, your agent puts together an implementation plan that's clear enough for an enthusiastic junior engineer with poor taste, no judgement, no project context, and an aversion to testing to follow. It emphasizes true red/green TDD, YAGNI (You Aren't Gonna Need It), and DRY. 
-
-Next up, once you say "go", it works through each engineering task in the plan, verifying as it goes, then reviews the completed work as a whole before wrapping up. It's not uncommon for Claude to be able to work autonomously for a couple hours at a time without deviating from the plan you put together.
+For work that benefits from a plan, the agent records actionable steps and acceptance checks. Once implementation is authorized, it works through the agreed scope, verifies the affected behavior, and reviews the complete change before reporting the outcome. Missing information only interrupts work that actually depends on it.
 
 There's a bunch more to it, but that's the core of the system. In the current model, lightweight tasks stay direct by default. Superpowers workflow kicks in when you explicitly ask for a skill or use a clear workflow keyword such as design, planning, debugging, review, or implementation coordination.
 
@@ -137,19 +133,19 @@ Start a new session in your chosen platform and ask for something with clear wor
 
 ## The Basic Workflow
 
-1. **brainstorming** - Activates before writing code. Refines rough ideas through questions, explores alternatives, presents design in sections for validation. Saves design document.
+1. **brainstorming** - Refines requests that need design work. Asks consequential questions, considers relevant alternatives, and records a design when useful or required by project governance.
 
-2. **writing-plans** - Activates with approved design. Breaks work into bite-sized tasks (2-5 minutes each). Every task has exact file paths, complete code, verification steps.
+2. **writing-plans** - Turns an agreed design into an actionable plan with affected files, dependencies, acceptance checks, and risks. Detail scales with the handoff needs.
 
 3. **executing-plans** - Activates with plan. Works through tasks in the current workspace, running each task's verifications as it goes.
 
-4. **test-driven-development** - Activates during implementation. Enforces RED-GREEN-REFACTOR: write failing test, watch it fail, write minimal code, watch it pass, commit. Deletes code written before tests.
+4. **test-driven-development** - Uses RED-GREEN-REFACTOR for testable behavior changes. Preserve existing work while adding reproduction and regression evidence; commits require authorization.
 
-5. **requesting-code-review** - Activates once all tasks are complete. Reviews the whole accumulated diff against the plan, reports issues by severity. Critical issues block progress.
+5. **requesting-code-review** - Reviews the complete task diff, including uncommitted changes, against the requirements. Material issues block approval of the affected change, not unrelated authorized work.
 
-6. **finishing-a-development-branch** - Activates when review passes. Verifies tests, presents options (merge/PR/keep/discard).
+6. **finishing-a-development-branch** - Handles a requested integration or cleanup outcome. Reuses the user's chosen outcome and asks only when a real decision or authorization is missing.
 
-**The agent checks for relevant skills before any task.** Mandatory workflows, not suggestions.
+Skills apply when triggered by the task; references are read on demand. A completed request ends with its result, verification evidence, and limitations, without a mandatory end/continue confirmation.
 
 ## What's Inside
 
@@ -177,7 +173,7 @@ Start a new session in your chosen platform and ask for something with clear wor
 
 ## Philosophy
 
-- **Test-Driven Development** - Write tests first, always
+- **Test-Driven Development** - Establish failing evidence before implementing testable behavior changes
 - **Systematic over ad-hoc** - Process over guessing
 - **Complexity reduction** - Simplicity as primary goal
 - **Evidence over claims** - Verify before declaring success
@@ -186,15 +182,11 @@ Read [the original release announcement](https://blog.fsck.com/2025/10/09/superp
 
 ## Contributing
 
-The general contribution process for Superpowers is below. Keep in mind that we don't generally accept contributions of new skills and that any updates to skills must work across all of the coding agents we support.
+This repository maintains the `openspec` fork. Start with [AGENTS.md](AGENTS.md) for project rules and [docs/testing.md](docs/testing.md) for checks matched to the change. There is no root `npm test` script.
 
-1. Fork the repository
-2. Switch to the 'dev' branch
-3. Create a branch for your work
-4. Follow the `writing-skills` skill for creating and testing new and modified skills
-5. Submit a PR, being sure to fill in the pull request template.
+For an authorized contribution, verify the target repository and its current base branch rather than assuming `dev`, `main`, or `master`. Use `writing-skills` for skill changes and scale evaluation to whether the edit changes behavior. Before opening a PR, follow the target repository's template, search related open and closed PRs, and obtain human approval of the complete diff.
 
-See `skills/writing-skills/SKILL.md` for the complete guide.
+Upstream `obra/superpowers` has separate core-scope requirements. General-purpose, zero-dependency behavior belongs in core; fork-only customizations and domain-specific integrations should not be submitted as upstream sync changes. Editing locally does not authorize a commit, push, PR, merge, or release.
 
 ## Updating
 

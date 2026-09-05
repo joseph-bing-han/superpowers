@@ -1,6 +1,6 @@
 ---
 name: finishing-a-development-branch
-description: Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completion of development work by presenting structured options for merge, PR, or cleanup
+description: Use when branch integration, PR submission, or cleanup is requested after development; not for every completed workspace edit
 ---
 
 # Finishing a Development Branch
@@ -15,59 +15,21 @@ Guide completion of development work by presenting clear options and handling ch
 
 ## The Process
 
-### Step 1: Verify Tests
+### Step 1: Verify the Requested Outcome
 
-**Before presenting options, verify tests pass:**
+Choose checks from the actual affected behavior and repository test instructions, not a generic full-suite command. Reuse reliable results when their inputs, environment, and contracts are unchanged. Distinguish failures introduced here, pre-existing failures, skipped tests, and unavailable harnesses.
 
-```bash
-# Run project's test suite
-npm test / cargo test / pytest / go test ./...
-```
+A failing required check blocks a readiness claim or integration that requires it. It does not block an honest report, preserving the branch, or an explicitly confirmed discard. Diagnose safe in-scope failures before escalating.
 
-**If tests fail:**
-```
-Tests failing (<N> failures). Must fix before completing:
+### Step 2: Determine the Target Only When Needed
 
-[Show failures]
+For integration, inspect the configured upstream, remote default branch, project policy, and user's requested target. Do not assume main/master; this fork uses its actual configured target. Ask only when the target remains materially ambiguous. Inspect worktree status and preserve unrelated changes before switching branches.
 
-Cannot proceed with merge/PR until tests pass.
-```
+### Step 3: Follow Authorization
 
-Stop. Don't proceed to Step 2.
+An editing request is not authorization to commit, push, create a PR, merge, delete a branch, or remove a worktree. These are distinct outcomes. Execute an outcome already clearly requested without asking the user to choose it again. If only workspace editing was requested, report the result and leave the work in place.
 
-**If tests pass:** Continue to Step 2.
-
-### Step 2: Determine Base Branch
-
-```bash
-# Try common base branches
-git merge-base HEAD main 2>/dev/null || git merge-base HEAD master 2>/dev/null
-```
-
-Or ask: "This branch split from main - is that correct?"
-
-### Step 3: Present Options
-
-Present exactly these 4 options:
-
-When `request_user_input` is available and the choices are enumerable, use it for the main menu and both destructive confirmation stages instead of a prose-only reply prompt.
-
-```
-Implementation complete. Choose the next step:
-
-1. Merge back to <base-branch> locally
-2. Push and create a Pull Request
-3. Keep the branch as-is (I'll handle it later)
-4. Discard this work
-
-Reply with `1`, `2`, or `3`.
-Reply with `4` to enter the discard confirmation flow.
-```
-
-**Don't add explanation** - keep options concise.
-**Keep Options 1, 2, and 3 as the non-destructive choices.**
-**Option 4 must enter the dedicated destructive confirmation flow below.**
-**Only show copyable exact text when a downstream tool truly requires a unique text token.**
+When an integration outcome is genuinely undecided, present the relevant choices and tradeoffs using the host's supported interaction mechanism. Do not force a fixed four-option menu or treat merge as non-destructive. The following sections describe possible authorized outcomes, not automatic steps.
 
 ### Step 4: Execute Choice
 
@@ -77,8 +39,7 @@ Reply with `4` to enter the discard confirmation flow.
 # Switch to base branch
 git checkout <base-branch>
 
-# Pull latest
-git pull
+# Fetch or update only as authorized by the integration workflow
 
 # Merge feature branch
 git merge <feature-branch>
@@ -86,7 +47,7 @@ git merge <feature-branch>
 # Verify tests on merged result
 <test command>
 
-# If tests pass
+# Only if branch cleanup is also authorized and no work would be lost
 git branch -d <feature-branch>
 ```
 
@@ -98,15 +59,8 @@ Then: Cleanup worktree (Step 5)
 # Push branch
 git push -u origin <feature-branch>
 
-# Create PR
-gh pr create --title "<title>" --body "$(cat <<'EOF'
-## Summary
-<2-3 bullets of what changed>
-
-## Test Plan
-- [ ] <verification steps>
-EOF
-)"
+# Create PR using the target repository's complete template and submission rules
+gh pr create --title "<title>" --body-file <reviewed-pr-body-path>
 ```
 
 Then: Keep the branch available for follow-up review / fixes. If an isolated workspace was used, keep it.
@@ -175,11 +129,11 @@ Then: Cleanup worktree (Step 5)
 
 ### Step 5: Cleanup Worktree
 
-Only run this step if an isolated workspace or worktree was used.
+Only run this step if this task created an isolated workspace or worktree and cleanup is authorized. Resolve the exact path, confirm it is not the primary workspace, and check for uncommitted or unrelated work before removal. Preserve dirty or pre-existing resources unless their removal is explicitly approved.
 
 Check if in worktree:
 ```bash
-git worktree list | grep $(git branch --show-current)
+git worktree list --porcelain
 ```
 
 If yes:
@@ -189,60 +143,13 @@ git worktree remove <worktree-path>
 
 If no isolated workspace was used, skip this step.
 
-### Step 6: OpenSpec Archive Handoff
+### Step 6: OpenSpec Lifecycle
 
-If the current work clearly belongs to an OpenSpec-governed lane, consider whether the branch outcome is actually compatible with archive follow-up.
-If an OpenSpec proposal / change was created for this work, archive follow-up is part of completion, not an optional extra.
+Only apply this section when the task explicitly belongs to an OpenSpec change. Distinguish completion of this request, completion of the whole change, final integration, and archival.
 
-Trigger this handoff only when the context explicitly indicates one of the following:
+Archive is appropriate only when the whole change is complete, the required integration point is confirmed, and project policy or the user authorizes archive within this task. Continue automatically only when all those conditions are met. A local merge does not by itself establish final integration. A PR awaiting merge is not ready for archive.
 
-- the work is in an OpenSpec lane
-- the current plan or context names an OpenSpec change
-- the user has explicitly said this work belongs to an OpenSpec change
-
-If none of the above is true, do nothing extra.
-
-**Do not guess. Do not auto-archive blindly.**
-**But do not skip archive once a completed OpenSpec change reaches its final integration point.**
-
-The handoff should be brief and should make it clear when archive is the next implied lane. Keep the safety checks inside `openspec-archive-change`.
-
-**Outcome rules:**
-
-- **After Option 1 (Merge locally):** If the merged result represents a completed OpenSpec change, treat `openspec-archive-change` as the next mandatory `auto-continue` lane and continue directly into it.
-- **After Option 2 (Push and create PR):** Do NOT recommend immediate archive before merge. Instead, make it explicit that archive is still required after the PR is merged and the change is confirmed complete.
-- **After Option 3 (Keep as-is):** Do not mention archive.
-- **After Option 4 (Discard):** Do not mention archive.
-
-**If the change name is known and Option 1 completed:**
-
-```text
-Branch workflow complete.
-
-Continue directly into `openspec-archive-change <change-name>` as the mandatory next auto-continue lane:
-openspec-archive-change <change-name>
-```
-
-**If the change name is not known and Option 1 completed:**
-
-```text
-Branch workflow complete.
-
-Continue directly into `openspec-archive-change` as the mandatory next auto-continue lane:
-openspec-archive-change
-```
-
-**If Option 2 completed and the change name is known:**
-
-```text
-Branch workflow complete.
-
-If this PR is the final integration point for OpenSpec change <change-name>, archive is still required after the PR is merged and the change is confirmed complete:
-openspec-archive-change <change-name>
-```
-
-Keep change selection, artifact checks, task checks, spec sync decisions, and archive confirmation inside `openspec-archive-change`.
-This step is about mandatory auto-continuation into the archive skill when the lane is already known, not about skipping that skill's checks.
+When archive is still pending but outside the current task, report the pending lifecycle step without blocking delivery or expanding scope. Detect whether the archive skill/tool is available; do not install it implicitly, invent a successful archive, or archive blindly. Preserve incomplete or discarded changes unless their removal is explicitly authorized.
 
 ## Quick Reference
 
@@ -257,11 +164,11 @@ This step is about mandatory auto-continuation into the archive skill when the l
 
 **Skipping test verification**
 - **Problem:** Merge broken code, create failing PR
-- **Fix:** Always verify tests before offering options
+- **Fix:** Verify the checks required for the requested integration; report failures without blocking preservation or status delivery
 
 **Open-ended questions**
 - **Problem:** "What should I do next?" → ambiguous
-- **Fix:** Present exactly 4 structured options
+- **Fix:** Ask about only the unresolved outcome; follow an already-authorized choice directly
 
 **Automatic worktree cleanup**
 - **Problem:** Remove worktree when might need it (Option 2, 3)
@@ -286,17 +193,17 @@ This step is about mandatory auto-continuation into the archive skill when the l
 ## Red Flags
 
 **Never:**
-- Proceed with failing tests
+- Claim readiness or perform gated integration with failing required checks
 - Merge without verifying tests on result
 - Delete work without confirmation
 - Force-push without explicit request
 
 **Always:**
-- Verify tests before offering options
-- Present exactly 4 options
+- Verify checks proportionate to the requested outcome
+- Keep commit, push, PR, merge, and cleanup authorization distinct
 - Run the two-stage destructive confirmation flow for Option 4
 - Clean up an isolated workspace only when one was actually used, and only for Options 1 & 4
-- Use OpenSpec archive handoff when the context clearly indicates an OpenSpec change and the branch outcome is compatible with completion; for a completed created change, this handoff is required
+- Report pending OpenSpec lifecycle steps and archive only when completion, final integration, and authority are established
 
 ## Integration
 
@@ -304,29 +211,10 @@ This step is about mandatory auto-continuation into the archive skill when the l
 - **executing-plans** (Step 4) - After all tasks complete and batch review passes
 
 **Pairs with:**
-- **openspec-archive-change** - Required finalization step after branch completion for completed OpenSpec-governed work
+- **openspec-archive-change** - Finalization when the whole governed change is integrated and archive is in scope
 
-## Terminal Endgate Protocol
+## Completion
 
-If this skill reaches a terminal boundary where the current request appears complete:
-- This skill must not end the conversation directly with prose, `task_complete`, or a typed free-form prompt.
-- Treat this terminal boundary as strict `endgate-state-packet` territory; a canonical machine-readable carrier is mandatory, not optional guidance.
-- Ensure the canonical machine-readable carrier contains this exact packet before the next machine action:
-```text
-ENDGATE_PROTOCOL_VERSION: 1
-ENDGATE_STATE: TERMINAL_CHOICE
-ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
-ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
-```
-- In strict packet mode, a canonical machine-readable carrier must exist before the next machine action.
-- Prefer a structured carrier when the runtime supports it; a user-visible tail block remains only a fallback.
-- Route true completion through `terminal-choice`.
-- The very next action must be `request_user_input`.
-- In Codex tool-backed terminal-choice popups, author only:
-  1. 结束 (Recommended)
-  2. 继续
-- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
-- Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
-- A completed assessment, audit, comparison, review, recommendation memo, or research report is still a terminal boundary. After presenting that deliverable, emit the `TERMINAL_CHOICE` packet and immediately call `request_user_input`; a bare closeout such as `结论`, `最终判断`, `我的推荐`, or `这轮我没有改代码，只做了……` is still invalid if it ends the turn directly.
-- Concrete invitation prose such as `如果你同意，我下一步可以直接按这个推荐方案 A 开始修。` must resolve through `request_user_input` or `auto-continue`, never `task_complete`.
-- If the next safe step is already implied, use the relevant non-terminal continuation path instead of stopping at terminal-choice.
+Follow the shared completion rules in `using-superpowers`: continue safe,
+authorized work; ask only about a genuine blocker or decision; deliver completed
+requests directly with evidence and limitations. Legacy packet mode is opt-in.

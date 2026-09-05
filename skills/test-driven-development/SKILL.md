@@ -31,12 +31,12 @@ Write the test first. Watch it fail. Write minimal code to pass.
 
 **Escalate back to TDD immediately if the task mixes text and behavior changes.**
 
-**Other exceptions (ask your human partner):**
+**Adapt validation to the artifact and project rules:**
 - Throwaway prototypes
 - Generated code
 - Configuration files
 
-Thinking "skip TDD just this once"? Stop. That's rationalization.
+Generated output should be tested through its source or generator; configuration needs focused contract or smoke checks. When a reliable automated test is infeasible, explain why and use the closest reproducible check. Ask only if the alternative materially changes accepted risk.
 
 ## The Iron Law
 
@@ -44,15 +44,7 @@ Thinking "skip TDD just this once"? Stop. That's rationalization.
 NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
 ```
 
-Write code before the test? Delete it. Start over.
-
-**No exceptions:**
-- Don't keep it as "reference"
-- Don't "adapt" it while writing tests
-- Don't look at it
-- Delete means delete
-
-Implement fresh from tests. Period.
+If implementation already exists, preserve useful work and all user edits. Derive tests from the required behavior, prove they detect the old defect with an isolated fixture or safely reversible change, then verify the fix. Do not delete or rewrite working code as a penalty for missing the test-first sequence. State when evidence is regression testing rather than a test-first implementation.
 
 ## Red-Green-Refactor
 
@@ -237,11 +229,7 @@ Automated tests are systematic. They run the same way every time.
 
 **"Deleting X hours of work is wasteful"**
 
-Sunk cost fallacy. The time is already gone. Your choice now:
-- Delete and rewrite with TDD (X more hours, high confidence)
-- Keep it and add tests after (30 min, low confidence, likely bugs)
-
-The "waste" is keeping code you can't trust. Working code without real tests is technical debt.
+The existing work is not proof of correctness, but deletion is not proof either. Preserve it, build requirement-driven regression cases, and demonstrate that they fail against the old behavior and pass with the fix. Inspect coverage for implementation bias.
 
 **"TDD is dogmatic, being pragmatic means adapting"**
 
@@ -272,14 +260,14 @@ Tests-first force edge case discovery before implementing. Tests-after verify yo
 | "Tests after achieve same goals" | Tests-after = "what does this do?" Tests-first = "what should this do?" |
 | "Already manually tested" | Ad-hoc ≠ systematic. No record, can't re-run. |
 | "Deleting X hours is wasteful" | Sunk cost fallacy. Keeping unverified code is technical debt. |
-| "Keep as reference, write tests first" | You'll adapt it. That's testing after. Delete means delete. |
+| "Keep as reference, write tests first" | Do not call it test-first; prove requirement-driven regression coverage without discarding useful work. |
 | "Need to explore first" | Fine. Throw away exploration, start with TDD. |
 | "Test hard = design unclear" | Listen to test. Hard to test = hard to use. |
 | "TDD will slow me down" | TDD faster than debugging. Pragmatic = test-first. |
 | "Manual test faster" | Manual doesn't prove edge cases. You'll re-test every change. |
 | "Existing code has no tests" | You're improving it. Add tests for existing code. |
 
-## Red Flags - STOP and Start Over
+## Red Flags - Recheck the Evidence
 
 - Code before test
 - Test after implementation
@@ -295,7 +283,7 @@ Tests-first force edge case discovery before implementing. Tests-after verify yo
 - "TDD is dogmatic, I'm being pragmatic"
 - "This is different because..."
 
-**All of these mean: Delete code. Start over with TDD.**
+**These are reasons to strengthen test evidence, not to delete work.** Resume a test-first cycle for subsequent behavior changes and verify existing changes with targeted regression cases.
 
 ## Example: Bug Fix
 
@@ -338,16 +326,16 @@ Extract validation for multiple fields if needed.
 
 Before marking work complete:
 
-- [ ] Every new function/method has a test
-- [ ] Watched each test fail before implementing
+- [ ] Changed observable behavior has appropriate coverage
+- [ ] Regression tests are shown to detect the old behavior where feasible
 - [ ] Each test failed for expected reason (feature missing, not typo)
 - [ ] Wrote minimal code to pass each test
-- [ ] All tests pass
-- [ ] Output pristine (no errors, warnings)
+- [ ] Affected tests pass; broader coverage matches shared-contract risk
+- [ ] Relevant errors and warnings are resolved or accurately reported
 - [ ] Tests use real code (mocks only if unavoidable)
 - [ ] Edge cases and errors covered
 
-Can't check all boxes? You skipped TDD. Start over.
+Record missing coverage and its risk; resolve meaningful gaps without restarting or deleting useful work.
 
 ## When Stuck
 
@@ -362,7 +350,7 @@ Can't check all boxes? You skipped TDD. Start over.
 
 Bug found? Write failing test reproducing it. Follow TDD cycle. Test proves fix and prevents regression.
 
-Never fix bugs without a test.
+Use a regression test for fixes whenever feasible; otherwise record a reproducible alternative and its limits.
 
 ## Testing Anti-Patterns
 
@@ -378,29 +366,10 @@ Production code → test exists and failed first
 Otherwise → not TDD
 ```
 
-No exceptions without your human partner's permission.
+Do not confuse a valid alternative verification method with test-first evidence. Follow project requirements and escalate only a material unresolved risk or missing authority.
 
-## Terminal Endgate Protocol
+## Completion
 
-If this skill reaches a terminal boundary where the current request appears complete:
-- This skill must not end the conversation directly with prose, `task_complete`, or a typed free-form prompt.
-- Treat this terminal boundary as strict `endgate-state-packet` territory; a canonical machine-readable carrier is mandatory, not optional guidance.
-- Ensure the canonical machine-readable carrier contains this exact packet before the next machine action:
-```text
-ENDGATE_PROTOCOL_VERSION: 1
-ENDGATE_STATE: TERMINAL_CHOICE
-ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
-ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
-```
-- In strict packet mode, a canonical machine-readable carrier must exist before the next machine action.
-- Prefer a structured carrier when the runtime supports it; a user-visible tail block remains only a fallback.
-- Route true completion through `terminal-choice`.
-- The very next action must be `request_user_input`.
-- In Codex tool-backed terminal-choice popups, author only:
-  1. 结束 (Recommended)
-  2. 继续
-- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
-- Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
-- A completed assessment, audit, comparison, review, recommendation memo, or research report is still a terminal boundary. After presenting that deliverable, emit the `TERMINAL_CHOICE` packet and immediately call `request_user_input`; a bare closeout such as `结论`, `最终判断`, `我的推荐`, or `这轮我没有改代码，只做了……` is still invalid if it ends the turn directly.
-- Concrete invitation prose such as `如果你同意，我下一步可以直接按这个推荐方案 A 开始修。` must resolve through `request_user_input` or `auto-continue`, never `task_complete`.
-- If the next safe step is already implied, use the relevant non-terminal continuation path instead of stopping at terminal-choice.
+Follow the shared completion rules in `using-superpowers`: continue safe,
+authorized work; ask only about a genuine blocker or decision; deliver completed
+requests directly with evidence and limitations. Legacy packet mode is opt-in.

@@ -10,17 +10,21 @@ This test suite verifies that skills are loaded correctly and Claude follows the
 
 - Claude Code CLI installed and in PATH (`claude --version` should work)
 - Local superpowers plugin installed (see main README for installation)
+- The suite runner requires `timeout` on `PATH`; it reports unavailable prerequisites instead of installing tools or changing global settings.
 
 ## Running Tests
 
-### Run all fast tests (recommended):
+### Run the local runner regression (no Claude session):
 ```bash
-./run-skill-tests.sh
+bash tests/claude-code/test-run-skill-tests.sh
 ```
+
+Run this command from the repository root. The remaining commands are relative to `tests/claude-code/`.
+There is no default fast skill suite: invoking `run-skill-tests.sh` without a test selection reports `NOT RUN` and returns non-zero.
 
 ### Run integration tests (slow, 10-30 minutes):
 ```bash
-./run-skill-tests.sh --integration
+./run-skill-tests.sh --integration --timeout 1800
 ```
 
 ### Run specific test:
@@ -30,12 +34,12 @@ This test suite verifies that skills are loaded correctly and Claude follows the
 
 ### Run with verbose output:
 ```bash
-./run-skill-tests.sh --verbose
+./run-skill-tests.sh --verbose --test test-requesting-code-review.sh
 ```
 
 ### Set custom timeout:
 ```bash
-./run-skill-tests.sh --timeout 1800  # 30 minutes for integration tests
+./run-skill-tests.sh --integration --timeout 1800
 ```
 
 ## Test Structure
@@ -82,6 +86,8 @@ echo "=== All tests passed ==="
 
 ### Integration Tests (use --integration flag)
 
+The integration selection runs `test-requesting-code-review.sh`, `test-document-review-system.sh`, and `test-reviewer-contract-drift.sh`. These invoke actual Claude sessions; the drift test can exercise a second runner/model when available. Missing files, skipped selections, and failed checks cannot produce a passing suite result.
+
 #### test-requesting-code-review.sh
 Behavioral test for the code reviewer subagent (~5 minutes):
 - Builds a tiny project with a baseline commit
@@ -123,15 +129,15 @@ Without verbose, only failures show output.
 To run in CI:
 ```bash
 # Run with explicit timeout for CI environments
-./run-skill-tests.sh --timeout 900
+./run-skill-tests.sh --integration --timeout 1800
 
 # Exit code 0 = success, non-zero = failure
 ```
 
 ## Notes
 
-- Tests verify skill *instructions*, not full execution
-- Full workflow tests would be very slow
-- Focus on verifying key skill requirements
-- Tests should be deterministic
+- The runner regression uses isolated CLI stubs and does not prove live skill behavior
+- Integration tests exercise actual reviewer behavior and have model-dependent outcomes
+- Select focused tests for the affected contract; run the full integration selection when its coverage is relevant
+- Record prompts, versions, results, and unavailable coverage rather than assuming determinism
 - Avoid testing implementation details

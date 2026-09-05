@@ -1,108 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+source "$REPO_ROOT/tests/shared/prompt-contract-helpers.sh"
+GOVERNANCE="skills/spec-governed-development/SKILL.md"
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-
-normalize_stream() {
-  tr '\r\n\t' '   ' | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//'
-}
-
-extract_section() {
-  local file="$1"
-  local heading="$2"
-  local stop_pattern="${3:-^(##|###) }"
-
-  awk -v heading="$heading" -v stop_pattern="$stop_pattern" '
-    $0 == heading {
-      in_section = 1
-      next
-    }
-
-    in_section && $0 ~ stop_pattern {
-      exit
-    }
-
-    in_section {
-      print
-    }
-  ' "$file"
-}
-
-assert_section_contains() {
-  local file="$1"
-  local heading="$2"
-  local pattern="$3"
-  local description="$4"
-  local stop_pattern="${5:-^(##|###) }"
-  local content
-
-  content="$(extract_section "$REPO_ROOT/$file" "$heading" "$stop_pattern")"
-
-  if [[ -z "$content" ]]; then
-    echo "FAIL: $description"
-    echo "  File: $file"
-    echo "  Missing section: $heading"
-    exit 1
-  fi
-
-  if printf '%s' "$content" | normalize_stream | rg -qi -- "$pattern"; then
-    echo "PASS: $description"
-  else
-    echo "FAIL: $description"
-    echo "  File: $file"
-    echo "  Section: $heading"
-    echo "  Pattern: $pattern"
-    exit 1
-  fi
-}
-
-assert_section_contains \
-  "skills/using-superpowers/SKILL.md" \
-  "## Governance Routing" \
-  'bug.*existing OpenSpec|existing OpenSpec.*bug|active OpenSpec change.*bug|bugfix.*OpenSpec-governed work' \
-  "using-superpowers routes governed bugfixes back through existing OpenSpec context before fixing" \
-  '^## '
-
-assert_section_contains \
-  "skills/systematic-debugging/SKILL.md" \
-  "### Phase 1: Root Cause Investigation" \
-  'OpenSpec.*proposal\.md.*design\.md.*tasks\.md|proposal\.md.*design\.md.*tasks\.md.*OpenSpec|existing change.*proposal\.md.*design\.md.*tasks\.md' \
-  "systematic-debugging restores existing OpenSpec proposal/design/tasks context before governed fixes" \
-  '^### '
-
-assert_section_contains \
-  "skills/spec-governed-development/SKILL.md" \
-  "## Decision Rule" \
-  'bug.*existing change|existing change.*bug|active OpenSpec change.*bug|bugfix.*inherits.*OpenSpec lane' \
-  "spec-governed-development keeps bugfixes inside an existing OpenSpec change when they belong there" \
-  '^## '
-
-assert_section_contains \
-  "skills/spec-governed-development/SKILL.md" \
-  "## Handoff Guidance" \
-  'openspec-apply-change.*auto-continue|auto-continue.*openspec-apply-change|直接进入 `openspec-apply-change`' \
-  "spec-governed-development auto-continues into openspec-apply-change when the active change still has work remaining" \
-  '^## '
-
-assert_section_contains \
-  "skills/spec-governed-development/SKILL.md" \
-  "## Handoff Guidance" \
-  'openspec-archive-change.*auto-continue|auto-continue.*openspec-archive-change|直接进入 `openspec-archive-change`' \
-  "spec-governed-development auto-continues into openspec-archive-change when the active change is complete and archive-compatible" \
-  '^## '
-
-assert_section_contains \
-  "skills/finishing-a-development-branch/SKILL.md" \
-  "### Step 6: OpenSpec Archive Handoff" \
-  'auto-continue.*openspec-archive-change|continue directly into `openspec-archive-change`|直接进入 `openspec-archive-change`' \
-  "finishing flow escalates a completed OpenSpec merge result into direct archive follow-up instead of recommendation-only prose" \
-  '^### '
-
-assert_section_contains \
-  "docs/README.codex.md" \
-  "## Autonomous Continuation" \
-  'OpenSpec.*openspec-apply-change.*openspec-archive-change|openspec-apply-change.*openspec-archive-change.*OpenSpec|active OpenSpec change.*apply.*archive' \
-  "Codex README documents that known OpenSpec apply/archive steps are part of autonomous continuation" \
-  '^## '
-
-echo "All OpenSpec governed continuation prompt contract checks passed."
+assert_section_contains skills/using-superpowers/SKILL.md '## Governance Routing' 'existing governed changes.*Reuse the identified change as the canonical record' 'continuation restores existing ownership'
+assert_file_contains skills/systematic-debugging/SKILL.md 'Identify the relevant change.*Read the affected requirements and tasks.*relevant proposal/design sections as needed' 'governed debugging restores only relevant context'
+assert_section_contains "$GOVERNANCE" '## OpenSpec Workflow' 'proposal.md.*design.md.*specs/.*tasks.md' 'governance maps requirements to canonical artifacts'
+assert_section_contains "$GOVERNANCE" '## OpenSpec Workflow' '已完整读取且未变化的上下文可复用' 'unchanged context does not need repeated loading'
+assert_section_contains "$GOVERNANCE" '## OpenSpec Workflow' '本次授权范围内执行.*openspec-apply-change' 'apply remains within current authorization'
+assert_section_contains "$GOVERNANCE" '## Capabilities and Fallback' '不要默认安装依赖、修改全局设置，或虚构外部 skill 调用' 'missing OpenSpec tools do not authorize installation'
+assert_section_contains "$GOVERNANCE" '## Completion and Archive' '完整收尾且条件已满足.*自动继续到.*openspec-archive-change' 'ready authorized closure continues without another gate'
+assert_file_not_contains openspec/specs/transcript-based-validation/spec.md '文案没有明确要求.*读取.*proposal.md.*design.md.*specs/.*tasks.md.*测试 MUST 失败' 'validation no longer mandates reading every artifact'
+echo 'OpenSpec governed continuation checks passed.'

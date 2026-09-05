@@ -9,7 +9,7 @@ Use this template when dispatching a spec document reviewer subagent.
 **Reviewer returns:** Status, Issues (if any), Recommendations
 
 Dispatch the spec reviewer for your platform. On Cursor, use the preset
-`spec-reviewer` subagent and follow the reviewer model tiers in
+`spec-reviewer` subagent and follow the supported reviewer routing in
 `using-superpowers/references/cursor-tools.md`; never dispatch a reviewer through
 `explore`, which is bound to a fast, small model.
 

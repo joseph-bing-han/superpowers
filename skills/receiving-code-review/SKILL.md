@@ -41,10 +41,12 @@ WHEN receiving code review feedback:
 
 ```
 IF any item is unclear:
-  STOP - do not implement anything yet
-  ASK for clarification on unclear items
+  Check relevant context and dependencies
+  Hold only the unclear item and tasks that depend on it
+  Continue clear, independent items already authorized
+  ASK if material ambiguity remains after safe investigation
 
-WHY: Items may be related. Partial understanding = wrong implementation.
+WHY: Related items need a shared understanding; unrelated work need not stop.
 ```
 
 **Example:**
@@ -52,8 +54,8 @@ WHY: Items may be related. Partial understanding = wrong implementation.
 your human partner: "Fix 1-6"
 You understand 1,2,3,6. Unclear on 4,5.
 
-❌ WRONG: Implement 1,2,3,6 now, ask about 4,5 later
-✅ RIGHT: "I understand items 1,2,3,6. Need clarification on 4 and 5 before proceeding."
+❌ WRONG: Guess the meaning of 4 and 5 or stop all independent work
+✅ RIGHT: "I will handle independent items 1,2,3,6. Items 4 and 5 need clarification on [specific ambiguity]."
 ```
 
 ## Source-Specific Handling
@@ -77,7 +79,7 @@ IF suggestion seems wrong:
   Push back with technical reasoning
 
 IF can't easily verify:
-  Say so: "I can't verify this without [X]. Should I [investigate/ask/proceed]?"
+  Investigate safe available evidence first; report the limitation and ask only if a real decision is needed
 
 IF conflicts with your human partner's prior decisions:
   Stop and discuss with your human partner first
@@ -101,7 +103,7 @@ IF reviewer suggests "implementing properly":
 
 ```
 FOR multi-item feedback:
-  1. Clarify anything unclear FIRST
+  1. Resolve dependencies; hold unclear items while continuing independent authorized work
   2. Then implement in this order:
      - Blocking issues (breaks, security)
      - Simple fixes (typos, imports)
@@ -170,7 +172,7 @@ State the correction factually and move on.
 | Batch without testing | One at a time, test each |
 | Assuming reviewer is right | Check if breaks things |
 | Avoiding pushback | Technical correctness > comfort |
-| Partial implementation | Clarify all items first |
+| Guessing unclear feedback | Clarify dependent items; continue clear independent work |
 | Can't verify, proceed anyway | State limitation, ask for direction |
 
 ## Real Examples
@@ -197,12 +199,12 @@ Reviewer: "Implement proper metrics tracking with database, date filters, CSV ex
 ```
 your human partner: "Fix items 1-6"
 You understand 1,2,3,6. Unclear on 4,5.
-✅ "Understand 1,2,3,6. Need clarification on 4 and 5 before implementing."
+✅ "Items 1,2,3,6 are independent and clear; proceeding with those. Need clarification on [specific point] for 4 and 5."
 ```
 
 ## GitHub Thread Replies
 
-When replying to inline review comments on GitHub, reply in the comment thread (`gh api repos/{owner}/{repo}/pulls/{pr}/comments/{id}/replies`), not as a top-level PR comment.
+When the user authorizes replying to inline review comments on GitHub, reply in the comment thread (`gh api repos/{owner}/{repo}/pulls/{pr}/comments/{id}/replies`), not as a top-level PR comment. Reviewing or fixing feedback alone does not authorize posting external replies.
 
 ## The Bottom Line
 
@@ -212,27 +214,8 @@ Verify. Question. Then implement.
 
 No performative agreement. Technical rigor always.
 
-## Terminal Endgate Protocol
+## Completion
 
-If this skill reaches a terminal boundary where the current request appears complete:
-- This skill must not end the conversation directly with prose, `task_complete`, or a typed free-form prompt.
-- Treat this terminal boundary as strict `endgate-state-packet` territory; a canonical machine-readable carrier is mandatory, not optional guidance.
-- Ensure the canonical machine-readable carrier contains this exact packet before the next machine action:
-```text
-ENDGATE_PROTOCOL_VERSION: 1
-ENDGATE_STATE: TERMINAL_CHOICE
-ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
-ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
-```
-- In strict packet mode, a canonical machine-readable carrier must exist before the next machine action.
-- Prefer a structured carrier when the runtime supports it; a user-visible tail block remains only a fallback.
-- Route true completion through `terminal-choice`.
-- The very next action must be `request_user_input`.
-- In Codex tool-backed terminal-choice popups, author only:
-  1. 结束 (Recommended)
-  2. 继续
-- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
-- Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
-- A completed assessment, audit, comparison, review, recommendation memo, or research report is still a terminal boundary. After presenting that deliverable, emit the `TERMINAL_CHOICE` packet and immediately call `request_user_input`; a bare closeout such as `结论`, `最终判断`, `我的推荐`, or `这轮我没有改代码，只做了……` is still invalid if it ends the turn directly.
-- Concrete invitation prose such as `如果你同意，我下一步可以直接按这个推荐方案 A 开始修。` must resolve through `request_user_input` or `auto-continue`, never `task_complete`.
-- If the next safe step is already implied, use the relevant non-terminal continuation path instead of stopping at terminal-choice.
+Follow the shared completion rules in `using-superpowers`: continue safe,
+authorized work; ask only about a genuine blocker or decision; deliver completed
+requests directly with evidence and limitations. Legacy packet mode is opt-in.

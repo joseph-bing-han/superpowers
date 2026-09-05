@@ -1,419 +1,93 @@
 ---
 name: spec-governed-development
-description: Use when starting a new feature, cross-module change, or multi-stage request that may require OpenSpec artifacts, durable change history, team handoff, or long-lived scope/design tracking before implementation.
+description: Use for explicit OpenSpec requests, existing governed changes, project-required governance, or high-risk work needing durable scope and design decisions; not merely because a task has several steps or touches two modules.
 ---
 
 # Spec Governed Development
 
 ## Overview
 
-这个 skill 是一个**流程治理入口**。
-
-它不负责直接实现功能，而是先判断当前工作应该进入哪条开发线路：
-
-- **Superpowers-only lane**：轻量变更，沿用原有 Superpowers 流程
-- **OpenSpec lane**：重要变更，先确认、选择或建立 OpenSpec change，再由 Superpowers 执行设计、计划、实现与验证
-
-核心原则：
-
-1. **先决定线路，再开始实现**
-2. **重要变更必须有长期可追溯资产**
-3. **OpenSpec 与 Superpowers 不得维护重复的设计真相源**
-
-## Hard Gates
-
-在做出线路判断之前：
-
-- 不要开始实现
-- 不要进入详细编码
-- 不要创建平行且重复的设计文档
-
-如果进入 **OpenSpec lane**：
-
-- 不要再额外维护一份等价的 `docs/superpowers/specs/...`
-- `proposal.md`、`design.md`、`specs/*`、`tasks.md` 必须视为正式变更资产
-- Superpowers 产出的 plan 只负责执行，不负责替代 OpenSpec 的范围和设计定义
+按当前请求的风险和项目制度选择治理方式。OpenSpec 保存正式范围、设计、
+需求和进度；Superpowers 只提供必要的设计、执行与验证方法，不维护第二份
+等价设计记录。
 
 ## When To Use
 
-以下情况优先触发本 skill：
+以下条件触发治理判断：
 
-- 用户提出**新功能**
-- 需求会影响**多个模块**
-- 工作会拆成**多个阶段**
-- 任务需要**团队协作、交接或长期追溯**
-- 变更涉及**权限、数据结构、支付、核心流程、外部接口**等高风险区域
-- 用户明确要求引入 **OpenSpec**、规范化变更记录、proposal/design/tasks 或归档能力
-- 当前是在**既有 OpenSpec change** 上继续修 bug、处理 regression 或补齐已知缺口
+- 用户明确要求 OpenSpec 或指定已有 change。
+- 本次工作属于 existing change / active OpenSpec lane。
+- 项目明确要求受管理的变更流程。
+- 高风险、长期协作或实质设计取舍需要持久范围与决策记录。
 
-以下情况通常**不需要**进入 OpenSpec：
+新功能、跨两个模块、多个步骤本身都不是强制治理条件。
+明确、局部、低风险的修改直接实现并做聚焦验证；不强制生成设计或计划文档。
 
-- 小 bug 修复
-- 小范围重构
-- 局部 UI 微调
-- 文案修改
-- 单点逻辑修补
-- 不需要长期追溯的小改动
+## Lane Decision
 
-## Decision Rule
+已有 change 或已获授权的路线直接复用，不反复确认。
+只有治理方式尚未明确且会实质影响范围、交付或协作时才询问用户；
+不能因为“看起来重要”就强制创建 proposal。
 
-先判断当前需求是否属于下列任一情况：
+尚未选定正式记录位置时，不先创建可能重复的设计文档。可以继续相关只读调查。
+用户明确要求先给方案时，交付方案后等待；端到端实现已授权时自动继续必要步骤。
 
-1. 新 capability 或新业务流程
-2. 跨两个及以上边界模块
-3. 预计需要多人协作、后续交接或跨会话继续
-4. 预计分阶段实施，而非一次性完成
-5. 涉及高风险设计决策或核心业务约束
-6. 用户明确要求走 OpenSpec
-7. 当前 bugfix / regression 明显属于一个已经存在的 OpenSpec change（existing change）或 active OpenSpec lane
+简要说明所选路线和原因即可，不要求固定输出模板或必经 skill 清单。
 
-如果满足任意一条：
+## OpenSpec Workflow
 
-- 进入 **OpenSpec lane**
+1. 识别相关 change；需要时使用可用的 `openspec list --json`。
+2. 按任务读取正式上下文：
+   - 范围不清时读 `proposal.md`；
+   - 设计约束相关时读 `design.md`；
+   - 行为契约相关时读对应 `specs/*`；
+   - 继续执行或判断完成度时读相关 `tasks.md`。
+   已完整读取且未变化的上下文可复用，不要求每次通读全部工件。
+3. 缺少必要范围或设计时才探索、提出或补充记录。已有批准设计直接使用。
+4. 实现阶段在本次授权范围内执行 `openspec-apply-change` 或支持的项目等价流程。
+   只有存在真实执行复杂度时才补充执行级计划。
+5. 行为或范围变化同步到正式 artifacts；验证本次受影响的契约。
+6. 请求完成、change 完成和归档是不同边界，按下节分别处理。
 
-否则：
+## Capabilities and Fallback
 
-- 进入 **Superpowers-only lane**
+使用 OpenSpec CLI 或外部 `openspec-*` skills 前检查当前可用能力；
+本仓库不保证这些工具已安装。缺少工具时，可按明确的现有格式安全地读取、
+编辑本次相关工件，并执行可用的静态/契约检查，注明未执行的工具验证。
+不要默认安装依赖、修改全局设置，或虚构外部 skill 调用。
 
-如果用户已经明确指定线路：
+如果缺少能力会影响规范同步、正确性或归档安全，完成其余独立工作，
+报告具体阻塞及所需能力。不能为绕过治理而另建一份平行设计真相源。
 
-- 优先遵从用户指定
+## Source of Truth
 
-## Lane Confirmation
+OpenSpec lane 中：
 
-当需求满足 OpenSpec lane 条件，但用户还没有明确选择 OpenSpec，且当前也没有已经确定的 existing change 时：
+- `proposal.md`：动机与范围。
+- `design.md`：设计取舍和约束。
+- `specs/*`：正式行为契约。
+- `tasks.md`：change 级任务及状态。
 
-- 在创建任何普通 `plans/specs` 文档前，先通过 `request_user_input` 做一次 tool-backed 线路确认
-- 推荐选项固定为：
-  1. 创建 OpenSpec 提案 (Recommended)
-  2. 继续仅生成常规设计/计划文档
-- 如果用户选择 `1`，继续留在 OpenSpec lane，并进入 `openspec-explore` / `openspec-propose`
-- 创建 OpenSpec 提案后，该工作直到归档前都保持在 OpenSpec lane 中，并自动带有 archive obligation
-- 如果用户选择 `2`，这是一次明确的轻量化决策；此后才允许转入 Superpowers-only lane 的 `brainstorming` / `writing-plans`
-- 如果用户已经明确要求 OpenSpec、已经点名 change，或上下文已存在明确的 existing change，则跳过这一步，直接进入对应 lane
+`docs/superpowers/plans/...` 仅在需要时记录执行细节，不能复制或替代上述内容。
+非治理的小任务不要求创建持久工件；需要文档时使用项目约定。
 
-## Required Output Format
+## Completion and Archive
 
-做出判断后，始终先输出一段简短决策。
+- **本次请求完成**：所请求的部分已处理，相关验证和限制已报告。
+  即使 change 还有其他任务或未合并，也可直接交付；保留其开放状态。
+- **整个 change 完成**：范围内全部要求与相称验证满足，任务状态准确，
+  以及项目要求的审查、集成步骤已完成。不要把局部通过称为整体完成。
+- **归档**：只在 change 真正完成、规范同步与 archive compatibility 明确、
+  项目要求的合并阶段完成且归档在授权范围内时进行。
+  创建 proposal 不自动授权归档，更不授权 merge。
 
-如果是 **OpenSpec lane**，先判断：
-
-- 是否已经存在合适的 change
-- 是否需要新建 change
-
-对这两种情况使用不同的 next skills，避免默认给人“每次都要重新 propose”的印象。
-
-```text
-## Workflow Decision
-
-Lane: OpenSpec
-
-Change status: Existing change
-
-Why:
-- cross-module impact
-- durable history needed
-
-Canonical record:
-- Scope/Design/Specs/Tasks -> OpenSpec
-- Execution plan -> Superpowers
-
-Next skills:
-1. brainstorming
-2. writing-plans
-3. openspec-apply-change
-```
-
-或：
-
-```text
-## Workflow Decision
-
-Lane: OpenSpec
-
-Change status: New change needed
-
-Why:
-- new feature
-- cross-module impact
-- durable history needed
-
-Canonical record:
-- Scope/Design/Specs/Tasks -> OpenSpec
-- Execution plan -> Superpowers
-
-Next skills:
-1. openspec-explore
-2. openspec-propose
-3. brainstorming
-4. writing-plans
-```
-
-或：
-
-```text
-## Workflow Decision
-
-Lane: Superpowers-only
-
-Why:
-- localized change
-- no durable change history needed
-
-Canonical record:
-- Superpowers design/plan documents
-
-Next skills:
-1. brainstorming
-2. writing-plans
-```
-
-不要在输出里长篇解释。
-先明确线路、原因、真相源和后续 skill。
-
-## Workflow
-
-### Lane A: Superpowers-only
-
-适用于局部、低风险、无需长期变更资产的工作。
-
-顺序：
-
-1. 使用 `brainstorming`
-2. 设计获批后，使用 `writing-plans`
-3. 执行时使用 `executing-plans`
-4. 完成前使用 `verification-before-completion`
-5. 收尾时使用 `finishing-a-development-branch`
-
-### Lane B: OpenSpec
-
-适用于新功能、跨模块、多阶段、需要长期追溯或团队协作的工作。
-
-顺序：
-
-1. 如需确认现有 change，上下文检查可使用：
-   ```bash
-   openspec list --json
-   ```
-2. 如果已经存在合适的 change，直接基于该 change 继续后续设计、计划与实现流程
-3. 如果当前请求是该 change 上的 bugfix / regression，先读取该 change 的 `proposal.md`、`design.md`、`specs/*`、`tasks.md`，再继续根因分析、设计或实现
-4. 如果还没有合适 change：
-   - 先使用 `openspec-explore`
-   - 再使用 `openspec-propose`
-5. 随后使用 `brainstorming` 继续澄清需求、比较方案、收敛设计
-6. 已确认的范围、设计、要求必须沉淀到 OpenSpec artifacts，而不是重复写入 `docs/superpowers/specs/...`
-7. 使用 `writing-plans` 生成**执行级计划**，输入应优先来自 OpenSpec artifacts
-8. 进入实现前，使用 `openspec-apply-change`
-9. 执行时使用 `executing-plans`
-10. 若实现中发现设计或范围变化，先更新 OpenSpec artifacts，再继续实现
-11. 完成前使用 `verification-before-completion`
-12. 收尾时使用 `finishing-a-development-branch`
-13. 当 change 真正完成且 archive compatibility 明确时，直接继续进入 `openspec-archive-change`
-
-## Source of Truth Rules
-
-### In OpenSpec Lane
-
-以下内容以 OpenSpec 为唯一正式记录：
-
-- `proposal.md`：为什么做、范围是什么
-- `design.md`：设计方案、架构决策、关键约束
-- `specs/*`：需求规则、行为定义、契约
-- `tasks.md`：团队级任务拆分与进度主线
-
-以下内容由 Superpowers 负责，但只能作为执行层资产：
-
-- `docs/superpowers/plans/...`：agent 执行级计划
-
-这意味着：
-
-- OpenSpec 的 `tasks.md` 是**团队级任务**
-- Superpowers plan 是**agent 级执行步骤**
-- 二者不应保持相同粒度
-- Superpowers plan 不得替代 OpenSpec 的范围与设计定义
-
-### In Superpowers-only Lane
-
-沿用现有 Superpowers 约定：
-
-- 设计文档与计划文档按原生 Superpowers 流程处理
-
-## Interaction With Other Skills
-
-### with `using-superpowers`
-
-- 本 skill 应作为新功能开发时的治理入口
-- 如果任务明显属于新功能、跨模块或多阶段工作，应优先触发本 skill 再决定后续流程
-
-### with `brainstorming`
-
-- `brainstorming` 仍负责设计探索与方案收敛
-- 但在 OpenSpec lane 中，设计载体必须是 OpenSpec artifacts，而不是平行 spec 文档
-
-### with `writing-plans`
-
-- `writing-plans` 负责编写执行级计划
-- 在 OpenSpec lane 中，计划上下文应优先来自 OpenSpec artifacts
-
-### with `openspec-apply-change`
-
-- 在 OpenSpec lane 中，进入实现前必须确保 change 已明确
-- 如果实现暴露出设计问题，应先回流更新 artifacts，再继续执行
-- 如果当前 change 仍有待完成任务，而下一条 lane 已经明确，则应把 `openspec-apply-change` 视为 `auto-continue`，而不是退化成 generic continue/stop 提示
-
-### with `openspec-archive-change`
-
-- 只在实现、验证、收尾均完成后才建议归档
-- 不要因为“代码已写完”就立即归档
-- 当当前 change 已完成且 archive compatibility 已明确时，下一条 lane 就是 `openspec-archive-change`；这时应直接 auto-continue into `openspec-archive-change`，而不是只停在一条 recommendation
-- 只要当前工作已经创建过 OpenSpec proposal / change，archive 就不是可选收尾；在最终完成边界，必须进入 `openspec-archive-change`
-
-## Common Mistakes
-
-### 1. 把所有需求都送进 OpenSpec
-
-结果：
-
-- 流程过重
-- 小问题也要走完整治理链
-
-修正：
-
-- 只有重要变更才进入 OpenSpec lane
-
-### 2. 同时维护两份设计文档
-
-结果：
-
-- 范围、设计、任务很快漂移
-
-修正：
-
-- OpenSpec lane 下只保留一份正式设计真相源
-
-### 3. 把 OpenSpec tasks 和 Superpowers plan 写成一样的东西
-
-结果：
-
-- 不知道哪份是对团队说的
-- 不知道哪份是给 agent 执行的
-
-修正：
-
-- OpenSpec tasks 保持团队级
-- Superpowers plan 保持执行级
-
-### 4. 过早归档 change
-
-结果：
-
-- PR 未完成、验证未完成、需求仍变化时，change 已被封存
-
-修正：
-
-- 先 verify
-- 再 finish branch
-- 确认 change 真正完成后再 archive
+若本次请求就是完整收尾且条件已满足，自动继续到
+`openspec-archive-change`，不再问是否继续。
+否则报告归档尚待满足的条件，不提前归档，不自动执行无关剩余任务。
 
 ## Handoff Guidance
 
-在结束这个治理入口的当前 turn 前，先把当前 handoff 归类为 `auto-continue`、`needs-user-decision`、`terminal-choice` 三种状态之一。
-
-- `auto-continue`：下一条 lane 已经清晰且安全，直接进入对应 skill
-- `needs-user-decision`：后续依赖用户在若干具体选项中做选择，必须用 `request_user_input`
-- `terminal-choice`：当前请求看起来已经完成，但也不能直接结束，必须先用 `request_user_input`
-- 在 Codex tool-backed terminal-choice 弹窗中，assistant 只列出：
-  1. 结束 (Recommended)
-  2. 继续
-- 额外文本需求必须走客户端自动追加的 `Other` / notes 路径，不要再在选项列表里重复增加同类入口
-- For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
-- Every governance handoff in this repository is carrier-backed; treat the last canonical carrier plus its post-carrier event window as the governing runtime contract for that boundary.
-- Earlier same-turn tool calls do not satisfy a later canonical carrier; prose invitation matching remains only a fallback safety net when no carrier exists.
-- 严格 packet 模式要求：在下一个机器动作前必须存在 canonical machine-readable carrier。
-- 若运行时支持 structured carrier，优先使用它；不强制用户可见 tail block；用户可见 tail block 只保留为 fallback。
-- 每个治理 handoff 都必须确保 canonical machine-readable carrier 在下一个机器动作前包含下面这份固定 packet：
-```text
-ENDGATE_PROTOCOL_VERSION: 1
-ENDGATE_STATE: AUTO_CONTINUE | NEEDS_USER_DECISION | TERMINAL_CHOICE
-ENDGATE_CHOICE_KIND: NONE | SPECIFIC_NEXT_STEP | CONTINUE_OR_STOP
-ENDGATE_NEXT_ACTION: CONTINUE_WITH_TOOL | REQUEST_USER_INPUT
-```
-- 固定映射关系：
-  - `AUTO_CONTINUE` -> `NONE` + `CONTINUE_WITH_TOOL`
-  - `NEEDS_USER_DECISION` -> `SPECIFIC_NEXT_STEP` + `REQUEST_USER_INPUT`
-  - `TERMINAL_CHOICE` -> `CONTINUE_OR_STOP` + `REQUEST_USER_INPUT`
-- `AUTO_CONTINUE`：先确保 canonical carrier 记录这份 packet，再立刻进入已经明确的下一个 skill 或工具动作。
-- `NEEDS_USER_DECISION`：先确保 canonical carrier 记录这份 packet，再立刻调用 `request_user_input` 呈现具体分支选项。
-- `TERMINAL_CHOICE`：先确保 canonical carrier 记录这份 packet，再立刻调用 `request_user_input`，且只提供 `结束 (Recommended)` 与 `继续`。
-
-当 handoff 进入 `terminal-choice` 时，这个 turn 的直接下一个动作就是弹出 `request_user_input`，不能先写一段自由文本终稿再结束。
-
-不要在 terminal-choice 弹窗前先输出“当前我建议的定稿”“就按这条落地”“最终建议一句话版”这类终局式总结。
-
-即使已经形成稳定建议、最终定稿或最终摘要，也仍然不构成直接结束许可；在弹窗出现前，不要 `task_complete`，也不要用自由文本收尾。
-
-如果后续路径已经明确，就直接进入对应下一个 skill，不要停在一句自由文本“如果你确认继续”或“如果你认同这个方向我就继续”。
-
-也不要停在声明式下一步提议，例如“下一步最合适的是我直接……”“接下来我会先……”，然后结束当前 turn。
-
-这同样包括判断式、比较式、推荐式的声明收尾，例如“如果按我的判断，下一步应该先……”“下一步最值得做的不是 A，而是 B”“接下来更值得做的是……”“我建议先……”。
-
-如果唯一剩余选择真的只是继续还是结束，也要用 `request_user_input` 来问；否则应该询问更具体的下一步分支，而不是退化成笼统的继续/结束。
-
-如果你已经能把下一个安全动作具体说出来，就直接执行，不要只描述动作然后停住。
-
-如果确实还存在可枚举的用户决策，再使用 `request_user_input` 触发数字选项，不要使用笼统确认句。
-
-- 对 **OpenSpec lane**：
-  - 如果当前 bugfix / regression 属于既有 change，先恢复该 change 的 `proposal.md`、`design.md`、`specs/*`、`tasks.md`
-  - 如果已经存在合适 change，且该 change 仍有待完成工作，直接进入 `openspec-apply-change`；这是 `auto-continue`
-  - 如果已经存在合适 change，且该 change 已完成并且 archive compatibility 明确，直接进入 `openspec-archive-change`；这也是 `auto-continue`
-  - 如果这个 change 是由 assistant 创建的 proposal / change，那么在最终完成边界不能跳过 `openspec-archive-change`
-  - 如果已经存在合适 change，但当前下一条明显是设计或计划，而不是直接实现，直接基于该 change 进入后续 `brainstorming` 或 `writing-plans`
-  - 如果还没有 change，但下一步明显应先做范围探索，直接进入 `openspec-explore`
-  - 如果还没有 change，且已具备 proposal 输入，直接进入 `openspec-propose`
-- 对 **Superpowers-only lane**：
-  - 立即进入 `brainstorming`
-
-这个 skill 不应停留在“做出判断”。
-它的职责是：
-
-1. 选线路
-2. 定真相源
-3. 指向下一个正确 skill
-
-## Minimalism Rule
-
-除非确实需要长期变更治理，否则优先保持流程轻量。
-
-目标不是把每个需求都 OpenSpec 化。
-目标是：
-
-- 对小需求保持效率
-- 对重要变更保留历史
-- 对团队协作建立稳定主线
-
-## Terminal Endgate Protocol
-
-If this skill reaches a terminal boundary where the current request appears complete:
-- This skill must not end the conversation directly with prose, `task_complete`, or a typed free-form prompt.
-- Treat this terminal boundary as strict `endgate-state-packet` territory; a canonical machine-readable carrier is mandatory, not optional guidance.
-- Ensure the canonical machine-readable carrier contains this exact packet before the next machine action:
-```text
-ENDGATE_PROTOCOL_VERSION: 1
-ENDGATE_STATE: TERMINAL_CHOICE
-ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
-ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
-```
-- In strict packet mode, a canonical machine-readable carrier must exist before the next machine action.
-- Prefer a structured carrier when the runtime supports it; a user-visible tail block remains only a fallback.
-- Route true completion through `terminal-choice`.
-- The very next action must be `request_user_input`.
-- In Codex tool-backed terminal-choice popups, author only:
-  1. 结束 (Recommended)
-  2. 继续
-- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
-- Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
-- A completed assessment, audit, comparison, review, recommendation memo, or research report is still a terminal boundary. After presenting that deliverable, emit the `TERMINAL_CHOICE` packet and immediately call `request_user_input`; a bare closeout such as `结论`, `最终判断`, `我的推荐`, or `这轮我没有改代码，只做了……` is still invalid if it ends the turn directly.
-- Concrete invitation prose such as `如果你同意，我下一步可以直接按这个推荐方案 A 开始修。` must resolve through `request_user_input` or `auto-continue`, never `task_complete`.
-- If the next safe step is already implied, use the relevant non-terminal continuation path instead of stopping at terminal-choice.
+在请求范围内继续安全、已授权的下一步；有真正缺失信息或新授权时才询问。
+局部阻塞不阻止独立工作。完成后直接交付，不强制“结束/继续”弹窗。
+共享路由与完成规则见 `using-superpowers`；只有显式启用的兼容运行环境
+才使用 version 1 endgate-state-packet。

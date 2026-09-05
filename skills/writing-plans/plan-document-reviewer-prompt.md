@@ -9,7 +9,7 @@ Use this template when dispatching a plan document reviewer subagent.
 **Reviewer returns:** Status, Issues (if any), Recommendations
 
 Dispatch the plan reviewer for your platform. On Cursor, use the preset
-`plan-reviewer` subagent and follow the reviewer model tiers in
+`plan-reviewer` subagent and follow the supported reviewer routing in
 `using-superpowers/references/cursor-tools.md`; never dispatch a reviewer through
 `explore`, which is bound to a fast, small model.
 
@@ -36,6 +36,9 @@ Task tool (plan reviewer for your platform):
     **Only flag issues that would cause real problems during implementation.**
     An implementer building the wrong thing or getting stuck is an issue.
     Minor wording, stylistic preferences, and "nice to have" suggestions are not.
+    Complete implementation code, fixed 2-5 minute steps, and a commit after
+    every task are not required. Check concrete targets, dependencies,
+    acceptance criteria, and risk-appropriate verification instead.
 
     Approve unless there are serious gaps — missing requirements from the spec,
     contradictory steps, placeholder content, or tasks so vague they can't be acted on.

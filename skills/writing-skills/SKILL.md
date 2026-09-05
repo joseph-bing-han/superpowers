@@ -11,11 +11,11 @@ description: Use when creating new skills, editing existing skills, or verifying
 
 **Personal skills live in agent-specific directories (`~/.claude/skills` for Claude Code, `~/.agents/skills/` for Codex)** 
 
-You write test cases (pressure scenarios with subagents), watch them fail (baseline behavior), write the skill (documentation), watch tests pass (agents comply), and refactor (close loopholes).
+For behavior changes, establish the old behavior with representative cases, update the skill, compare outcomes, and refine the instructions. Use subagent pressure scenarios when the risk warrants independent behavioral evaluation and delegation is available and authorized.
 
-**Core principle:** If you didn't watch an agent fail without the skill, you don't know if the skill teaches the right thing.
+**Core principle:** Evaluate observable outcomes, including when the skill should not trigger; do not infer quality from rule compliance alone.
 
-**REQUIRED BACKGROUND:** You MUST understand superpowers:test-driven-development before using this skill. That skill defines the fundamental RED-GREEN-REFACTOR cycle. This skill adapts TDD to documentation.
+**Background:** Apply the RED-GREEN-REFACTOR principle from superpowers:test-driven-development when behavior changes. Reuse that understanding if already loaded; do not reload unrelated references for a copy edit.
 
 **Official guidance:** For Anthropic's official skill authoring best practices, see anthropic-best-practices.md. This document provides additional patterns and guidelines that complement the TDD-focused approach in this skill.
 
@@ -42,7 +42,7 @@ A **skill** is a reference guide for proven techniques, patterns, or tools. Skil
 | **Watch it pass** | Verify agent now complies |
 | **Refactor cycle** | Find new rationalizations → plug → re-verify |
 
-The entire skill creation process follows RED-GREEN-REFACTOR.
+Use this cycle for changed behavior; static content fixes need only their relevant checks.
 
 ## When to Create a Skill
 
@@ -237,7 +237,7 @@ When searching, dispatch subagent with template...
 [20 lines of repeated instructions]
 
 # ✅ GOOD: Reference other skill
-Always use subagents (50-100x context savings). REQUIRED: Use [other-skill-name] for workflow.
+For an independently evaluable high-risk case, use [other-skill-name] when delegation is available and authorized.
 ```
 
 **Compress examples:**
@@ -371,26 +371,18 @@ pptx/
 ```
 When: Reference material too large for inline
 
-## The Iron Law (Same as TDD)
+## Match Evaluation to the Change
 
-```
-NO SKILL WITHOUT A FAILING TEST FIRST
-```
+Skills shape behavior, so validation should follow the changed contract and its risk:
 
-This applies to NEW skills AND EDITS to existing skills.
+- Spelling, formatting, and non-behavioral links: inspect the diff and run relevant static/link checks.
+- Local trigger or instruction changes: add focused positive and negative cases and exercise the affected behavior.
+- Shared workflow, authorization, completion, or routing changes: compare the old and new behavior on representative scenarios, including pressure cases and unaffected paths. Use independent sessions when available and authorized.
+- New harness integration: run the documented clean-session end-to-end checks in that harness.
 
-Write skill before testing? Delete it. Start over.
-Edit skill without testing? Same violation.
+Retain observable baseline evidence for behavior changes. Existing failing transcripts or contract tests can establish the defect; compare them against the update, and distinguish static/fixture checks from actual agent-session evaluation. If live evaluation is unavailable, run the closest meaningful checks, report the gap, and do not claim proven deployment readiness.
 
-**No exceptions:**
-- Not for "simple additions"
-- Not for "just adding a section"
-- Not for "documentation updates"
-- Don't keep untested changes as "reference"
-- Don't "adapt" while running tests
-- Delete means delete
-
-**REQUIRED BACKGROUND:** The superpowers:test-driven-development skill explains why this matters. Same principles apply to documentation.
+Do not delete useful skill changes as punishment for editing before testing. Preserve user work, establish the missing baseline with an isolated old-version fixture, and close the verification gap. Pure copy edits do not need pressure sessions. Reuse unchanged, reliable evidence.
 
 ## Testing All Skill Types
 
@@ -454,7 +446,7 @@ Different skill types need different test approaches:
 | "Academic review is enough" | Reading ≠ using. Test application scenarios. |
 | "No time to test" | Deploying untested skill wastes more time fixing it later. |
 
-**All of these mean: Test before deploying. No exceptions.**
+Validate before deploying, with depth matched to the changed behavior rather than a universal pressure-test requirement.
 
 ## Bulletproofing Skills Against Rationalization
 
@@ -462,65 +454,15 @@ Skills that enforce discipline (like TDD) need to resist rationalization. Agents
 
 **Psychology note:** Understanding WHY persuasion techniques work helps you apply them systematically. See persuasion-principles.md for research foundation (Cialdini, 2021; Meincke et al., 2025) on authority, commitment, scarcity, social proof, and unity principles.
 
-### Close Every Loophole Explicitly
+### Preserve the Actual Invariant
 
-Don't just state the rule - forbid specific workarounds:
+Use precise requirements for demonstrated safety or correctness risks. Do not turn every observed rationale into an absolute rule, and do not use deletion or rewriting as a penalty.
 
-<Bad>
-```markdown
-Write code before test? Delete it.
-```
-</Bad>
+For example, if an agent claims success without evidence, require a relevant check and an accurately scoped claim. If tests were added after implementation, preserve the work and demonstrate that the regression case detects the old behavior. The invariant is trustworthy evidence, not ritual compliance.
 
-<Good>
-```markdown
-Write code before test? Delete it. Start over.
+### Capture Failures and Counterexamples
 
-**No exceptions:**
-- Don't keep it as "reference"
-- Don't "adapt" it while writing tests
-- Don't look at it
-- Delete means delete
-```
-</Good>
-
-### Address "Spirit vs Letter" Arguments
-
-Add foundational principle early:
-
-```markdown
-**Violating the letter of the rules is violating the spirit of the rules.**
-```
-
-This cuts off entire class of "I'm following the spirit" rationalizations.
-
-### Build Rationalization Table
-
-Capture rationalizations from baseline testing (see Testing section below). Every excuse agents make goes in the table:
-
-```markdown
-| Excuse | Reality |
-|--------|---------|
-| "Too simple to test" | Simple code breaks. Test takes 30 seconds. |
-| "I'll test after" | Tests passing immediately prove nothing. |
-| "Tests after achieve same goals" | Tests-after = "what does this do?" Tests-first = "what should this do?" |
-```
-
-### Create Red Flags List
-
-Make it easy for agents to self-check when rationalizing:
-
-```markdown
-## Red Flags - STOP and Start Over
-
-- Code before test
-- "I already manually tested it"
-- "Tests after achieve the same purpose"
-- "It's about spirit not ritual"
-- "This is different because..."
-
-**All of these mean: Delete code. Start over with TDD.**
-```
+Record the incorrect action, its impact, and the context that caused it. Add the smallest instruction that changes that decision and test both the intended trigger and a nearby case that should remain lightweight. An agent disagreeing with a rule is not itself a failure; evaluate the resulting behavior against requirements and authority.
 
 ### Update CSO for Violation Symptoms
 
@@ -536,12 +478,12 @@ Follow the TDD cycle:
 
 ### RED: Write Failing Test (Baseline)
 
-Run pressure scenario with subagent WITHOUT the skill. Document exact behavior:
+For substantial behavior changes, run representative scenarios against the old skill (or without it for a new skill). Use independent sessions when available and authorized. Document actual behavior:
 - What choices did they make?
 - What rationalizations did they use (verbatim)?
 - Which pressures triggered violations?
 
-This is "watch the test fail" - you must see what agents naturally do before writing the skill.
+This baseline establishes what needs to change. A recorded reproducible failure can serve as baseline; do not fabricate a live session when only contract evidence is available.
 
 ### GREEN: Write Minimal Skill
 
@@ -551,9 +493,9 @@ Run same scenarios WITH skill. Agent should now comply.
 
 ### REFACTOR: Close Loopholes
 
-Agent found new rationalization? Add explicit counter. Re-test until bulletproof.
+If a scenario reveals an incorrect outcome, identify the cause, make a focused correction, and rerun affected cases. Finish when the representative requirements and checks are satisfied; report remaining sampling limits instead of claiming universal reliability.
 
-**Testing methodology:** See @testing-skills-with-subagents.md for the complete testing methodology:
+**Testing methodology:** Read testing-skills-with-subagents.md when running independent behavioral or pressure evaluations:
 - How to write pressure scenarios
 - Pressure types (time, sunk cost, authority, exhaustion)
 - Plugging holes systematically
@@ -580,26 +522,17 @@ step2 [label="read file"];
 helper1, helper2, step3, pattern4
 **Why bad:** Labels should have semantic meaning
 
-## STOP: Before Moving to Next Skill
+## Before Finishing the Change
 
-**After writing ANY skill, you MUST STOP and complete the deployment process.**
-
-**Do NOT:**
-- Create multiple skills in batch without testing each
-- Move to next skill before current one is verified
-- Skip testing because "batching is more efficient"
-
-**The deployment checklist below is MANDATORY for EACH skill.**
-
-Deploying untested skills = deploying untested code. It's a violation of quality standards.
+Verify each affected behavior and its relevant consumers. Related skills may be edited and validated together when they share a workflow contract; there is no requirement to deploy or commit one skill before editing the next. Keep unrelated work separate.
 
 ## Skill Creation Checklist (TDD Adapted)
 
-**IMPORTANT: Use TodoWrite to create todos for EACH checklist item below.**
+Select the checklist items relevant to the change and track substantial work with the host's available mechanism. Do not create a mandatory task for every item on a copy edit.
 
 **RED Phase - Write Failing Test:**
-- [ ] Create pressure scenarios (3+ combined pressures for discipline skills)
-- [ ] Run scenarios WITHOUT skill - document baseline behavior verbatim
+- [ ] Create representative pressure scenarios where the changed risk warrants them
+- [ ] Run scenarios against the old skill, or without it for a new skill; record observed baseline behavior
 - [ ] Identify patterns in rationalizations/failures
 
 **GREEN Phase - Write Minimal Skill:**
@@ -619,7 +552,7 @@ Deploying untested skills = deploying untested code. It's a violation of quality
 - [ ] Add explicit counters (if discipline skill)
 - [ ] Build rationalization table from all test iterations
 - [ ] Create red flags list
-- [ ] Re-test until bulletproof
+- [ ] Re-test the affected positive and negative cases and report confidence limits
 
 **Quality Checks:**
 - [ ] Small flowchart only if decision non-obvious
@@ -629,8 +562,8 @@ Deploying untested skills = deploying untested code. It's a violation of quality
 - [ ] Supporting files only for tools or heavy reference
 
 **Deployment:**
-- [ ] Commit skill to git and push to your fork (if configured)
-- [ ] Consider contributing back via PR (if broadly useful)
+- [ ] Report changed behavior, actual checks, and evaluation limitations
+- [ ] Commit, push, or open a PR only when separately authorized; follow the target repository's submission rules
 
 ## Discovery Workflow
 
@@ -648,33 +581,14 @@ How future Claude finds your skill:
 
 **Creating skills IS TDD for process documentation.**
 
-Same Iron Law: No skill without failing test first.
+Behavior changes need evidence of the old and new outcomes; non-behavioral edits need proportionate static checks.
 Same cycle: RED (baseline) → GREEN (write skill) → REFACTOR (close loopholes).
-Same benefits: Better quality, fewer surprises, bulletproof results.
+Same benefits: Better evidence, fewer regressions, and clearer confidence limits.
 
 If you follow TDD for code, follow it for skills. It's the same discipline applied to documentation.
 
-## Terminal Endgate Protocol
+## Completion
 
-If this skill reaches a terminal boundary where the current request appears complete:
-- This skill must not end the conversation directly with prose, `task_complete`, or a typed free-form prompt.
-- Treat this terminal boundary as strict `endgate-state-packet` territory; a canonical machine-readable carrier is mandatory, not optional guidance.
-- Ensure the canonical machine-readable carrier contains this exact packet before the next machine action:
-```text
-ENDGATE_PROTOCOL_VERSION: 1
-ENDGATE_STATE: TERMINAL_CHOICE
-ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
-ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
-```
-- In strict packet mode, a canonical machine-readable carrier must exist before the next machine action.
-- Prefer a structured carrier when the runtime supports it; a user-visible tail block remains only a fallback.
-- Route true completion through `terminal-choice`.
-- The very next action must be `request_user_input`.
-- In Codex tool-backed terminal-choice popups, author only:
-  1. 结束 (Recommended)
-  2. 继续
-- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
-- Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
-- A completed assessment, audit, comparison, review, recommendation memo, or research report is still a terminal boundary. After presenting that deliverable, emit the `TERMINAL_CHOICE` packet and immediately call `request_user_input`; a bare closeout such as `结论`, `最终判断`, `我的推荐`, or `这轮我没有改代码，只做了……` is still invalid if it ends the turn directly.
-- Concrete invitation prose such as `如果你同意，我下一步可以直接按这个推荐方案 A 开始修。` must resolve through `request_user_input` or `auto-continue`, never `task_complete`.
-- If the next safe step is already implied, use the relevant non-terminal continuation path instead of stopping at terminal-choice.
+Follow the shared completion rules in `using-superpowers`: continue safe,
+authorized work; ask only about a genuine blocker or decision; deliver completed
+requests directly with evidence and limitations. Legacy packet mode is opt-in.

@@ -1,108 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+source "$REPO_ROOT/tests/shared/prompt-contract-helpers.sh"
+GOVERNANCE="skills/spec-governed-development/SKILL.md"
+PROTOCOL="openspec/specs/workflow-protocol-contracts/spec.md"
+VALIDATION="openspec/specs/transcript-based-validation/spec.md"
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-
-normalize_stream() {
-  tr '\r\n\t' '   ' | sed -E 's/[[:space:]]+/ /g; s/^ //; s/ $//'
-}
-
-extract_section() {
-  local file="$1"
-  local heading="$2"
-  local stop_pattern="${3:-^(##|###) }"
-
-  awk -v heading="$heading" -v stop_pattern="$stop_pattern" '
-    $0 == heading {
-      in_section = 1
-      next
-    }
-
-    in_section && $0 ~ stop_pattern {
-      exit
-    }
-
-    in_section {
-      print
-    }
-  ' "$file"
-}
-
-assert_section_contains() {
-  local file="$1"
-  local heading="$2"
-  local pattern="$3"
-  local description="$4"
-  local stop_pattern="${5:-^(##|###) }"
-  local content
-
-  content="$(extract_section "$REPO_ROOT/$file" "$heading" "$stop_pattern")"
-
-  if [[ -z "$content" ]]; then
-    echo "FAIL: $description"
-    echo "  File: $file"
-    echo "  Missing section: $heading"
-    exit 1
-  fi
-
-  if printf '%s' "$content" | normalize_stream | rg -qi -- "$pattern"; then
-    echo "PASS: $description"
-  else
-    echo "FAIL: $description"
-    echo "  File: $file"
-    echo "  Section: $heading"
-    echo "  Pattern: $pattern"
-    exit 1
-  fi
-}
-
-assert_section_contains \
-  "openspec/specs/workflow-protocol-contracts/spec.md" \
-  "## Requirements" \
-  'proposal.*creates.*archive obligation|创建.*OpenSpec.*proposal.*必须.*归档|archive obligation.*OpenSpec change' \
-  "workflow protocol spec defines that creating an OpenSpec proposal creates a mandatory archive obligation" \
-  '^## '
-
-assert_section_contains \
-  "openspec/specs/transcript-based-validation/spec.md" \
-  "## Requirements" \
-  'skip.*archive.*after.*proposal|创建.*proposal.*后.*未归档.*测试.*失败|archive obligation' \
-  "validation spec audits skipped archive after an OpenSpec proposal has been created" \
-  '^## '
-
-assert_section_contains \
-  "skills/spec-governed-development/SKILL.md" \
-  "## Lane Confirmation" \
-  '创建 OpenSpec 提案.*后.*直到归档前都保持.*OpenSpec lane|proposal.*archive obligation|must be archived' \
-  "spec-governed-development keeps a created OpenSpec change in the OpenSpec lane until archive" \
-  '^## '
-
-assert_section_contains \
-  "skills/spec-governed-development/SKILL.md" \
-  "## Handoff Guidance" \
-  '不能跳过.*openspec-archive-change|must not skip `openspec-archive-change`|归档不是可选' \
-  "spec-governed-development forbids skipping openspec-archive-change once an OpenSpec change reaches final completion" \
-  '^## '
-
-assert_section_contains \
-  "skills/finishing-a-development-branch/SKILL.md" \
-  "### Step 6: OpenSpec Archive Handoff" \
-  'mandatory|required|必须进入 `openspec-archive-change`|不是可选' \
-  "finishing flow treats archive follow-up as mandatory for a completed OpenSpec change" \
-  '^### '
-
-assert_section_contains \
-  "skills/using-superpowers/SKILL.md" \
-  "## Governance Routing" \
-  'OpenSpec proposal.*archive obligation|创建 OpenSpec 提案.*归档义务|until archive' \
-  "using-superpowers documents that a created OpenSpec proposal carries an archive obligation" \
-  '^## '
-
-assert_section_contains \
-  "docs/README.codex.md" \
-  "## Autonomous Continuation" \
-  'created OpenSpec proposal.*must continue into `openspec-archive-change`|创建过 OpenSpec proposal.*必须.*openspec-archive-change|archive is not optional' \
-  "Codex README documents that final completion of a created OpenSpec change must continue into archive" \
-  '^## '
-
-echo "All OpenSpec archive-obligation prompt contract checks passed."
+assert_file_contains "$PROTOCOL" 'Request completion and change archive are separate' 'request completion is distinct from archive'
+assert_file_contains "$PROTOCOL" 'MUST NOT 自动实现无关任务或提前归档' 'partial completion preserves unrelated work'
+assert_file_contains "$PROTOCOL" '授权包含完整收尾.*所需审查、合并和规范同步已满足' 'archive requires authority and completed prerequisites'
+assert_section_contains "$GOVERNANCE" '## Completion and Archive' '保留其开放状态' 'a larger change stays open after a scoped fix'
+assert_section_contains "$GOVERNANCE" '## Completion and Archive' '创建 proposal 不自动授权归档，更不授权 merge' 'creating a proposal grants no archive or merge authority'
+assert_section_contains "$GOVERNANCE" '## Completion and Archive' '完整收尾且条件已满足.*openspec-archive-change.*不再问' 'authorized closure auto-continues when ready'
+assert_file_contains skills/finishing-a-development-branch/SKILL.md 'A PR awaiting merge is not ready for archive' 'an unmerged PR cannot satisfy final integration'
+assert_file_contains "$VALIDATION" 'Partial completion leaves the change open' 'validation covers partial request completion'
+assert_file_contains "$VALIDATION" 'Authorized closure continues to archive' 'validation covers authorized complete closure'
+assert_file_not_contains "$VALIDATION" '没有把“创建过 proposal 后未归档”判定为测试失败' 'validation does not force archive merely because a proposal exists'
+echo 'OpenSpec archive scope checks passed.'

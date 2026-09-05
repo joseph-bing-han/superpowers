@@ -1,7 +1,8 @@
 # endgate-render-separation Specification
 
 ## Purpose
-TBD - created by archiving change hide-endgate-packet-from-terminal. Update Purpose after archive.
+定义显式启用的 version 1 legacy integration 中 carrier 与显示层的分离。
+以下要求不启用 strict packet mode，也不要求普通完成输出 packet。
 ## Requirements
 ### Requirement: Canonical endgate carrier and terminal render are separable
 系统 MUST 将 endgate 的机器可读 carrier 与用户可见终端 render 视为两个独立层次，
@@ -33,4 +34,3 @@ endgate contract。
 - **AND** 同一 turn 中不存在结构化 carrier 或可解析 tail block
 - **THEN** 该 boundary MUST 被视为缺少 canonical endgate carrier
 - **AND** validator MUST NOT 仅凭 sidecar file 将其判定为合法
-

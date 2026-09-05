@@ -1,10 +1,41 @@
 # Testing Superpowers Skills
 
-This document describes how to test Superpowers skills, particularly the integration tests for skills that dispatch reviewer subagents.
+This document maps current changes to appropriate checks. Read the sections relevant to the changed behavior; the historical rollout notes below are not additional gates for every task.
+
+## Current Verification Selection
+
+| Change | Focused checks | Prerequisites / limits |
+| --- | --- | --- |
+| Non-behavioral text or links | Relevant content/link inspection; `git diff --check` | No live harness needed when behavior is unchanged |
+| Project instruction entrypoints | `bash tests/prompt-contracts/test-project-instruction-entrypoints.sh` | Checks the `CLAUDE.md` import of shared `AGENTS.md`; not a live Claude startup transcript |
+| Claude test runner | `bash tests/claude-code/test-run-skill-tests.sh`; `bash -n tests/claude-code/run-skill-tests.sh` | Bash; isolated CLI stubs, not live Claude evidence |
+| Workflow trigger or task scope | `bash tests/prompt-contracts/test-direct-mode-and-lightweight-exemptions.sh`; `bash tests/codex/test-direct-mode-transcript-boundaries.sh` | Bash, `rg`, `jq`; add affected workflow-specific tests |
+| Normal completion and authorization | `bash tests/prompt-contracts/test-task-scoped-completion.sh`; `bash tests/prompt-contracts/test-nonterminal-workflow-gates.sh`; `bash tests/prompt-contracts/test-numeric-choice-interactions.sh` | Cover direct completion, continued authorized work, and actual decisions; add representative behavioral scenarios |
+| Partial-plan review handoff | `bash tests/prompt-contracts/test-review-scope.sh` | Checks scope propagation; independently exercise subset completion, a defect in that subset, and missing work in an authorized full plan |
+| OpenSpec routing and closure | `bash tests/prompt-contracts/test-openspec-entry-and-doc-paths.sh`; `bash tests/prompt-contracts/test-openspec-governed-continuation.sh`; `bash tests/prompt-contracts/test-openspec-archive-obligation.sh` | Preserve canonical records, permit scoped completion, and require authority and prerequisites for archive |
+| Legacy version 1 carriers | `bash tests/shared/test-workflow-contract-helpers.sh`; `bash tests/prompt-contracts/test-universal-terminal-endgate-protocol.sh`; `bash tests/codex/test-runtime-endgate-transcript-audit.sh` | Explicit legacy integration or historical replay only; the old test filename is retained for callers, not as a universal-popup requirement |
+| Prompt contract assertions | `bash tests/shared/test-prompt-contract-helpers.sh` | Checks positive/negative assertions, section boundaries, and failure handling |
+| Codex installation/bootstrap | `bash tests/codex/test-codex-install-bootstrap.sh` | Uses isolated temporary configuration; no global install required |
+| Reviewer behavior | `bash tests/claude-code/run-skill-tests.sh --test test-requesting-code-review.sh --timeout 1800` | Configured `claude`, `timeout`, plugin, and session permissions; real model calls |
+| Shared behavior-shaping skill changes | Affected contracts plus representative before/after positive, negative, and pressure scenarios | Record actual evaluation method, models, outcomes, and unavailable coverage |
+| New harness | Platform checks plus clean-session transcripts | Bootstrap, explicit invocation, lightweight negative case, correct routing and completion |
+
+There is no root `npm test` script. The Claude runner has no default fast suite:
+select `--test NAME` or `--integration`. No-test selections, missing files, skipped
+checks, and unavailable prerequisites are not passing results. Do not install
+tools or modify global harness settings merely to make a check runnable.
+
+Reuse evidence only while its relevant inputs, environment, and contract are
+unchanged. A focused check supports only its actual coverage. Finish the requested
+scope after proportionate validation and report limitations directly; additional
+merge, release, or archive stages require their own scope and authorization.
+
+Current behavior is defined by applicable skills and `openspec/specs/`, not by
+the historical incident snapshots or recorded old smoke outcomes below.
 
 ## Overview
 
-Testing skills that involve subagents, workflows, and complex interactions requires running actual Claude Code sessions in headless mode and verifying their behavior through session transcripts.
+Live session transcripts are needed to demonstrate model/harness behavior. Local contract and fixture tests provide useful deterministic coverage without requiring every text edit to start a live session.
 
 ## Test Structure
 
@@ -23,7 +54,8 @@ tests/
 │   ├── test-helpers.sh                    # Shared test utilities
 │   ├── test-requesting-code-review.sh
 │   ├── analyze-token-usage.py             # Token analysis tool
-│   └── run-skill-tests.sh                 # Test runner (if exists)
+│   ├── test-run-skill-tests.sh            # Isolated runner regression
+│   └── run-skill-tests.sh                 # Explicit integration selection
 └── prompt-contracts/
     ├── test-machine-readable-workflow-contracts.sh
     └── test-numeric-choice-interactions.sh
@@ -54,13 +86,23 @@ cd tests/claude-code
 Prompt contract tests validate expected wording and interaction boundaries in skill and Codex-facing documentation:
 
 ```bash
+bash tests/prompt-contracts/test-project-instruction-entrypoints.sh
+bash tests/prompt-contracts/test-review-scope.sh
+bash tests/prompt-contracts/test-task-scoped-completion.sh
 bash tests/prompt-contracts/test-machine-readable-workflow-contracts.sh
+bash tests/prompt-contracts/test-numeric-choice-interactions.sh
+
+# Explicit legacy integration / historical fixture compatibility
+bash tests/prompt-contracts/test-universal-terminal-endgate-protocol.sh
 bash tests/codex/test-request-user-input-transcript-fixtures.sh
 bash tests/codex/test-runtime-endgate-transcript-audit.sh
-bash tests/prompt-contracts/test-numeric-choice-interactions.sh
 ```
 
-Use `bash tests/prompt-contracts/test-universal-terminal-endgate-protocol.sh` as the repository-wide endgate regression, and `bash tests/codex/test-runtime-endgate-transcript-audit.sh` as the transcript/fixture evidence check for runtime endgate semantics on this branch.
+The legacy checks preserve version 1 schema, carrier precedence, event windows,
+and canonical terminal payloads for consumers that explicitly use that protocol.
+They do not require ordinary reports to emit a packet or ask for end/continue.
+Use current completion and scope checks for ordinary workflows. Run the focused
+helper regression when changing the shared assertion implementation.
 
 ### Prompt Contract Test Requirements
 
@@ -69,7 +111,15 @@ Use `bash tests/prompt-contracts/test-universal-terminal-endgate-protocol.sh` as
 - `rg` (ripgrep) must be installed and available on `PATH`
 - `jq` must be installed and available on `PATH` for transcript-fixture parsing
 
-## Machine-Readable Workflow Contracts
+## Historical Workflow Contract Rollout (March 2026)
+
+The sections from here through the numeric-choice smoke evidence record the
+March 2026 `hide-endgate-packet-from-terminal` rollout and its predecessor
+incidents. Claims such as "current", "latest", "must", strict packet mode,
+universal terminal-choice, and recorded PASS results are historical to that
+rollout, not current execution requirements or fresh verification evidence.
+Keep fixtures useful for compatibility, but use current skills, specifications,
+and the verification selection above for new work.
 
 本节冻结当前仓库的 workflow contract 审计边界、覆盖地图与验证优先级，
 避免后续只靠 prose 解释导致契约漂移。
@@ -129,7 +179,7 @@ Covered node families:
 | --- | --- | --- | --- |
 | reviewer / implementer reports | fixed machine-readable tail blocks + transcript events | prompt-contract + Claude tests | in scope |
 | checkpoint / handoff / terminal-choice flows | canonical machine-readable carriers + request_user_input call + transcript event | prompt-contract + Codex fixture tests (`tests/codex/test-request-user-input-transcript-fixtures.sh`, `tests/codex/test-runtime-endgate-transcript-audit.sh`) | in scope; transcript fixture evidence landed on this branch |
-| OpenCode tool loading | raw marker / tool payload | `tests/opencode/test-tools.sh` | in scope |
+| OpenCode tool loading | raw marker / tool payload | Historical test path removed; use a live configured OpenCode session | Historical coverage only; no current local test script |
 | skill-triggering discovery | existing Skill tool event transcript | `tests/skill-triggering/*.sh` | audited, out-of-scope for this change because they already assert Skill tool events |
 
 ### First drift matrix
@@ -296,7 +346,9 @@ First drift matrix: `Chinese / English / concise / verbose`.
   Latest local result (2026-03-26): PASS，`hide-endgate-packet-from-terminal`
   change 校验通过，`issues` 为空。
 
-## Runtime Endgate Transcript Audits
+## Historical Runtime Endgate Transcript Audits
+
+This section records the March 2026 audit contract, not a requirement to reopen a completed task or ask an unnecessary question. Current protocol consumers may retain these fixtures for compatibility.
 
 这组审计把真实 incident 固化成可回归的 Codex transcript fixtures，用来验证
 “analysis / recommendation boundary”是否仍然会在运行期漏成 prose-only
@@ -353,7 +405,9 @@ message itself has no explicit `turn_id`, but the surrounding `task_started` /
 | F | Strict packet-lane fixture that omits `endgate-state-packet` entirely and must fail on missing packet alone | `tests/codex/fixtures/runtime-endgate-packet-missing-packet-negative.jsonl` + `tests/codex/test-runtime-endgate-transcript-audit.sh` |
 | G | Session-shaped negative fixture whose assistant message omits explicit `turn_id`, but still ends with a prose-only recommendation before `task_complete` | `tests/codex/fixtures/runtime-prose-endgate-session-shaped-recommendation-leak-negative.jsonl` + `tests/codex/test-runtime-endgate-transcript-audit.sh` |
 
-## Numeric Choice Smoke Tests
+## Historical Numeric Choice Smoke Tests
+
+These are March 2026 scenarios and outcomes. They do not require a terminal-choice popup today; use the current host tool contract for genuine decisions and authorization.
 
 These smoke tests must be run in a real session because the choice UI only appears when the assistant actually calls `request_user_input`.
 
@@ -459,9 +513,9 @@ ls -lt "$SESSION_DIR"/*.jsonl | head -5
 **Problem**: Claude blocked from writing files or accessing directories
 
 **Solutions**:
-1. Use `--permission-mode bypassPermissions` flag
-2. Use `--add-dir /path/to/temp/dir` to grant access to test directories
-3. Check file permissions on test directories
+1. Check the existing harness permissions and the exact test-directory access needed.
+2. Use `--add-dir /path/to/temp/dir` only for the isolated fixture directory when authorized.
+3. Some historical examples below use `--permission-mode bypassPermissions`; use them only in an explicitly authorized, isolated test environment, not as a general remedy or a reason to weaken global settings.
 
 ### Test Timeouts
 
@@ -523,12 +577,12 @@ python3 "$SCRIPT_DIR/analyze-token-usage.py" "$SESSION_FILE"
 
 ### Best Practices
 
-1. **Always cleanup**: Use trap to cleanup temp directories
+1. **Cleanup owned resources**: Use a trap for the exact temporary fixture directories created by the test
 2. **Parse transcripts**: Don't grep user-facing output - parse the `.jsonl` session file
-3. **Grant permissions**: Use `--permission-mode bypassPermissions` and `--add-dir`
+3. **Scope permissions**: Use the existing harness permissions; any bypass must be authorized and limited to the isolated test environment
 4. **Run from plugin dir**: Skills only load when running from the superpowers directory
-5. **Show token usage**: Always include token analysis for cost visibility
-6. **Test real behavior**: Verify actual files created, tests passing, commits made
+5. **Record useful evidence**: Include token analysis when measuring cost, not as a gate for unrelated tests
+6. **Test real behavior**: Verify actual outputs and checks; assert commits only when committing is part of the authorized scenario
 
 ## Session Transcript Format
 

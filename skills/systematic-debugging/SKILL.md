@@ -5,6 +5,8 @@ description: Use when encountering any bug, test failure, or unexpected behavior
 
 # Systematic Debugging
 
+Honor the requested scope: a diagnosis-only request ends with evidence and the cause, not an unrequested fix. Implementation steps below apply when a fix is authorized. Read supporting references only when the current investigation needs their technique.
+
 ## Overview
 
 Random fixes waste time and create new bugs. Quick patches mask underlying issues.
@@ -74,7 +76,7 @@ You MUST complete each phase before proceeding to the next.
    **WHEN the bug may belong to an active OpenSpec change or other governed implementation lane:**
 
    - Identify the relevant change from the current context, current plan, or `openspec list --json`
-   - Read `proposal.md`, `design.md`, `specs/*`, and `tasks.md` before proposing fixes
+   - Read the affected requirements and tasks, then relevant proposal/design sections as needed; do not load all artifacts by default or reread unchanged context
    - Treat those artifacts as the intended behavior, scope boundary, and unfinished-work context
    - Do not skip this just because the immediate symptom looks local
 
@@ -137,9 +139,9 @@ You MUST complete each phase before proceeding to the next.
    - What works that's similar to what's broken?
 
 2. **Compare Against References**
-   - If implementing pattern, read reference implementation COMPLETELY
-   - Don't skim - read every line
-   - Understand the pattern fully before applying
+   - Read the relevant reference implementation and its contract, callers, and assumptions
+   - Expand reading when a dependency or ambiguity requires it; do not require every line of unrelated reference code
+   - Understand the relevant pattern before applying it
 
 3. **Identify Differences**
    - What's different between working and broken?
@@ -184,7 +186,7 @@ You MUST complete each phase before proceeding to the next.
    - Simplest possible reproduction
    - Automated test if possible
    - One-off test script if no framework
-   - MUST have before fixing
+   - Establish a reproducible failing case before fixing where feasible; document the closest available evidence and limitations otherwise
    - Use the `superpowers:test-driven-development` skill for writing proper failing tests
 
 2. **Implement Single Fix**
@@ -202,8 +204,8 @@ You MUST complete each phase before proceeding to the next.
    - STOP
    - Count: How many fixes have you tried?
    - If < 3: Return to Phase 1, re-analyze with new information
-   - **If ≥ 3: STOP and question the architecture (step 5 below)**
-   - DON'T attempt Fix #4 without architectural discussion
+   - If 3 or more attempts fail: reassess hypotheses, reproduction quality, and architecture (step 5 below)
+   - Continue safe evidence gathering; avoid another speculative patch without new evidence
 
 5. **If 3+ Fixes Failed: Question Architecture**
 
@@ -217,9 +219,9 @@ You MUST complete each phase before proceeding to the next.
    - Are we "sticking with it through sheer inertia"?
    - Should we refactor architecture vs. continue fixing symptoms?
 
-   **Discuss with your human partner before attempting more fixes**
+   Discuss with your human partner if the evidence requires an architectural change, expanded scope, or a material decision. Continue independent authorized work and safe diagnostics meanwhile.
 
-   This is NOT a failed hypothesis - this is a wrong architecture.
+   Repeated failure is evidence to reconsider the approach, not proof that the architecture is wrong.
 
 ## Red Flags - STOP and Follow Process
 
@@ -260,7 +262,7 @@ If you catch yourself thinking:
 | "Just try this first, then investigate" | First fix sets the pattern. Do it right from the start. |
 | "I'll write test after confirming fix works" | Untested fixes don't stick. Test first proves it. |
 | "Multiple fixes at once saves time" | Can't isolate what worked. Causes new bugs. |
-| "Reference too long, I'll adapt the pattern" | Partial understanding guarantees bugs. Read it completely. |
+| "Reference too long, I'll adapt the pattern" | Understand relevant contracts and dependencies; expand targeted reading until the uncertainty is resolved. |
 | "I see the problem, let me fix it" | Seeing symptoms ≠ understanding root cause. |
 | "One more fix attempt" (after 2+ failures) | 3+ failures = architectural problem. Question pattern, don't fix again. |
 
@@ -304,27 +306,8 @@ From debugging sessions:
 - First-time fix rate: 95% vs 40%
 - New bugs introduced: Near zero vs common
 
-## Terminal Endgate Protocol
+## Completion
 
-If this skill reaches a terminal boundary where the current request appears complete:
-- This skill must not end the conversation directly with prose, `task_complete`, or a typed free-form prompt.
-- Treat this terminal boundary as strict `endgate-state-packet` territory; a canonical machine-readable carrier is mandatory, not optional guidance.
-- Ensure the canonical machine-readable carrier contains this exact packet before the next machine action:
-```text
-ENDGATE_PROTOCOL_VERSION: 1
-ENDGATE_STATE: TERMINAL_CHOICE
-ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
-ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
-```
-- In strict packet mode, a canonical machine-readable carrier must exist before the next machine action.
-- Prefer a structured carrier when the runtime supports it; a user-visible tail block remains only a fallback.
-- Route true completion through `terminal-choice`.
-- The very next action must be `request_user_input`.
-- In Codex tool-backed terminal-choice popups, author only:
-  1. 结束 (Recommended)
-  2. 继续
-- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
-- Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
-- A completed assessment, audit, comparison, review, recommendation memo, or research report is still a terminal boundary. After presenting that deliverable, emit the `TERMINAL_CHOICE` packet and immediately call `request_user_input`; a bare closeout such as `结论`, `最终判断`, `我的推荐`, or `这轮我没有改代码，只做了……` is still invalid if it ends the turn directly.
-- Concrete invitation prose such as `如果你同意，我下一步可以直接按这个推荐方案 A 开始修。` must resolve through `request_user_input` or `auto-continue`, never `task_complete`.
-- If the next safe step is already implied, use the relevant non-terminal continuation path instead of stopping at terminal-choice.
+Follow the shared completion rules in `using-superpowers`: continue safe,
+authorized work; ask only about a genuine blocker or decision; deliver completed
+requests directly with evidence and limitations. Legacy packet mode is opt-in.

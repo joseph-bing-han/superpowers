@@ -1,7 +1,15 @@
 # transcript-based-validation Specification
 
 ## Purpose
-TBD - created by archiving change decouple-prose-from-workflow-protocols. Update Purpose after archive.
+定义按请求范围完成、按授权继续，以及显式 legacy 协议兼容的验证要求。
+
+## Applicability
+
+普通 workflow 使用当前任务范围与宿主授权规则，不要求 endgate packet 或结束弹窗。
+下文 version 1 carrier、terminal-choice 与历史 prose-leak fixture 的要求仅适用于
+显式启用的兼容集成或历史 transcript 回放。加载 Skill、读取规范或运行仅隐藏文本的
+wrapper 不能启用 legacy mode。旧 fixture 通过仅证明兼容消费者，不证明当前模型行为。
+
 ## Requirements
 ### Requirement: Automated validation prefers behavioral evidence over prose
 自动化验证 MUST 优先使用工具调用、session transcript、stream-json 或其他结构化行为证据，而不是助手自由文本中的关键词或句式。
@@ -18,33 +26,36 @@ TBD - created by archiving change decouple-prose-from-workflow-protocols. Update
 - **THEN** 测试 MUST 依据相同的协议层信号判定通过，而不是因为措辞不同失败
 
 ### Requirement: Text-only fallbacks use fixed machine-readable signals
-对于暂时无法直接从工具事件或 transcript 中提取协议信号的流程，系统 MUST 提供固定机器可读尾块或等价结构化信号，供验证使用。
+对于存在机器消费者、但暂时无法直接从工具事件或 transcript 中提取协议信号的流程，系统 MUST 提供固定机器可读尾块或等价结构化信号，供验证使用。普通完成不得因此被强制转换为 version 1 packet。
 
 #### Scenario: Endgate packet prefers structured transcript carriers
-- **WHEN** 某个 workflow 边界已经拥有原生结构化 endgate transcript 字段
+- **WHEN** 显式 legacy integration 的边界已经拥有原生结构化 endgate transcript 字段
 - **THEN** validator MUST 优先读取该结构化 carrier
 - **AND** MUST NOT 因为用户可见终端中缺少 `ENDGATE_*` 行而判定失败
 
 #### Scenario: Endgate packet remains parseable across transcript transports
-- **WHEN** 某个 workflow 边界尚未拥有原生结构化 endgate transcript 字段
+- **WHEN** 显式 legacy integration 的边界尚未拥有原生结构化 endgate transcript 字段
 - **THEN** 该边界 SHALL 通过固定字段的 `endgate-state-packet` 暴露协议状态
 - **AND** validator MUST 能从 tail block 或等价结构化字段解析出
   `ENDGATE_PROTOCOL_VERSION`、`ENDGATE_STATE`、
   `ENDGATE_CHOICE_KIND` 与 `ENDGATE_NEXT_ACTION`
 
-### Requirement: Validation audits universal terminal-choice inheritance across local skills
-自动化验证 MUST 能够从仓库层面确认所有本地 skill 都显式继承了统一终局协议，
-而不是只依赖少数核心 skill 的局部文案。
+### Requirement: Validation distinguishes normal completion from legacy terminal choices
+验证 MUST 覆盖所有本地 workflow 对共享完成规则的继承，并区分普通完成与
+显式启用的 version 1 集成；不得要求每个 Skill 复制旧终局协议。
 
-#### Scenario: A local skill omits explicit terminal endgate guidance
-- **WHEN** prompt-contract 测试审计本地 skill 文件集合
-- **THEN** 如果任一 skill 缺少显式的终局协议区块、缺少
-  `request_user_input` 终局要求，或仍把 tool-backed terminal-choice 写成固定的
-  `1. 结束 / 2. 继续 / 3. 自由输入`
-- **THEN** 测试 MUST 失败
+#### Scenario: Normal completion does not require a terminal popup
+- **WHEN** 本次报告、审查或实现及相称验证已完成，且未启用 legacy integration
+- **THEN** 验证 MUST 接受直接交付结果，不要求 packet 或 request_user_input
+- **AND** MUST 将无必要的结束/继续门禁视为回归
+
+#### Scenario: Loading instructions does not enable legacy mode
+- **WHEN** transcript 只有加载 Skill、读取规范或启用显示 wrapper 的事件
+- **THEN** 验证 MUST NOT 将这些事件当成 version 1 集成已获授权的证据
+- **AND** MUST NOT 把普通完成误报为 missing canonical carrier
 
 #### Scenario: Terminal-choice fixture authored payload keeps only explicit end and continue options
-- **WHEN** transcript fixture 验证 Codex tool-backed terminal-choice payload
+- **WHEN** 显式 legacy integration 或历史 fixture 回放验证 Codex terminal-choice payload
 - **THEN** assistant-authored options MUST 只包含 `结束 (Recommended)` 与 `继续`
 - **AND** 测试 MUST NOT 把客户端自动追加的 free-form `Other/notes` 路径误判为
   assistant-authored payload 缺失
@@ -83,14 +94,21 @@ TBD - created by archiving change decouple-prose-from-workflow-protocols. Update
 - **THEN** 测试 MUST 证明该子任务未触发 TDD
 - **AND** MUST 证明该子任务未被 workflow terminal-choice popup 拦截
 
-### Requirement: Validation catches contingent-authorization prose-only endings
-自动化验证 MUST 覆盖条件式授权场景，防止系统在正向判断后再次退回
-prose-only 的自由文本收口。
+### Requirement: Conditional authorization preserves scoped completion
+自动化验证 MUST 区分条件式授权下仍需执行的工作、已完成的请求和未生效的授权，
+不得把条件判断本身转换为终局弹窗要求。
 
-#### Scenario: Guidance reintroduces a contingent-authorization free-text ending
-- **WHEN** skill 文案或文档重新出现“条件成立后用自由文本结论块结束当前 turn”
-  的规则或示例
-- **THEN** prompt-contract 验证 MUST 失败，并指出该路径不符合统一终局协议
+#### Scenario: A satisfied condition leaves authorized work
+- **WHEN** 授权条件成立且仍有安全、获准的后续工作
+- **THEN** 验证 MUST 要求继续执行，不接受只报告正向判断或重复询问是否继续
+
+#### Scenario: A conditional request is complete
+- **WHEN** 本次授权任务及相称验证均已完成
+- **THEN** 验证 MUST 接受直接交付结果，不要求额外的结束/继续门禁
+
+#### Scenario: An unmet condition does not authorize continuation
+- **WHEN** 条件不成立
+- **THEN** 验证 MUST 确认系统未执行依赖该条件的步骤，并接受判断依据及限制的报告
 
 ### Requirement: Validation audits governed bugfix context recovery guidance
 自动化验证 MUST 能够确认 governed bugfix 不会跳过既有 OpenSpec 设计资产，
@@ -98,34 +116,34 @@ prose-only 的自由文本收口。
 
 #### Scenario: Bugfix guidance omits existing OpenSpec artifact recovery
 - **WHEN** prompt-contract 测试审计 governed bugfix 相关 guidance
-- **THEN** 如果文案没有明确要求识别既有 change 并读取
-  `proposal.md`、`design.md`、`specs/*`、`tasks.md`
-- **THEN** 测试 MUST 失败
+- **THEN** 测试 MUST 确认指导要求识别既有 change，并恢复相关需求、设计约束与任务状态
+- **AND** MUST NOT 要求每次通读所有工件或重复读取未变化的上下文
 
 ### Requirement: Validation audits OpenSpec apply and archive auto-continuation
 自动化验证 MUST 能够确认已知的 OpenSpec lane 下一步不会被降级成泛化的
-继续/结束交互。
+继续/结束交互，前提是该步骤属于本次授权范围且所需条件已满足。
 
 #### Scenario: Guidance reintroduces generic continue/stop gating before apply or archive
 - **WHEN** prompt-contract 测试审计 OpenSpec continuation guidance
+- **AND** 下一步已授权、条件满足且无实质用户决策
 - **THEN** 如果文案把已知的 `openspec-apply-change` 或
   `openspec-archive-change` 下一步重新写成 generic continue/stop
   prompt、recommendation-only 结束、或只建议不续跑
 - **THEN** 测试 MUST 失败
 
-#### Scenario: Guidance allows a created OpenSpec change to finish without archive
-- **WHEN** prompt-contract 测试审计 created OpenSpec proposal / change 的终局规则
-- **AND** 当前 guidance 涉及“创建 proposal 后的最终完成边界”
-- **THEN** 如果文案允许 assistant 在最终完成时跳过
-  `openspec-archive-change`
-- **OR** 允许以 recommendation-only prose、generic continue/stop、
-  或普通 terminal-choice 结束该 change
-- **OR** 没有把“创建过 proposal 后未归档”判定为测试失败
-- **THEN** 测试 MUST 失败
+#### Scenario: Partial completion leaves the change open
+- **WHEN** 用户仅要求修复一个回归或执行计划子集，且该范围已完成
+- **THEN** 验证 MUST 接受本次交付并确认较大的 change 仍保持开放
+- **AND** 自动执行无关任务、提前归档或把局部通过称为整体完成 MUST 失败
+
+#### Scenario: Authorized closure continues to archive
+- **WHEN** 用户授权完整收尾，change 已完成且所需审查、最终集成、规范同步和归档能力均满足
+- **THEN** 验证 MUST 确认自动继续已授权归档，不新增继续/结束门禁
+- **AND** 只有 proposal 已创建、PR 尚未合并或缺少归档授权时，不得据此要求归档
 
 ### Requirement: Validation audits runtime prose-endgate leaks from Codex transcripts
-自动化验证 MUST 能够直接从 Codex `.jsonl` transcript 或等价结构化事件中审计 runtime endgate
-是否合法，而不能只验证文档里是否写有禁止 prose-only 结束的 guidance。
+version 1 兼容验证 MUST 能够从显式 legacy integration 或历史回放的 Codex `.jsonl`
+transcript 审计 runtime endgate，不能只验证禁止 prose-only 结束的文案。
 
 #### Scenario: Packet-driven validation rejects an undeclared or unfulfilled ending
 - **WHEN** 验证器读取一个 transcript fixture
@@ -144,6 +162,7 @@ prose-only 的自由文本收口。
 
 #### Scenario: Legacy invitation leak still fails when the carrier is absent
 - **WHEN** 验证器读取一个 transcript fixture
+- **AND** fixture 明确属于 legacy 集成或历史事故回放
 - **AND** 当前 turn 尚未发出 canonical endgate carrier
 - **AND** 同一 turn 中最后一条 assistant 文本属于具体下一步邀请型 prose
 - **AND** 该 turn 随后直接发生 `task_complete`
@@ -152,7 +171,7 @@ prose-only 的自由文本收口。
 - **AND** 该路径 SHALL 作为 legacy prose safety net 被继续拦截
 
 #### Scenario: Strict packet lanes fail when the transcript never emits a canonical carrier
-- **WHEN** 验证器读取的 transcript 属于本仓库当前 packetized local workflow lane
+- **WHEN** 验证器读取的 transcript 明确属于已启用的兼容 strict packet lane
 - **AND** 当前 turn 既没有结构化 endgate carrier，也没有可解析 tail block
 - **THEN** 验证 MUST 失败
 - **AND** MUST 优先报告 missing canonical carrier，而不是把缺失 carrier 当成可接受的 prose-only 分支
@@ -169,14 +188,14 @@ prose-only 的自由文本收口。
 - **THEN** runtime endgate audit MUST 失败
 - **AND** MUST 将其归类为 imported-skill / prose-only endgate drift 的负样本
 
-### Requirement: Validation MUST audit repo-managed override guidance for imported ending stances
-prompt-contract 验证 MUST 确认本仓库自己管理的 bootstrap、核心 workflow entry skill 与主要使用文档，已经显式声明 imported / lower-priority skill ending guidance 不能削弱 strict packet mode。
+### Requirement: Validation respects host priority when importing skill guidance
+prompt-contract 验证 MUST 确认 bootstrap、workflow 入口与使用文档服从宿主优先级、
+用户范围和工具可用性。显式 legacy 协议也不得覆盖更高优先级指令。
 
-#### Scenario: Repo-managed bootstrap omits the imported-skill override
+#### Scenario: A stricter imported instruction conflicts with the host
 - **WHEN** prompt-contract 测试审计 `.codex/instruction.md`、`skills/using-superpowers/SKILL.md` 或相关 Codex 使用文档
-- **AND** 这些文件没有明确写出 imported / lower-priority ending guidance override
-- **OR** 没有覆盖 `no required ending`、`just provide clarity`、`continue later` 这类 imported stance 示例
-- **THEN** 测试 MUST 失败
+- **THEN** 测试 MUST 拒绝“Skill 覆盖系统规则”或“更严格即优先”的规定
+- **AND** MUST 确认缺少或禁止 choice tool 时允许宿主支持的普通交互
 
 ### Requirement: Validation audits reviewer dispatch contracts
 自动化验证 MUST 能够审计 reviewer 派发相关的 prompt/docs contract，
@@ -187,6 +206,11 @@ prompt-contract 验证 MUST 确认本仓库自己管理的 bootstrap、核心 wo
 - **WHEN** 仓库运行 reviewer 相关的 prompt-contract 测试
 - **THEN** 测试 MUST 断言 reviewer 派发以只读方式运行
 - **AND** MUST 断言平台特定的 reviewer 模型选择合同存在
+
+#### Scenario: Reviewer receives a partial plan assignment
+- **WHEN** 只有部分计划任务属于本次请求
+- **THEN** 验证 MUST 确认 REVIEW_SCOPE 随计划、diff 与验收条件一起传给 reviewer
+- **AND** MUST 覆盖延期任务不算缺失功能、获准任务的真实缺陷仍被报告两个方向
 
 ### Requirement: Validation audits current-workspace execution contracts
 自动化验证 MUST 能审计现行 workflow 已将“当前工作区默认执行”收敛为正式合同，并把 worktree 从默认前置降为显式 opt-in 能力。
@@ -243,10 +267,11 @@ packet 字段与 popup 结构，而不是 prose 文案，来区分
 ### Requirement: Validation MUST audit OpenSpec lane-entry ordering from transcripts
 自动化验证 MUST 能从 transcript fixture 中识别 OpenSpec lane decision、
 ordinary design/plan docs 创建，以及 OpenSpec change 创建等关键顺序证据，
-并把“先写普通 docs，后做 lane confirmation”判定为失败。
+并在正式记录归属尚未解决且会实质影响工作时，拒绝先创建冲突文档。
 
 #### Scenario: Negative fixture fails when ordinary docs precede lane confirmation
 - **WHEN** 验证器读取一个 session-shaped transcript fixture
+- **AND** fixture 的场景明确要求先解决正式记录归属
 - **AND** 该 fixture 中普通设计文档或普通计划文档的创建事件早于
   OpenSpec lane confirmation
 - **THEN** 验证 MUST 失败
@@ -254,28 +279,33 @@ ordinary design/plan docs 创建，以及 OpenSpec change 创建等关键顺序�
 
 #### Scenario: Positive fixture passes when lane confirmation happens first
 - **WHEN** 验证器读取一个 session-shaped transcript fixture
+- **AND** 存在影响正式记录归属的未决问题
 - **AND** 该 fixture 中 assistant 先完成 OpenSpec lane confirmation
 - **AND** 之后才创建普通 docs fallback 或 OpenSpec change
 - **THEN** 验证 MUST 通过
 - **AND** MUST 将 lane decision 顺序视为合法
 
+#### Scenario: An existing authorized lane needs no confirmation
+- **WHEN** 用户已经指定 change 或已批准正式记录位置
+- **THEN** 验证 MUST 允许直接继续对应工作，不要求新的 lane confirmation
+- **AND** 无治理要求的明确低风险任务也不得被强制创建 proposal
+
 ### Requirement: Validation MUST audit unresolved lane guards across downstream skills
 自动化验证 MUST 覆盖 `brainstorming` 与 `writing-plans` 的 unresolved lane guard，
-防止仓库再次退回到“只有入口 skill 知道要问 OpenSpec，下游 skill 仍会先写 docs”
-的状态。
+防止实质记录归属未决时提前创建重复设计真相源；已选定的路线不得再次审批。
 
 #### Scenario: Prompt-contract fails if brainstorming omits unresolved lane guard
 - **WHEN** prompt-contract 测试审计 `skills/brainstorming/SKILL.md`
-- **AND** 文案未明确要求在 unresolved OpenSpec lane 时阻断普通设计文档
+- **AND** 文案允许在正式记录归属实质未决时创建冲突设计文档
 - **THEN** 测试 MUST 失败
 
 #### Scenario: Prompt-contract fails if writing plans omits unresolved lane guard
 - **WHEN** prompt-contract 测试审计 `skills/writing-plans/SKILL.md`
-- **AND** 文案未明确要求在 unresolved OpenSpec lane 时阻断普通计划文档
+- **AND** 文案允许在正式记录归属实质未决时创建冲突计划文档
 - **THEN** 测试 MUST 失败
 
 #### Scenario: Prompt-contract keeps the entry guard and downstream guards aligned
 - **WHEN** prompt-contract 测试同时审计 `using-superpowers`、`brainstorming`
   与 `writing-plans`
 - **THEN** 测试 MUST 确认三者都表达出相同的核心约束：
-  重要变更在 lane decision 完成前不得先写普通 docs
+  只对会实质影响正式记录归属的未决问题设置门禁，已授权路线直接复用

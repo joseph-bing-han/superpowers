@@ -5,31 +5,35 @@ description: Use when completing tasks, implementing major features, or before m
 
 # Requesting Code Review
 
-Dispatch a code reviewer subagent to catch issues before they cascade. The reviewer gets precisely crafted context for evaluation — never your session's history. This keeps the reviewer focused on the work product, not your thought process, and preserves your own context for continued work.
+Use an independent code reviewer for complex, high-risk, or shared behavior when available and authorized. Provide task-specific review context rather than session history. For narrow changes, self-review can suffice; disclose unavailable independent review when material. Do not change global configuration to enable reviewers.
 
 **Core principle:** Review early, review often.
 
 ## When to Request Review
 
-**Mandatory:**
-- After all plan tasks complete and their own verifications pass
-- After completing major feature
-- Before merge to main
+**Review required, with depth proportionate to risk:**
+- Before claiming the in-scope plan tasks are complete
+- After completing a major feature or shared-contract change
+- Before authorized integration into the target branch
 
 **Optional but valuable:**
 - When stuck (fresh perspective)
 - Before refactoring (baseline check)
 - After fixing complex bug
 
-Review once per plan, not once per task. Per-task verification already catches
+Review the complete authorized task set together. Per-task verification already catches
 real errors where they happen; a reviewer after every task adds round trips
 without adding much protection.
 
 ## How to Request
 
-**1. Get git SHAs:**
+**1. Identify the complete review scope:**
 
-Cover the whole plan, not the last task:
+Identify the authorized tasks and acceptance criteria before selecting the diff.
+Pass the whole plan as context, with an explicit `REVIEW_SCOPE` listing the
+authorized task IDs, acceptance criteria, and deferred or excluded tasks.
+If the request covers the whole plan, say so. Review every in-scope task together;
+the presence of other plan tasks does not make them part of this assignment.
 
 ```bash
 BASE_SHA=$(git rev-parse <commit before the first task>)  # or origin/main
@@ -40,6 +44,8 @@ If you captured the baseline before executing the plan, use that value. If not,
 find the commit that precedes the first task's commit — not `HEAD~1`, which
 covers only the most recent task.
 
+Also inspect `git status --short`, `git diff --cached`, `git diff`, and in-scope untracked files. A commit range alone omits work that has not been committed. Give the reviewer the baseline, exact relevant paths, and all these changes, clearly separating pre-existing user edits. Do not create a commit solely for review.
+
 **2. Dispatch code reviewer subagent:**
 
 Fill the template at `code-reviewer.md`. For reviewer model selection per
@@ -48,12 +54,14 @@ equivalent reference for your platform.
 
 **Placeholders:**
 - `{DESCRIPTION}` - Brief summary of what you built
-- `{PLAN_OR_REQUIREMENTS}` - Path to the plan; pass the whole plan, since it is the standard the work is judged against
+- `{PLAN_OR_REQUIREMENTS}` - The relevant requirements or whole plan for context
+- `{REVIEW_SCOPE}` - Authorized task IDs or requirements, acceptance criteria, and deferred or excluded tasks; explicitly say when all plan tasks are in scope
 - `{BASE_SHA}` - Commit before the first task
-- `{HEAD_SHA}` - Ending commit
+- `{HEAD_SHA}` - Ending commit, supplemented by in-scope staged, unstaged, and untracked contents
+- `{WORKING_TREE_SCOPE}` - Exact in-scope paths and staged/unstaged/untracked contents
 
 **3. Act on feedback:**
-- Fix all Critical and Important issues together
+- Fix all valid Critical and Important issues affecting the authorized deliverable; do not implement deferred tasks to satisfy a review of the wrong scope
 - Note Minor issues for later
 - Re-review after the fixes
 - Push back if reviewer is wrong (with reasoning)
@@ -71,16 +79,17 @@ HEAD_SHA=$(git rev-parse HEAD)
 [Dispatch code reviewer subagent]
   DESCRIPTION: Deployment index verification and repair, tasks 1-5
   PLAN_OR_REQUIREMENTS: docs/superpowers/plans/deployment-plan.md
+  REVIEW_SCOPE: Tasks 1-5 and their acceptance criteria; no deferred tasks
   BASE_SHA: a7981ec
   HEAD_SHA: 3df7661
 
 [Subagent returns]:
-  Strengths: Clean architecture, real tests
-  Coverage: verified tasks 1-5 against the diff
   Issues:
     Important: Missing progress indicators (task 3)
     Important: Task 4 left repairIndex() unreachable after the task 5 refactor
     Minor: Magic number (100) for reporting interval
+  Coverage: verified tasks 1-5 against the complete diff
+  Strengths: Clean architecture, real tests
   Assessment: With fixes
 
 You: [Fix both Important issues together]
@@ -93,8 +102,8 @@ was internally correct, but task 5 stranded task 4's code.
 ## Integration with Workflows
 
 **Executing Plans:**
-- Review once, after every task is complete and verified
-- Pass the whole plan as the reference standard
+- Review once, after every in-scope task is complete and verified
+- Pass the whole plan as context and the authorized subset as the completion standard
 - Fix all Critical and Important issues together, then re-review
 
 **Ad-Hoc Development:**
@@ -104,9 +113,9 @@ was internally correct, but task 5 stranded task 4's code.
 ## Red Flags
 
 **Never:**
-- Skip review because "it's simple"
+- Skip proportionate self-review or project-required review
 - Ignore Critical issues
-- Finish a branch or merge with unfixed Important issues
+- Claim readiness or merge with unfixed Important issues; reporting and preserving incomplete work remain valid
 - Argue with valid technical feedback
 
 **If reviewer wrong:**
@@ -116,27 +125,8 @@ was internally correct, but task 5 stranded task 4's code.
 
 See template at: requesting-code-review/code-reviewer.md
 
-## Terminal Endgate Protocol
+## Completion
 
-If this skill reaches a terminal boundary where the current request appears complete:
-- This skill must not end the conversation directly with prose, `task_complete`, or a typed free-form prompt.
-- Treat this terminal boundary as strict `endgate-state-packet` territory; a canonical machine-readable carrier is mandatory, not optional guidance.
-- Ensure the canonical machine-readable carrier contains this exact packet before the next machine action:
-```text
-ENDGATE_PROTOCOL_VERSION: 1
-ENDGATE_STATE: TERMINAL_CHOICE
-ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
-ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
-```
-- In strict packet mode, a canonical machine-readable carrier must exist before the next machine action.
-- Prefer a structured carrier when the runtime supports it; a user-visible tail block remains only a fallback.
-- Route true completion through `terminal-choice`.
-- The very next action must be `request_user_input`.
-- In Codex tool-backed terminal-choice popups, author only:
-  1. 结束 (Recommended)
-  2. 继续
-- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
-- Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
-- A completed assessment, audit, comparison, review, recommendation memo, or research report is still a terminal boundary. After presenting that deliverable, emit the `TERMINAL_CHOICE` packet and immediately call `request_user_input`; a bare closeout such as `结论`, `最终判断`, `我的推荐`, or `这轮我没有改代码，只做了……` is still invalid if it ends the turn directly.
-- Concrete invitation prose such as `如果你同意，我下一步可以直接按这个推荐方案 A 开始修。` must resolve through `request_user_input` or `auto-continue`, never `task_complete`.
-- If the next safe step is already implied, use the relevant non-terminal continuation path instead of stopping at terminal-choice.
+Follow the shared completion rules in `using-superpowers`: continue safe,
+authorized work; ask only about a genuine blocker or decision; deliver completed
+requests directly with evidence and limitations. Legacy packet mode is opt-in.

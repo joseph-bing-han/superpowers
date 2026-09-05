@@ -1,15 +1,15 @@
 ---
 name: writing-plans
-description: Use when you have a spec or requirements for a multi-step task, before touching code
+description: Use when an approved design, complex dependencies, or an explicit planning request warrants an implementation plan; not for every small edit
 ---
 
 # Writing Plans
 
 ## Overview
 
-Write comprehensive implementation plans assuming the engineer has zero context for our codebase and questionable taste. Document everything they need to know: which files to touch for each task, code, testing, docs they might need to check, how to test it. Give them the whole plan as bite-sized tasks. DRY. YAGNI. TDD. Frequent commits.
+Write implementation plans with enough context for the actual executor: affected files, ordered steps, dependencies, acceptance checks, and material risks. Scale detail to uncertainty and handoff needs; a small local change can use a short in-session plan without a new document.
 
-Assume they are a skilled developer, but know almost nothing about our toolset or problem domain. Assume they don't know good test design very well.
+Reuse an existing approved plan or design when it still matches the request. Do not add implementation scope just to fill a template.
 
 **Announce at start:** "I'm using the writing-plans skill to create the implementation plan."
 
@@ -17,11 +17,11 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 If the user explicitly requested an isolated workspace or worktree, honor that request.
 Otherwise, do not create or switch to a separate worktree just to start planning.
 
-**Save plans to:** the structured plan directory selected below (for example `docs/plans/YYYY-MM-DD-<feature-name>.md` or `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`)
+**When a persistent plan is requested or required by project governance, save it to:** the structured plan directory selected below (for example `docs/plans/YYYY-MM-DD-<feature-name>.md` or `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`)
 - Only an explicit path from the user or scoped instructions overrides this structured-directory rule
 
 **When operating in an OpenSpec-governed lane:**
-- Read the relevant OpenSpec artifacts first (`proposal.md`, `design.md`, `specs/*`, `tasks.md`)
+- Read the selected tasks and relevant scope, design, and spec sections. Expand to other OpenSpec artifacts only when dependencies or ambiguity require it; reuse unchanged context.
 - Treat OpenSpec as the canonical source for scope, design, and requirements
 - Write only the execution-level plan here; do NOT create a duplicate scope/design spec
 
@@ -42,14 +42,7 @@ Rules:
 
 ## OpenSpec Lane Safety Gate
 
-If `writing-plans` is reached while the work still looks like an important change that probably belongs in OpenSpec, and the lane has not yet been resolved, `writing-plans` must not silently write an ordinary plan document.
-
-- If there is no explicit existing change and the user has not explicitly chosen the ordinary-docs fallback, you MUST NOT write ordinary plan docs yet（不得先写普通计划文档）.
-- In that unresolved state, you MUST use `request_user_input` to run lane confirmation first.
-- Slot `1` remains `创建 OpenSpec 提案 (Recommended)`.
-- Slot `2` remains the explicit ordinary-docs fallback.
-- Only after the user explicitly chooses the ordinary-docs fallback may `writing-plans` create a normal execution plan outside OpenSpec.
-- If an active or existing OpenSpec change is already known, stay in the governed lane and use OpenSpec artifacts as the planning context instead of treating the missing fallback choice as permission to write an ordinary plan.
+Use `spec-governed-development` when project governance, an explicit change, or material cross-boundary risk requires it. An existing governed change remains canonical. Do not ask the user to choose a lane merely because work has several steps; ask only when the choice materially changes scope, authority, or the required durable record. Detect available tooling before relying on it and never install missing tools implicitly.
 
 ## Scope Check
 
@@ -68,16 +61,16 @@ This structure informs the task decomposition. Each task should produce self-con
 
 ## Bite-Sized Task Granularity
 
-**Each step is one action (2-5 minutes):**
+**Group steps into coherent, independently verifiable units; no fixed duration is required.** For a behavior change, a useful sequence is:
 - "Write the failing test" - step
 - "Run it to make sure it fails" - step
 - "Implement the minimal code to make the test pass" - step
 - "Run the tests and make sure they pass" - step
-- "Commit" - step
+- "Commit" - only when separately authorized, usually at a coherent change boundary
 
 ## Plan Document Header
 
-**Every plan MUST start with this header:**
+**Suggested persistent plan header (adapt to project conventions):**
 
 ```markdown
 # [Feature Name] Implementation Plan
@@ -136,7 +129,7 @@ def function(input):
 Run: `pytest tests/path/test.py::test_name -v`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Commit, only if authorized**
 
 ```bash
 git add tests/path/test.py src/path/file.py
@@ -149,121 +142,47 @@ so that a task's dependencies always appear before it.
 
 ## No Placeholders
 
-Every step must contain the actual content an engineer needs. These are **plan failures** — never write them:
+Every step must be actionable and identify its acceptance condition. Avoid unresolved placeholders that block execution:
 - "TBD", "TODO", "implement later", "fill in details"
 - "Add appropriate error handling" / "add validation" / "handle edge cases"
-- "Write tests for the above" (without actual test code)
-- "Similar to Task N" (repeat the code — the engineer may be reading tasks out of order)
-- Steps that describe what to do without showing how (code blocks required for code steps)
+- "Write tests for the above" without naming the behavior, cases, and test location
+- References to earlier tasks without enough context to resolve their dependency
+- Vague implementation instructions without a concrete target or acceptance condition
 - References to types, functions, or methods not defined in any task
 
 ## Remember
 - Exact file paths always
-- Complete code in every step — if a step changes code, show the code
+- Include code when it resolves a subtle contract or makes a handoff executable; concise descriptions and references suffice for straightforward changes
 - Exact commands with expected output
-- Reference relevant skills with @ syntax
+- Name relevant skills without force-loading their references
 - If OpenSpec governs the change, use OpenSpec artifacts as inputs and keep this document execution-only
-- DRY, YAGNI, TDD, frequent commits
+- DRY, YAGNI, TDD for behavior changes; commits require authorization
 
 ## Plan Review Loop
 
 After writing the complete plan:
 
-1. Dispatch a single plan-document reviewer (see plan-document-reviewer-prompt.md) with precisely crafted review context — never your session history. This keeps the reviewer focused on the plan, not your thought process.
+1. For complex, high-risk, or cross-boundary plans, use an independent plan-document reviewer when available and authorized (see plan-document-reviewer-prompt.md), with precisely crafted review context rather than session history. For narrow plans, self-review is sufficient; disclose missing independent review when it affects confidence.
    - In a **Superpowers-only lane**, provide: path to the plan document, path to spec document
    - In an **OpenSpec-governed lane**, provide: path to the plan document, plus the relevant OpenSpec artifact paths (`proposal.md`, `design.md`, relevant `specs/*`, `tasks.md`)
-2. If ❌ Issues Found: fix the issues, then review the whole plan again
+2. If Issues Found: resolve material issues and recheck affected sections and dependencies
 3. If ✅ Approved: proceed to execution handoff
 
 **Review loop guidance:**
 - Same agent that wrote the plan fixes it (preserves context)
-- If loop exceeds 3 iterations, surface to human for guidance
+- Repeated review churn is a signal to reassess the disputed assumption; ask the user only when a material unresolved choice needs their judgment
 - Reviewers are advisory — explain disagreements if you believe feedback is incorrect
 
 ## Execution Handoff
 
-If the execution path is already clear, continue automatically. If the user asked for end-to-end completion and the path is already implied by consent state, tool availability, or the surrounding workflow, do not pause after saving the plan just to ask whether to continue. Saving the plan is not a reason by itself to stop.
+If the user requested a plan only or review before implementation, deliver the
+plan and wait. If execution is already authorized and the path is clear, continue
+with `executing-plans`; saving the plan is not a reason by itself to stop.
+Conditional authorization takes effect when its condition is satisfied.
 
-Before ending this handoff, classify the handoff as `auto-continue`, `needs-user-decision`, or `terminal-choice`.
+Ask only when a material decision, missing information or new authority changes
+the next step. Use the host's supported interaction path, with a concise
+plain-text question when a choice tool is unavailable or prohibited.
 
-- `auto-continue`: the execution path is already implied and safe; proceed immediately
-- `needs-user-decision`: a real execution choice remains; use `request_user_input`
-- `terminal-choice`: the requested work truly ends at planning, but do not end directly; use `request_user_input`
-- In Codex tool-backed terminal-choice popups, author only:
-  1. 结束 (Recommended)
-  2. 继续
-- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option
-- For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
-- Every execution handoff in this repository is carrier-backed; treat the last canonical carrier plus its post-carrier event window as the governing runtime contract for that boundary.
-- Earlier same-turn tool calls do not satisfy a later canonical carrier; prose invitation matching remains only a fallback safety net when no carrier exists.
-- In strict packet mode, a canonical machine-readable carrier must exist before the next machine action.
-- Prefer a structured carrier when the runtime supports it; a user-visible tail block remains only a fallback.
-- At every execution handoff in this repository, ensure the canonical machine-readable carrier contains this exact packet before the next machine action:
-```text
-ENDGATE_PROTOCOL_VERSION: 1
-ENDGATE_STATE: AUTO_CONTINUE | NEEDS_USER_DECISION | TERMINAL_CHOICE
-ENDGATE_CHOICE_KIND: NONE | SPECIFIC_NEXT_STEP | CONTINUE_OR_STOP
-ENDGATE_NEXT_ACTION: CONTINUE_WITH_TOOL | REQUEST_USER_INPUT
-```
-- Canonical packet pairings:
-  - `AUTO_CONTINUE` -> `NONE` + `CONTINUE_WITH_TOOL`
-  - `NEEDS_USER_DECISION` -> `SPECIFIC_NEXT_STEP` + `REQUEST_USER_INPUT`
-  - `TERMINAL_CHOICE` -> `CONTINUE_OR_STOP` + `REQUEST_USER_INPUT`
-- `AUTO_CONTINUE`: ensure the canonical carrier records this packet, then immediately enter the already implied execution path.
-- `NEEDS_USER_DECISION`: ensure the canonical carrier records this packet, then immediately call `request_user_input` with the concrete execution-path options.
-- `TERMINAL_CHOICE`: ensure the canonical carrier records this packet, then immediately call `request_user_input` with only `结束 (Recommended)` and `继续`.
-- When this handoff reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
-- Do not produce a plain final-answer-style closeout before the terminal-choice popup.
-- A settled recommendation, final draft, or final summary is still not permission to end directly.
-- Do not call `task_complete` while the terminal-choice popup is still pending.
-
-When a real execution choice is still needed after saving the plan, offer execution choice:
-
-```text
-Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Choose the execution path:
-
-1. Execute the plan now (recommended)
-2. Stop here for now
-```
-
-When `request_user_input` is available, use it for this execution handoff because the choices are known and enumerable.
-Treat free-form requirements as the client-provided `Other` / notes path rather than authoring an extra slot for free text.
-Keep a final free-text path only for requirements that do not fit the listed execution choices.
-Do not ask for a prose-only `reply 1/2/3` response in this handoff when `request_user_input` is available.
-If the only remaining real decision is continue vs stop, ask that through `request_user_input`; otherwise ask the more specific execution-path choice instead of collapsing it into a generic continue/stop prompt.
-Do not end this handoff with prose-only follow-up text like `if you want me to execute next`.
-Do not end this handoff with a declarative prose-only next-step proposal like `the next step is for me to execute task 1` or `the next best step is to execute inline`.
-This also includes judgment-framed, comparative, or recommendation-framed execution endings, including Chinese variants such as `如果按我的判断，下一步应该先……`, `下一步最值得做的不是 A，而是 B`, `接下来更值得做的是……`, or `我建议先……`
-If you can already describe the next safe execution step concretely, do it instead of narrating it and stopping.
-Either continue automatically on the already-implied execution path or use `request_user_input` when a real execution choice remains.
-If the execution path is already clear, continue automatically with `executing-plans`.
-Do not pause after saving the plan just to ask whether to continue.
-
-**If execution proceeds:**
-- **REQUIRED SUB-SKILL:** Use superpowers:executing-plans
-- Batch execution with checkpoints for review
-
-## Terminal Endgate Protocol
-
-If this skill reaches a terminal boundary where the current request appears complete:
-- This skill must not end the conversation directly with prose, `task_complete`, or a typed free-form prompt.
-- Treat this terminal boundary as strict `endgate-state-packet` territory; a canonical machine-readable carrier is mandatory, not optional guidance.
-- Ensure the canonical machine-readable carrier contains this exact packet before the next machine action:
-```text
-ENDGATE_PROTOCOL_VERSION: 1
-ENDGATE_STATE: TERMINAL_CHOICE
-ENDGATE_CHOICE_KIND: CONTINUE_OR_STOP
-ENDGATE_NEXT_ACTION: REQUEST_USER_INPUT
-```
-- In strict packet mode, a canonical machine-readable carrier must exist before the next machine action.
-- Prefer a structured carrier when the runtime supports it; a user-visible tail block remains only a fallback.
-- Route true completion through `terminal-choice`.
-- The very next action must be `request_user_input`.
-- In Codex tool-backed terminal-choice popups, author only:
-  1. 结束 (Recommended)
-  2. 继续
-- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
-- Do not produce a plain final-answer-style closeout or any other prose-only closeout before the terminal-choice popup.
-- A completed assessment, audit, comparison, review, recommendation memo, or research report is still a terminal boundary. After presenting that deliverable, emit the `TERMINAL_CHOICE` packet and immediately call `request_user_input`; a bare closeout such as `结论`, `最终判断`, `我的推荐`, or `这轮我没有改代码，只做了……` is still invalid if it ends the turn directly.
-- Concrete invitation prose such as `如果你同意，我下一步可以直接按这个推荐方案 A 开始修。` must resolve through `request_user_input` or `auto-continue`, never `task_complete`.
-- If the next safe step is already implied, use the relevant non-terminal continuation path instead of stopping at terminal-choice.
+Follow the shared completion rules in `using-superpowers`. Completed planning
+requests are delivered directly. Legacy packet mode is opt-in.

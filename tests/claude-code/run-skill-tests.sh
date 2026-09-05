@@ -6,22 +6,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-echo "========================================"
-echo " Claude Code Skills Test Suite"
-echo "========================================"
-echo ""
-echo "Repository: $(cd ../.. && pwd)"
-echo "Test time: $(date)"
-echo "Claude version: $(claude --version 2>/dev/null || echo 'not found')"
-echo ""
-
-# Check if Claude Code is available
-if ! command -v claude &> /dev/null; then
-    echo "ERROR: Claude Code CLI not found"
-    echo "Install Claude Code first: https://code.claude.com"
-    exit 1
-fi
-
 # Parse command line arguments
 VERBOSE=false
 SPECIFIC_TEST=""
@@ -35,10 +19,18 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --test|-t)
+            if [ $# -lt 2 ] || [[ "$2" == -* ]]; then
+                echo "ERROR: --test requires a test filename"
+                exit 1
+            fi
             SPECIFIC_TEST="$2"
             shift 2
             ;;
         --timeout)
+            if [ $# -lt 2 ] || ! [[ "$2" =~ ^[1-9][0-9]*$ ]]; then
+                echo "ERROR: --timeout requires a positive integer"
+                exit 1
+            fi
             TIMEOUT="$2"
             shift 2
             ;;
@@ -58,6 +50,10 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Integration Tests (use --integration):"
             echo "  test-requesting-code-review.sh  Full workflow execution"
+            echo "  test-document-review-system.sh Document reviewer behavior"
+            echo "  test-reviewer-contract-drift.sh Reviewer language/style variants"
+            echo ""
+            echo "No fast suite is selected by default. Use --integration or --test."
             exit 0
             ;;
         *)
@@ -68,23 +64,38 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# List of skill tests to run (fast unit tests)
-tests=()
-
 # Integration tests (slow, full execution)
 integration_tests=(
     "test-requesting-code-review.sh"
+    "test-document-review-system.sh"
+    "test-reviewer-contract-drift.sh"
 )
 
-# Add integration tests if requested
-if [ "$RUN_INTEGRATION" = true ]; then
-    tests+=("${integration_tests[@]}")
-fi
-
-# Filter to specific test if requested
 if [ -n "$SPECIFIC_TEST" ]; then
     tests=("$SPECIFIC_TEST")
+elif [ "$RUN_INTEGRATION" = true ]; then
+    tests=("${integration_tests[@]}")
+else
+    echo "STATUS: NOT RUN - no tests selected; use --integration or --test NAME"
+    exit 1
 fi
+
+if ! command -v claude >/dev/null 2>&1; then
+    echo "ERROR: Claude Code CLI not found; integration tests were not run"
+    exit 1
+fi
+if ! command -v timeout >/dev/null 2>&1; then
+    echo "ERROR: timeout command not found; integration tests were not run"
+    exit 1
+fi
+
+echo "========================================"
+echo " Claude Code Skills Test Suite"
+echo "========================================"
+echo "Repository: $(cd ../.. && pwd)"
+echo "Test time: $(date)"
+echo "Claude version: $(claude --version 2>/dev/null || echo 'unavailable')"
+echo ""
 
 # Track results
 passed=0
@@ -103,11 +114,6 @@ for test in "${tests[@]}"; do
         echo "  [SKIP] Test file not found: $test"
         skipped=$((skipped + 1))
         continue
-    fi
-
-    if [ ! -x "$test_path" ]; then
-        echo "  Making $test executable..."
-        chmod +x "$test_path"
     fi
 
     start_time=$(date +%s)
@@ -173,7 +179,7 @@ if [ "$RUN_INTEGRATION" = false ] && [ ${#integration_tests[@]} -gt 0 ]; then
     echo ""
 fi
 
-if [ $failed -gt 0 ]; then
+if [ "$failed" -gt 0 ] || [ "$skipped" -gt 0 ] || [ "$passed" -eq 0 ]; then
     echo "STATUS: FAILED"
     exit 1
 else

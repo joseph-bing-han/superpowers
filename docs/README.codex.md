@@ -72,118 +72,67 @@ Codex has native skill discovery — it scans `~/.agents/skills/` at startup, pa
 
 The `using-superpowers` skill is discovered automatically and enforces skill usage discipline — no additional configuration needed.
 All discoverable skills, including `spec-governed-development`, live under the `skills/` tree at `~/.codex/superpowers/skills`; no separate root-level skill copy is required for Codex discovery.
-The higher-priority workflow bootstrap is stored in the repository at `~/.codex/superpowers/.codex/instruction.md` and is activated through `model_instructions_file` in the user's Codex config.
+The workflow bootstrap is stored in the repository at `~/.codex/superpowers/.codex/instruction.md` and is activated through `model_instructions_file` in the user's Codex config.
 
 说明：`spec-governed-development` 是当前 Superpowers `openspec` 分支提供的 OpenSpec 治理入口 skill，用于先决定是否进入 OpenSpec lane。它不是 `openspec-apply-change` 的改名；后者仍然是独立的 OpenSpec 执行 skill，会在进入 OpenSpec lane 后继续接手实现阶段。
 
 ## Usage
 
-Skills are discovered automatically, but Superpowers should stay in Direct Mode by default. Codex should activate workflow skills only when:
-- You mention a skill by name (e.g., "use brainstorming")
-- You use a clear workflow keyword such as design, planning, debugging, review, or implementation coordination
-- The `using-superpowers` skill directs Codex to use one
-- If a request looks like an important change but no OpenSpec lane or change has been chosen yet, Superpowers should use `request_user_input` before writing ordinary design/plan docs to ask whether to create an OpenSpec proposal first.
-- Once an OpenSpec proposal / change is created, that work remains in the OpenSpec lane until archive completes; archive is part of closure, not an optional afterthought.
+Direct Mode is the default for ordinary questions and non-behavioral text edits.
+Use a named skill or the skill matching the current design, planning, debugging,
+review or execution request. A lightweight subtask does not inherit a full
+workflow. Behavior-shaping Markdown changes still need relevant validation.
 
-Plain Q&A, translation, summarization/rewrite, text-only changes, UI copy-only edits, comments-only edits, and docs-only edits SHOULD stay in Direct Mode. They should not trigger heavyweight workflow skills or TDD by default.
+Read a selected skill entrypoint when needed, then load references on demand.
+Reuse unchanged context. See [using-superpowers](../skills/using-superpowers/SKILL.md)
+for the shared routing, authorization and completion rules.
 
-If a workflow is already active and the current subtask is lightweight, that subtask should be downgraded to direct handling. The answer must be shown directly, and the subtask must not inherit workflow `terminal-choice` / `request_user_input` popups before the result is visible.
+OpenSpec is for existing governed changes, explicit/project-required governance
+or material risks needing durable decisions, not every feature or multi-step edit.
+The current request can finish while a larger change remains open. Archive follows
+change completion, required integration and authorization.
 
 ## Choice-Based Interaction
 
-Superpowers skill prompts use structured numbered choices by default for user-choice moments instead of requiring natural-language approval phrases.
-
-- Put the recommended option in slot `1`.
-- Prefer 2-4 options.
-- For non-dangerous, enumerable choices, use `request_user_input` by default when available so the user gets a tool-backed choice UI instead of a prose-only numbered reply prompt.
-- Keep a final free-text fallback when the scenario allows additional input beyond the listed choices.
-- When the assistant writes prose-numbered options or text fallbacks itself, use ASCII `1. `, `2. `, and `3. ` numbering instead of `1。`.
-- For dangerous or destructive enumerable choices, use two-stage confirmation by default: a numbered choice first, then a second numbered confirmation step.
-- In the second destructive step, put the safe exit in slot `1` and put the final destructive confirmation in slot `2` of the second step.
-- If a dangerous action still requires typed text, show the exact text as copyable text.
-- For Codex tool-backed terminal-choice popups, author only `结束 (Recommended)` and `继续`; rely on the client-provided `Other` / notes path for free-form requirements instead of adding a duplicate authored free-form option.
-
-This does not mean Superpowers can force raw single-key submit inside Codex CLI. True "press one key and continue immediately" behavior still depends on the Codex input layer, not the skill documents.
-The automatic numbering prefix shown inside a `request_user_input` popup belongs to the Codex UI/input-layer boundary, not to the skill documents.
-
-## Endgate Hard Rule
-
-Before any workflow turn ends:
-
-- Never stop after a prose-only summary, recommendation, or next-step proposal.
-- This includes value-framed endings such as `如果你愿意，我下一步最有价值的不是继续泛讨论，而是直接……`.
-- Every workflow boundary in this repository uses `endgate-state-packet`; this repository is in strict packet mode.
-- In strict packet mode, a canonical machine-readable carrier must exist before the next machine action.
-- If the runtime supports a structured carrier, prefer a structured carrier over a user-visible tail block; the tail block is not required and remains only a fallback.
-- If the boundary is non-terminal, continue automatically or call `request_user_input`; never end with `task_complete`.
+Ask only about missing information, material tradeoffs or new authority.
+Use request_user_input when available and permitted for the question; otherwise
+ask a concise plain-text question. Use the client's free-text fallback when
+provided, without duplicating it. Follow the host's confirmation rules for
+high-risk actions. A skill does not grant commit, push, PR or merge permission.
 
 ## Autonomous Continuation
 
-If the user asked for end-to-end completion, Superpowers should keep advancing the workflow according to the turn-end gate below whenever no clarification is needed.
+Continue safe, authorized work across routine summaries and phase boundaries.
+Conditional authorization becomes effective once its condition is satisfied.
+Do not pause merely because a plan was saved or a check passed.
 
-- Before ending a workflow turn, classify the turn as `auto-continue`, `needs-user-decision`, or `terminal-choice`.
-- `auto-continue`: the next safe step is already implied; execute it immediately.
-- `needs-user-decision`: the workflow cannot safely continue until the user chooses among concrete options; use `request_user_input`.
-- `terminal-choice`: the requested work appears complete, but do not end directly; use `request_user_input`.
-- In Codex tool-backed terminal-choice popups, author only:
-  1. 结束 (Recommended)
-  2. 继续
-- Treat free-form requirements as the client-provided `Other` / notes path instead of authoring a duplicate free-form option.
-- For checkpoint, handoff, and terminal-choice nodes driven by `request_user_input`, the `request_user_input` call and its transcript event are the machine contract; surrounding prose is explanatory only.
-- Every workflow boundary in this repository is carrier-backed; validate that boundary from the last canonical carrier forward so earlier same-turn tool calls do not satisfy a later endgate declaration.
-- When a canonical carrier exists, treat that carrier plus the post-carrier event sequence as the primary runtime contract; invitation prose remains only a fallback safety net for legacy lanes.
-- In strict packet mode, a canonical machine-readable carrier must exist before the next machine action.
-- Prefer a structured carrier when the runtime supports it; a user-visible tail block remains only a fallback.
-- At every workflow boundary in this repository, ensure the canonical machine-readable carrier contains this exact packet before the next machine action:
-```text
-ENDGATE_PROTOCOL_VERSION: 1
-ENDGATE_STATE: AUTO_CONTINUE | NEEDS_USER_DECISION | TERMINAL_CHOICE
-ENDGATE_CHOICE_KIND: NONE | SPECIFIC_NEXT_STEP | CONTINUE_OR_STOP
-ENDGATE_NEXT_ACTION: CONTINUE_WITH_TOOL | REQUEST_USER_INPUT
-```
-- Canonical packet pairings:
-  - `AUTO_CONTINUE` -> `NONE` + `CONTINUE_WITH_TOOL`
-  - `NEEDS_USER_DECISION` -> `SPECIFIC_NEXT_STEP` + `REQUEST_USER_INPUT`
-  - `TERMINAL_CHOICE` -> `CONTINUE_OR_STOP` + `REQUEST_USER_INPUT`
-- `AUTO_CONTINUE`: ensure the canonical carrier records this packet, then immediately take the concrete continuation action.
-- `NEEDS_USER_DECISION`: ensure the canonical carrier records this packet, then immediately call `request_user_input` with the concrete next-step options.
-- `TERMINAL_CHOICE`: ensure the canonical carrier records this packet, then immediately call `request_user_input` with only `结束 (Recommended)` and `继续`.
-- When the turn reaches `terminal-choice`, the next action is the popup itself. The very next action must be `request_user_input`.
-- Do not produce a plain final-answer-style closeout before the terminal-choice popup.
-- A completed assessment, audit, review, comparison, or research report is still a terminal boundary. After presenting that report, the assistant must emit the `TERMINAL_CHOICE` packet and immediately call `request_user_input`; a bare closeout block such as `结论`, `最终判断`, `我的推荐`, or `这轮我没有改代码，只做了……` is still a protocol failure if it ends the turn directly.
-- A settled recommendation, final draft, or final summary is still not permission to end directly.
-- Do not call `task_complete` or otherwise end the turn while the terminal-choice popup is still pending.
-- Do not stop after summaries, checkpoints, or phase completions just to ask whether to continue.
-- Summaries, checkpoints, and phase completions are progress updates, not automatic stop points.
-- These terminal endgate rules apply across all local skills in this repository, not only the core workflow skills that first introduced them.
-- Contingent authorization counts as prior authorization. If the user says `如果没问题就继续下一阶段`, `如果设计合理就开始实现`, or `if this is sound, continue to phase 2`, then a positive judgment means the condition is satisfied and the turn is `auto-continue`, not a new approval gate.
-- Do not stop after announcing that judgment. Headings or conclusion blocks such as `最终判断`, `现在可以把结论更新为`, `项目现在可以稳妥进入 signing 阶段`, or similar "this can now safely move to the next phase" language are still prose-only endings if they are followed by `task_complete` instead of the already-authorized next step.
-- A typed free-form stop request, approval word, or natural-language "continue/stop" reply prompt must not replace the `terminal-choice` popup when the workflow is truly complete.
-- If the next action is already implied and safe, take it.
-- If a bug belongs to an active OpenSpec change, recover that governed context before proposing fixes by reading `proposal.md`, `design.md`, `specs/*`, and `tasks.md`.
-- If the current turn already knows the next OpenSpec lane, keep it in `auto-continue`: remaining governed work should continue into `openspec-apply-change`, and a complete archive-compatible active OpenSpec change should continue into `openspec-archive-change`.
-- If the assistant created an OpenSpec proposal / change for the work, final completion must continue into `openspec-archive-change`; archive is not optional and must not be replaced by a generic stop or terminal-choice popup.
-- If the only remaining real decision is continue vs stop, ask that through `request_user_input`; otherwise ask the more specific next-step choice instead of collapsing it into a generic continue/stop prompt.
-- Non-terminal workflow stages must not end with a prose-only follow-up or declarative prose-only next-step proposal such as `if you agree`, `if this direction looks good`, `the next best step is X`, or `I can directly prepare X next`.
-- This also includes judgment-framed, comparative, recommendation-framed, or value-framed next-step proposals, including Chinese variants such as `如果按我的判断，下一步应该先……`, `下一步最值得做的不是 A，而是 B`, `接下来更值得做的是……`, `我建议先……`, or `如果你愿意，我下一步最有价值的不是继续泛讨论，而是直接……`.
-- A concrete leak example is `如果你愿意，我下一步最有价值的不是继续泛讨论，而是直接把这次评估收敛成一份可执行清单。`
-- A non-terminal turn must not end with `task_complete` after only a summary, recommendation, judgment, comparison, or suggestion about what to do next.
-- If the assistant can already describe the next safe step concretely, it should do it rather than narrating and stopping.
-- Either continue automatically or use `request_user_input` when a real decision remains and the choices are enumerable.
-- Pause only when missing information would change the work, a destructive or external action needs confirmation, or a material tradeoff still needs the user's decision.
-- If an imported, external, foreign, or lower-priority skill says there is no required ending, says to just provide clarity, says continue later, or otherwise permits a free-form ending, that guidance is overridden here whenever strict packet mode applies.
-- Those imported free-ending stances must not relax the canonical carrier requirement, the `request_user_input` requirement, or the ban on `task_complete` after a prose-only closeout.
+Completed requests, including reviews and reports, finish directly with evidence
+and limitations. Do not ask the user to choose end/continue after completion.
+Before reporting a blocker, investigate safely and complete independent work.
+
+## Legacy Endgate Compatibility
+
+Version 1 packets remain supported for explicitly enabled legacy integrations
+and transcript replay, not by default for all workflows. A compatible consumer
+and available, permitted request_user_input tool are prerequisites.
+The [packet specification](../openspec/specs/endgate-state-packet/spec.md)
+defines its unchanged schema and pairings. Structured carriers are preferred;
+visible tail blocks remain a fallback. The optional wrapper only hides packet
+rendering; it does not enable strict mode.
+
+Normal completion does not emit a version 1 packet or send a new DONE enum to an
+old consumer. If an integration is unavailable, disclose the limit and use the
+normal completion/decision path where permitted.
 
 ## Reviewer Subagents
 
-Reviewers are the only subagents Superpowers dispatches. Implementation runs in the current session.
-
-- Reviewers are dispatched at the review gates in `brainstorming`, `writing-plans`, and `requesting-code-review`.
-- Each reviewer receives precisely crafted context, never the session history.
-- Reviewers run read-only. A reviewer that can edit files silently fixes what it should be reporting.
-- Code review happens once per plan, after every task is complete and verified, covering the full accumulated diff.
-
-If a task would genuinely benefit from a subagent beyond these review gates, decide that in the moment. There is no prescribed execution-mode routing to follow.
+Independent read-only review is useful for shared behavior and high-risk changes,
+not mandatory for every edit. Provide scoped artifacts and the complete task diff,
+including staged, unstaged and untracked work. Use supported runtime capabilities;
+do not change global configuration just to satisfy a default review gate.
+If independent review is unavailable, self-review and disclose the limitation.
+A specifically required external approval can block integration, not reporting
+or preservation of the work.
 
 ## Execution Workspace
 
